@@ -6,6 +6,7 @@ import { authRoutes } from './handlers/auth';
 import { tweetRoutes } from './handlers/tweet';
 import { mediaRoutes } from './handlers/media';
 import { timelineRoutes } from './handlers/timeline';
+import { ExtendedRequest } from './types';
 
 // Create a new router
 const router = Router();
@@ -22,7 +23,6 @@ router.get('/auth/callback', authRoutes.handleCallback);
 router.delete('/auth/revoke', validateApiKey, authRoutes.revokeToken);
 
 // Tweet routes
-router.post('/api/tweets', validateApiKey, tweetRoutes.unifiedTweet); // New unified endpoint
 router.post('/api/tweet', validateApiKey, tweetRoutes.postTweet);
 router.post('/api/retweet', validateApiKey, tweetRoutes.retweet);
 router.post('/api/quote', validateApiKey, tweetRoutes.quoteTweet);
@@ -52,11 +52,12 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
       // Add env and ctx to the request object for use in handlers
-      (request as any).env = env;
-      (request as any).ctx = ctx;
+      const extendedRequest = request as ExtendedRequest;
+      extendedRequest.env = env;
+      extendedRequest.ctx = ctx;
       
       // Handle the request with the router
-      return await router.handle(request);
+      return await router.handle(extendedRequest);
     } catch (error) {
       // Handle any uncaught errors
       return handleErrors(error);

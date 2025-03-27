@@ -1,4 +1,5 @@
 import { Env } from '../index';
+import { ExtendedRequest } from '../types';
 
 /**
  * Validate the API key in the request
@@ -14,7 +15,7 @@ export const validateApiKey = async (request: Request): Promise<Response | void>
   }
   
   // Get the environment from the request
-  const env = (request as any).env as Env;
+  const env = (request as ExtendedRequest).env;
   
   // Parse the API keys from the environment variable
   let apiKeys: Record<string, string[]> = {};

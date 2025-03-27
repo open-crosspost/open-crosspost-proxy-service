@@ -1,11 +1,12 @@
 import { Env } from '../index';
+import { ExtendedRequest } from '../types';
 
 /**
  * Handle CORS preflight requests and add CORS headers to all responses
  */
 export const handleCors = (request: Request): Response | void => {
   // Get allowed origins from environment variable
-  const env = (request as any).env as Env;
+  const env = (request as ExtendedRequest).env;
   const allowedOrigins = env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',') : [];
   
   // Get the request origin
@@ -33,14 +34,14 @@ export const handleCors = (request: Request): Response | void => {
   // For actual requests, add CORS headers to the response
   // This is a middleware, so we don't return a response here
   // Instead, we add the headers to the request object for later use
-  (request as any).corsHeaders = corsHeaders;
+  (request as ExtendedRequest).corsHeaders = corsHeaders;
 };
 
 /**
  * Add CORS headers to a response
  */
 export const addCorsHeaders = (response: Response, request: Request): Response => {
-  const corsHeaders = (request as any).corsHeaders || {};
+  const corsHeaders = (request as ExtendedRequest).corsHeaders || {};
   
   // Create a new response with the CORS headers
   const newResponse = new Response(response.body, response);

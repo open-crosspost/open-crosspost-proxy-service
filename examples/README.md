@@ -1,10 +1,10 @@
-# Twitter Proxy API - Unified Tweet API
+# Twitter Proxy API - Enhanced Tweet API
 
-This directory contains examples and documentation for the Twitter Proxy API, with a focus on the new unified tweet API.
+This directory contains examples and documentation for the Twitter Proxy API, with a focus on the enhanced tweet API capabilities.
 
-## Unified Tweet API
+## Enhanced Tweet API
 
-The Twitter Proxy now provides a simplified, unified API for all tweet operations through the `/api/tweets` endpoint. This new API makes it easy to:
+The Twitter Proxy now provides a simplified API for all tweet operations. The existing endpoints have been enhanced to support:
 
 - Post single tweets
 - Create threaded tweets
@@ -13,11 +13,6 @@ The Twitter Proxy now provides a simplified, unified API for all tweet operation
 - Quote tweets
 - Mix and match these features in flexible ways
 
-## API Endpoint
-
-```
-POST /api/tweets
-```
 
 ## Request Format
 
@@ -65,13 +60,13 @@ The API accepts either a single tweet object or an array of tweet objects for th
 
 ## Examples
 
-### JavaScript Example
+### JavaScript Examples
 
-See [unified-tweet-examples.js](./unified-tweet-examples.js) for complete JavaScript examples.
+See [updated-api-examples.js](./updated-api-examples.js) for complete JavaScript examples of using the enhanced API.
 
 ### TypeScript Test File
 
-For a complete test suite demonstrating all features of the unified API, see [test-unified-api.ts](./test-unified-api.ts). This file includes examples of:
+For a complete test suite demonstrating all features of the enhanced API, see [test-unified-api.ts](./test-unified-api.ts). This file includes examples of:
 
 - Posting simple tweets
 - Creating threads
@@ -91,7 +86,7 @@ const tweet = {
   text: 'This is a simple tweet!'
 };
 
-fetch('https://your-twitter-proxy.example.com/api/tweets', {
+fetch('https://your-twitter-proxy.example.com/api/tweet', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -142,7 +137,7 @@ twitter.quote('tweet-id', 'Check out this tweet:').then(response => {
 
 ## Media Handling
 
-The unified API handles media uploads automatically. You can include media directly in your tweet request:
+The enhanced API handles media uploads automatically. You can include media directly in your tweet request:
 
 ```javascript
 const tweet = {
@@ -165,19 +160,19 @@ The API will:
 
 This eliminates the need for separate media upload calls before posting a tweet.
 
-## Backward Compatibility
+## API Endpoints
 
-The existing endpoints continue to work as before:
+All endpoints have been enhanced while maintaining backward compatibility:
 
-- `/api/tweet` - Post a single tweet
+- `/api/tweet` - Post a single tweet or thread
 - `/api/retweet` - Retweet a tweet
-- `/api/quote` - Quote a tweet
-- `/api/reply` - Reply to a tweet
+- `/api/quote` - Quote a tweet (single or thread)
+- `/api/reply` - Reply to a tweet (single or thread)
 - `/api/like/:id` - Like a tweet
 - `/api/unlike/:id` - Unlike a tweet
 - `/api/tweet/:id` - Delete a tweet (DELETE method)
 
-However, the new unified endpoint is recommended for all new integrations.
+The enhanced endpoints maintain backward compatibility with existing code while providing new capabilities.
 
 ## Error Handling
 

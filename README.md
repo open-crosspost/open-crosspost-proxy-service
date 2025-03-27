@@ -17,28 +17,25 @@ A secure Cloudflare Workers proxy for the Twitter API that allows authorized fro
 
 - `POST /auth/init`: Initiates Twitter OAuth flow, returns authorization URL
 - `GET /auth/callback`: Handles OAuth callback from Twitter
-- `POST /auth/refresh`: Manually triggers token refresh
 - `DELETE /auth/revoke`: Revokes access and removes stored tokens
 
 ### Twitter API Endpoints
 
-#### Unified Tweet API (Recommended)
+#### Enhanced Tweet API
 
-- `POST /api/tweets`: Unified endpoint for all tweet operations (single tweets, threads, replies, quotes with media)
+All endpoints have been enhanced to support threaded content and direct media uploads:
 
-See the [examples directory](./examples/README.md) for detailed documentation and usage examples of the unified API.
-
-#### Legacy Endpoints
-
-- `POST /api/tweet`: Post a new tweet
+- `POST /api/tweet`: Post a tweet or thread with media
+- `POST /api/quote`: Quote tweet (single or thread) with media
+- `POST /api/reply`: Reply to a tweet (single or thread) with media
 - `POST /api/retweet`: Retweet an existing tweet
-- `POST /api/quote`: Quote tweet an existing tweet
 - `DELETE /api/tweet/:id`: Delete a tweet
 - `POST /api/like/:id`: Like a tweet
 - `DELETE /api/like/:id`: Unlike a tweet
-- `POST /api/reply`: Reply to a tweet
 - `GET /api/timeline`: Get user timeline
 - `GET /api/mentions`: Get user mentions
+
+See the [examples directory](./examples/README.md) for detailed documentation and usage examples of the enhanced API.
 
 ### Media Endpoints
 

@@ -2,7 +2,7 @@
  * Error handling middleware
  * This middleware catches errors and returns appropriate responses
  */
-import { ApiRequestError, ApiPartialResponseError, ApiResponseError, ETwitterApiError } from 'twitter-api-v2';
+import { ApiPartialResponseError, ApiRequestError, ApiResponseError } from 'twitter-api-v2';
 
 // Define error types
 export enum ErrorType {
@@ -75,7 +75,7 @@ export const handleErrors = (error: Error | ApiError | any): Response => {
         details: error.details,
       },
     };
-  } 
+  }
   // Handle Twitter API Request errors (network errors, bad URL, etc.)
   else if (error instanceof ApiRequestError) {
     status = 502; // Bad Gateway
@@ -121,9 +121,9 @@ export const handleErrors = (error: Error | ApiError | any): Response => {
     // Create detailed error response
     errorResponse = {
       error: {
-        type: error.rateLimitError ? ErrorType.RATE_LIMIT : 
-              error.isAuthError ? ErrorType.AUTHENTICATION : 
-              ErrorType.TWITTER_API,
+        type: error.rateLimitError ? ErrorType.RATE_LIMIT :
+          error.isAuthError ? ErrorType.AUTHENTICATION :
+            ErrorType.TWITTER_API,
         message: error.message,
         code: error.code?.toString(),
         details: {
@@ -171,13 +171,13 @@ export const handleErrors = (error: Error | ApiError | any): Response => {
 export const Errors = {
   authentication: (message: string, code?: string) =>
     new ApiError(ErrorType.AUTHENTICATION, message, 401, code),
-  
+
   authorization: (message: string, code?: string) =>
     new ApiError(ErrorType.AUTHORIZATION, message, 403, code),
-  
+
   validation: (message: string, details?: any) =>
     new ApiError(ErrorType.VALIDATION, message, 400, undefined, details),
-  
+
   rateLimit: (message: string, retryAfter?: number) =>
     new ApiError(
       ErrorType.RATE_LIMIT,
@@ -186,16 +186,16 @@ export const Errors = {
       undefined,
       { retryAfter }
     ),
-  
+
   twitterApi: (message: string, code?: string, details?: any) =>
     new ApiError(ErrorType.TWITTER_API, message, 502, code, details),
-  
+
   twitterRequest: (message: string, details?: any) =>
     new ApiError(ErrorType.TWITTER_REQUEST, message, 502, 'REQUEST_FAILED', details),
-  
+
   twitterPartialResponse: (message: string, details?: any) =>
     new ApiError(ErrorType.TWITTER_PARTIAL_RESPONSE, message, 502, 'PARTIAL_RESPONSE', details),
-  
+
   internal: (message: string) =>
     new ApiError(ErrorType.INTERNAL, message, 500),
 };

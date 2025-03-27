@@ -1,5 +1,6 @@
 import { Env } from '../index';
 import { MediaService } from '../services/MediaService';
+import { ExtendedRequest } from '../types';
 
 /**
  * Media handlers
@@ -10,7 +11,7 @@ export const mediaRoutes = {
    */
   async uploadMedia(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Media service instance
     const mediaService = new MediaService(env);
@@ -24,7 +25,7 @@ export const mediaRoutes = {
    */
   async getMediaStatus(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Media service instance
     const mediaService = new MediaService(env);

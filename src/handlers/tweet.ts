@@ -1,31 +1,18 @@
 import { Env } from '../index';
 import { TweetService } from '../services/TweetService';
 import { LikeService } from '../services/LikeService';
+import { ExtendedRequest } from '../types';
 
 /**
  * Tweet handlers
  */
 export const tweetRoutes = {
   /**
-   * Unified tweet handler
-   * Handles all tweet types (regular, reply, quote, thread) with media
-   */
-  async unifiedTweet(request: Request): Promise<Response> {
-    // Get the environment from the request
-    const env = (request as any).env as Env;
-    
-    // Create a Tweet service instance
-    const tweetService = new TweetService(env);
-    
-    // Use the unified tweet method
-    return await tweetService.unifiedTweet(request);
-  },
-  /**
    * Post a new tweet
    */
   async postTweet(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Tweet service instance
     const tweetService = new TweetService(env);
@@ -39,7 +26,7 @@ export const tweetRoutes = {
    */
   async retweet(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Tweet service instance
     const tweetService = new TweetService(env);
@@ -53,7 +40,7 @@ export const tweetRoutes = {
    */
   async quoteTweet(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Tweet service instance
     const tweetService = new TweetService(env);
@@ -67,7 +54,7 @@ export const tweetRoutes = {
    */
   async deleteTweet(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Tweet service instance
     const tweetService = new TweetService(env);
@@ -81,7 +68,7 @@ export const tweetRoutes = {
    */
   async likeTweet(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Like service instance
     const likeService = new LikeService(env);
@@ -95,7 +82,7 @@ export const tweetRoutes = {
    */
   async unlikeTweet(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Like service instance
     const likeService = new LikeService(env);
@@ -109,7 +96,7 @@ export const tweetRoutes = {
    */
   async replyToTweet(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Tweet service instance
     const tweetService = new TweetService(env);

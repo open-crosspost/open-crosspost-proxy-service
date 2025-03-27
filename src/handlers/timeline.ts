@@ -1,5 +1,6 @@
 import { Env } from '../index';
 import { TimelineService } from '../services/TimelineService';
+import { ExtendedRequest } from '../types';
 
 /**
  * Timeline handlers
@@ -10,7 +11,7 @@ export const timelineRoutes = {
    */
   async getUserTimeline(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Timeline service instance
     const timelineService = new TimelineService(env);
@@ -24,7 +25,7 @@ export const timelineRoutes = {
    */
   async getUserMentions(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Timeline service instance
     const timelineService = new TimelineService(env);
@@ -38,7 +39,7 @@ export const timelineRoutes = {
    */
   async getUserLikes(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Timeline service instance
     const timelineService = new TimelineService(env);
@@ -52,7 +53,7 @@ export const timelineRoutes = {
    */
   async getTweet(request: Request): Promise<Response> {
     // Get the environment from the request
-    const env = (request as any).env as Env;
+    const env = (request as ExtendedRequest).env;
     
     // Create a Timeline service instance
     const timelineService = new TimelineService(env);
