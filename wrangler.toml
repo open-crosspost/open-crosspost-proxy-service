@@ -1,0 +1,29 @@
+name = "twitter-proxy"
+main = "dist/index.js"
+compatibility_date = "2023-10-30"
+node_compat = true
+
+[build]
+command = "npm run build"
+
+[vars]
+ALLOWED_ORIGINS = ""
+
+[[kv_namespaces]]
+binding = "TOKENS"
+id = "tokens-id-placeholder"
+preview_id = "tokens-preview-id-placeholder"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "twitter-proxy"
+database_id = "db-id-placeholder"
+preview_database_id = "db-preview-id-placeholder"
+
+[env.staging]
+name = "twitter-proxy-staging"
+vars = { ENVIRONMENT = "staging" }
+
+[env.production]
+name = "twitter-proxy-production"
+vars = { ENVIRONMENT = "production" }

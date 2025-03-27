@@ -1,0 +1,107 @@
+# Twitter API Proxy Project Rules
+
+## Project Patterns
+
+1. **TypeScript Usage**
+   - Use TypeScript for all code files
+   - Maintain strict type checking
+   - Use interfaces for API request/response types
+   - Leverage type guards for runtime type checking
+
+2. **Code Organization**
+   - Follow the defined directory structure in the architecture document
+   - Group related functionality in dedicated modules
+   - Use barrel exports (index.ts) for cleaner imports
+   - Keep files focused on a single responsibility
+
+3. **Error Handling**
+   - Use structured error responses with consistent format
+   - Implement proper error classification
+   - Log errors with appropriate context
+   - Handle all promise rejections explicitly
+
+4. **Security Practices**
+   - Never log sensitive information (tokens, keys)
+   - Always validate and sanitize input
+   - Use encryption for sensitive data storage
+   - Implement proper CORS restrictions
+
+5. **Testing Approach**
+   - Write unit tests for all services and utilities
+   - Create integration tests for API endpoints
+   - Mock external dependencies in tests
+   - Aim for high test coverage of critical paths
+
+## Development Workflow
+
+1. **Code Style**
+   - Follow ESLint and Prettier configurations
+   - Use meaningful variable and function names
+   - Add JSDoc comments for public APIs
+   - Keep functions small and focused
+
+2. **Git Workflow**
+   - Use feature branches for development
+   - Write descriptive commit messages
+   - Squash commits before merging
+   - Keep PRs focused on single features/fixes
+
+3. **Documentation**
+   - Document all API endpoints
+   - Keep code comments up to date
+   - Update memory bank when making significant changes
+   - Document environment variables and configuration
+
+## Implementation Guidelines
+
+1. **Authentication Implementation**
+   - Use PKCE flow for OAuth
+   - Implement proper state validation
+   - Store tokens with encryption
+   - Refresh tokens proactively before expiration
+
+2. **Rate Limiting Strategy**
+   - Track rate limits from Twitter response headers
+   - Implement client-side rate limiting
+   - Use exponential backoff for retries
+   - Queue requests when approaching limits
+
+3. **Media Upload Handling**
+   - Use chunked upload for large media
+   - Implement proper error handling for uploads
+   - Track upload status in D1
+   - Support all required media types
+
+4. **Performance Optimization**
+   - Minimize KV operations
+   - Use appropriate caching strategies
+   - Optimize payload sizes
+   - Monitor and optimize response times
+
+## Deployment Rules
+
+1. **Environment Management**
+   - Maintain separate dev, staging, and prod environments
+   - Use environment-specific variables
+   - Test thoroughly in staging before production
+   - Implement proper secrets management
+
+2. **Monitoring Setup**
+   - Set up structured logging
+   - Configure appropriate alerts
+   - Monitor rate limit usage
+   - Track error rates and performance metrics
+
+## User Preferences
+
+1. **Code Editor Setup**
+   - Use VSCode with recommended extensions
+   - Configure auto-formatting on save
+   - Use consistent indentation (2 spaces)
+   - Enable TypeScript strict mode
+
+2. **Development Tools**
+   - Use Wrangler for local development
+   - Leverage Cloudflare dashboard for monitoring
+   - Use Jest for testing
+   - Implement GitHub Actions for CI/CD
