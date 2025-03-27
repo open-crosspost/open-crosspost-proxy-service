@@ -32,8 +32,6 @@ All endpoints have been enhanced to support threaded content and direct media up
 - `DELETE /api/tweet/:id`: Delete a tweet
 - `POST /api/like/:id`: Like a tweet
 - `DELETE /api/like/:id`: Unlike a tweet
-- `GET /api/timeline`: Get user timeline
-- `GET /api/mentions`: Get user mentions
 
 See the [examples directory](./examples/README.md) for detailed documentation and usage examples of the enhanced API.
 

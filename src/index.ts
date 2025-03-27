@@ -5,7 +5,6 @@ import { handleErrors } from './middleware/errors';
 import { authRoutes } from './handlers/auth';
 import { tweetRoutes } from './handlers/tweet';
 import { mediaRoutes } from './handlers/media';
-import { timelineRoutes } from './handlers/timeline';
 import { ExtendedRequest } from './types';
 
 // Create a new router
@@ -30,12 +29,6 @@ router.delete('/api/tweet/:id', validateApiKey, tweetRoutes.deleteTweet);
 router.post('/api/like/:id', validateApiKey, tweetRoutes.likeTweet);
 router.delete('/api/like/:id', validateApiKey, tweetRoutes.unlikeTweet);
 router.post('/api/reply', validateApiKey, tweetRoutes.replyToTweet);
-
-// Timeline routes
-router.get('/api/timeline', validateApiKey, timelineRoutes.getUserTimeline);
-router.get('/api/mentions', validateApiKey, timelineRoutes.getUserMentions);
-router.get('/api/likes', validateApiKey, timelineRoutes.getUserLikes);
-router.get('/api/tweet/:id', validateApiKey, timelineRoutes.getTweet);
 
 // Media routes
 router.post('/api/media/upload', validateApiKey, mediaRoutes.uploadMedia);

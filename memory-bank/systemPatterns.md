@@ -95,6 +95,18 @@ flowchart TD
     ProcessRequest --> UpdateLimits[Update Rate Limit Counters]
 ```
 
+### 6. Service Layer Pattern
+
+The application uses a Service Layer pattern to encapsulate business logic and provide a clean separation of concerns.
+
+```mermaid
+flowchart TD
+    Handler[Request Handler] --> Service[Service Layer]
+    Service --> TwitterAPI[Twitter API Client]
+    Service --> TokenStore[Token Storage]
+    Service --> ErrorHandler[Error Handling]
+```
+
 ## Component Relationships
 
 ### Core Components
@@ -112,32 +124,86 @@ classDiagram
         +revokeToken()
     }
     
+    class TweetHandler {
+        +postTweet()
+        +retweet()
+        +quoteTweet()
+        +deleteTweet()
+        +likeTweet()
+        +unlikeTweet()
+        +replyToTweet()
+    }
+    
+    class MediaHandler {
+        +uploadMedia()
+        +getMediaStatus()
+    }
+    
     class TwitterService {
+        +getTwitterClient()
+        +handleTwitterError()
+    }
+    
+    class TweetService {
         +tweet()
         +retweet()
-        +like()
-        +reply()
-        +getTimeline()
+        +quoteTweet()
+        +deleteTweet()
+        +replyToTweet()
     }
     
-    class TokenStore {
-        +getToken(userId)
-        +saveToken(userId, token)
-        +refreshToken(userId)
-        +deleteToken(userId)
+    class LikeService {
+        +likeTweet()
+        +unlikeTweet()
     }
     
-    class RateLimiter {
-        +checkLimit(userId, endpoint)
-        +updateLimit(userId, endpoint, response)
-        +handleRateLimitError(error)
+    class MediaService {
+        +uploadMedia()
+        +getMediaStatus()
+        +uploadMediaDirect()
+        +setAltTextDirect()
+    }
+    
+    class TokenService {
+        +getTokens()
+        +saveTokens()
+        +refreshTokens()
+        +deleteTokens()
+    }
+    
+    class AuthMiddleware {
+        +validateApiKey()
+        +extractUserId()
+    }
+    
+    class CorsMiddleware {
+        +handleCors()
+        +addCorsHeaders()
+    }
+    
+    class ErrorMiddleware {
+        +handleErrors()
     }
     
     Router --> AuthHandler
-    Router --> TwitterService
-    AuthHandler --> TokenStore
-    TwitterService --> TokenStore
-    TwitterService --> RateLimiter
+    Router --> TweetHandler
+    Router --> MediaHandler
+    
+    AuthHandler --> TwitterService
+    TweetHandler --> TweetService
+    TweetHandler --> LikeService
+    MediaHandler --> MediaService
+    
+    TweetService --> TwitterService
+    TweetService --> MediaService
+    LikeService --> TwitterService
+    MediaService --> TwitterService
+    
+    TwitterService --> TokenService
+    
+    Router --> AuthMiddleware
+    Router --> CorsMiddleware
+    Router --> ErrorMiddleware
 ```
 
 ## Data Flow Patterns
@@ -154,30 +220,51 @@ flowchart TD
     
     Callback[Auth Callback] --> ValidateState[Validate State]
     ValidateState --> ExchangeCode[Exchange Code for Tokens]
-    ExchangeCode --> EncryptTokens[Encrypt Tokens]
-    EncryptTokens --> StoreTokens[Store Tokens in KV]
+    ExchangeCode --> StoreTokens[Store Tokens in KV]
     StoreTokens --> GenerateSession[Generate Session ID]
     GenerateSession --> ReturnSession[Return Session to Client]
 ```
 
-### API Request Flow
+### Tweet Posting Flow
 
 ```mermaid
 flowchart TD
     Start[API Request] --> ValidateAPIKey[Validate API Key]
-    ValidateAPIKey --> CheckOrigin[Check Origin]
-    CheckOrigin --> GetUserId[Extract User ID]
-    GetUserId --> GetTokens[Retrieve Tokens]
+    ValidateAPIKey --> ExtractUserId[Extract User ID]
+    ExtractUserId --> GetTokens[Retrieve Tokens]
     GetTokens --> CheckTokens{Tokens Valid?}
     CheckTokens -->|No| RefreshToken[Refresh Token]
-    CheckTokens -->|Yes| CheckRateLimit[Check Rate Limits]
-    RefreshToken --> CheckRateLimit
-    CheckRateLimit --> AllowedRate{Within Limits?}
-    AllowedRate -->|No| QueueOrReject[Queue or Reject]
-    AllowedRate -->|Yes| CallTwitter[Call Twitter API]
-    CallTwitter --> HandleResponse[Handle Response]
-    HandleResponse --> UpdateRateLimits[Update Rate Limits]
-    UpdateRateLimits --> ReturnResponse[Return Response]
+    CheckTokens -->|Yes| ProcessMedia{Has Media?}
+    RefreshToken --> ProcessMedia
+    
+    ProcessMedia -->|Yes| UploadMedia[Upload Media]
+    ProcessMedia -->|No| PostTweet[Post Tweet]
+    UploadMedia --> PostTweet
+    
+    PostTweet --> HandleResponse[Handle Response]
+    HandleResponse --> ReturnResponse[Return Response]
+```
+
+### Media Upload Flow
+
+```mermaid
+flowchart TD
+    Start[Media Upload] --> ValidateMedia[Validate Media]
+    ValidateMedia --> CheckSize{Large File?}
+    
+    CheckSize -->|Yes| InitChunked[Initialize Chunked Upload]
+    CheckSize -->|No| SimpleUpload[Simple Upload]
+    
+    InitChunked --> UploadChunks[Upload Chunks]
+    UploadChunks --> FinalizeUpload[Finalize Upload]
+    
+    SimpleUpload --> CheckType{Is Video?}
+    FinalizeUpload --> CheckType
+    
+    CheckType -->|Yes| WaitProcessing[Wait for Processing]
+    CheckType -->|No| ReturnMediaId[Return Media ID]
+    
+    WaitProcessing --> ReturnMediaId
 ```
 
 ## Error Handling Patterns
@@ -211,4 +298,3 @@ flowchart TD
     Build --> DeployStaging[Deploy to Staging]
     DeployStaging --> StagingTests[Run Staging Tests]
     StagingTests --> DeployProd[Deploy to Production]
-```

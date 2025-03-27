@@ -16,6 +16,7 @@
 | Technology | Version | Purpose |
 |------------|---------|---------|
 | TypeScript | Latest | Primary development language |
+| Bun | Latest | Package manager and runtime |
 | Wrangler | Latest | Cloudflare Workers CLI tool |
 | Jest | Latest | Testing framework |
 | ESLint | Latest | Code quality and style enforcement |
@@ -25,7 +26,7 @@
 
 | Dependency | Purpose |
 |------------|---------|
-| agent-twitter-client | Twitter API communication library |
+| twitter-api-v2 | Twitter API communication library |
 | itty-router | HTTP routing for Cloudflare Workers |
 | jose | JWT handling and cryptographic operations |
 | @cloudflare/workers-types | TypeScript definitions for Workers |
@@ -34,7 +35,7 @@
 
 ### Prerequisites
 
-1. Node.js (LTS version)
+1. Node.js (LTS version) or Bun
 2. Cloudflare account with Workers subscription
 3. Wrangler CLI installed globally
 4. Twitter Developer account with API credentials
@@ -66,9 +67,14 @@ The project uses the following environment variables, which should be configured
 |----------|---------|
 | TWITTER_CLIENT_ID | Twitter OAuth client ID |
 | TWITTER_CLIENT_SECRET | Twitter OAuth client secret |
+| TWITTER_API_KEY | Twitter API key (for OAuth 1.0a) |
+| TWITTER_API_SECRET | Twitter API secret (for OAuth 1.0a) |
+| TWITTER_ACCESS_TOKEN | Twitter access token (for OAuth 1.0a) |
+| TWITTER_ACCESS_SECRET | Twitter access secret (for OAuth 1.0a) |
 | ENCRYPTION_KEY | Key for encrypting stored tokens |
 | ALLOWED_ORIGINS | Comma-separated list of allowed CORS origins |
 | API_KEYS | JSON string of valid API keys and their associated origins |
+| ENVIRONMENT | Current environment (development, staging, production) |
 
 ## Technical Constraints
 
@@ -90,8 +96,9 @@ The project uses the following environment variables, which should be configured
    - User-specific rate limits
 2. **Media Upload Limitations**:
    - 5MB image size limit
-   - 15MB video size limit
+   - 512MB video size limit (though practical limits are lower)
    - Specific format requirements
+   - OAuth 1.0a required for media uploads
 3. **OAuth Constraints**:
    - Token expiration and refresh requirements
    - Scope limitations
@@ -110,6 +117,10 @@ The project uses the following environment variables, which should be configured
    - Track rate limits proactively
    - Implement backoff strategies
    - Queue requests when approaching limits
+5. **Media Upload Optimization**:
+   - Use chunked uploads for large media
+   - Implement proper error handling and retries
+   - Monitor processing status for videos
 
 ## Security Considerations
 
@@ -158,3 +169,22 @@ The project uses the following environment variables, which should be configured
    - Integration tests for API endpoints
    - Mock Twitter API for testing
    - End-to-end tests in staging environment
+
+## API Design
+
+1. **Endpoint Structure**:
+   - RESTful API design
+   - Consistent URL patterns
+   - Proper HTTP method usage
+2. **Request/Response Format**:
+   - JSON for all responses
+   - Consistent error format
+   - Proper HTTP status codes
+3. **Authentication**:
+   - API key for client authentication
+   - User ID for user context
+   - OAuth tokens managed by the proxy
+4. **Documentation**:
+   - OpenAPI specification
+   - Example requests and responses
+   - Error code documentation
