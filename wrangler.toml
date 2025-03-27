@@ -8,6 +8,7 @@ command = "npm run build"
 
 [vars]
 ALLOWED_ORIGINS = ""
+# REDIS_URL = "" # Uncomment and set this to your Upstash Redis URL in production
 
 [[kv_namespaces]]
 binding = "TOKENS"
@@ -23,7 +24,9 @@ preview_database_id = "db-preview-id-placeholder"
 [env.staging]
 name = "twitter-proxy-staging"
 vars = { ENVIRONMENT = "staging" }
+# vars = { ENVIRONMENT = "staging", REDIS_URL = "" } # Uncomment and set REDIS_URL in production
 
 [env.production]
 name = "twitter-proxy-production"
 vars = { ENVIRONMENT = "production" }
+# vars = { ENVIRONMENT = "production", REDIS_URL = "" } # Uncomment and set REDIS_URL in production

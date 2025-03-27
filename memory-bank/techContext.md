@@ -27,8 +27,12 @@
 | Dependency | Purpose |
 |------------|---------|
 | twitter-api-v2 | Twitter API communication library |
+| @twitter-api-v2/plugin-token-refresher | Token refresh handling for Twitter API |
+| @twitter-api-v2/plugin-rate-limit | Rate limit tracking for Twitter API |
+| @twitter-api-v2/plugin-cache-redis | Redis-based caching for Twitter API requests |
 | itty-router | HTTP routing for Cloudflare Workers |
 | jose | JWT handling and cryptographic operations |
+| redis | Redis client for caching |
 | @cloudflare/workers-types | TypeScript definitions for Workers |
 
 ## Development Setup
@@ -75,6 +79,7 @@ The project uses the following environment variables, which should be configured
 | ALLOWED_ORIGINS | Comma-separated list of allowed CORS origins |
 | API_KEYS | JSON string of valid API keys and their associated origins |
 | ENVIRONMENT | Current environment (development, staging, production) |
+| REDIS_URL | Redis connection URL for caching (optional) |
 
 ## Technical Constraints
 
@@ -107,6 +112,8 @@ The project uses the following environment variables, which should be configured
 
 1. **Edge Deployment**: Leverage Cloudflare's global network for low-latency responses
 2. **Caching Strategy**:
+   - Redis-based caching for Twitter API responses
+   - Automatic cache invalidation based on rate limit reset times
    - Cache immutable responses
    - Use appropriate cache headers
    - Implement stale-while-revalidate pattern where appropriate
@@ -114,7 +121,8 @@ The project uses the following environment variables, which should be configured
    - Minimize KV operations
    - Batch updates when possible
 4. **Rate Limit Optimization**:
-   - Track rate limits proactively
+   - Track rate limits with TwitterApiRateLimitPlugin
+   - Expose rate limit status through API
    - Implement backoff strategies
    - Queue requests when approaching limits
 5. **Media Upload Optimization**:

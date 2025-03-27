@@ -13,6 +13,9 @@ The project has progressed from the initial setup phase to implementation. The c
 - Developed tweet, like, and media handling services
 - Implemented comprehensive error handling
 - Removed timeline service to focus on core action functionality
+- Integrated Twitter API rate limit plugin for tracking and managing rate limits
+- Added Redis-based caching support via Upstash for improved performance
+- Created rate limit status endpoint for monitoring API usage
 
 ## Active Decisions
 
@@ -62,10 +65,12 @@ The project has progressed from the initial setup phase to implementation. The c
    - Managing the Twitter API's complex media upload process
    - Supporting various media types and formats
 
-2. **Rate Limiting**:
-   - Implementing effective rate limit tracking
-   - Balancing client needs with Twitter API limitations
-   - Developing appropriate backoff strategies
+2. **Rate Limiting and Caching**:
+   - Implemented effective rate limit tracking with TwitterApiRateLimitPlugin
+   - Added Redis-based caching to reduce duplicate API calls
+   - Created endpoint for monitoring rate limit status
+   - Configured automatic cache invalidation based on rate limit reset times
+   - Still need to implement more sophisticated backoff strategies
 
 3. **Error Handling**:
    - Comprehensive error classification and handling
@@ -75,9 +80,10 @@ The project has progressed from the initial setup phase to implementation. The c
 ## Open Questions
 
 1. How can we optimize the media upload process for better performance?
-2. What's the best strategy for handling rate limits across multiple users?
-3. How should we implement circuit breaking for Twitter API failures?
-4. What metrics should we prioritize for monitoring and alerting?
+2. How should we implement circuit breaking for Twitter API failures?
+3. What metrics should we prioritize for monitoring and alerting?
+4. Should we implement custom Redis storage for rate limits to persist across worker restarts?
+5. How can we optimize Redis connection management in the serverless environment?
 
 ## Current Development Environment
 

@@ -10,11 +10,16 @@ flowchart TD
     Worker <--> Twitter[Twitter API]
     Worker <--> KV[Cloudflare KV]
     Worker <--> D1[Cloudflare D1]
+    Worker <--> Redis[Redis Cache]
     
     subgraph "Cloudflare Edge Network"
         Worker
         KV
         D1
+    end
+    
+    subgraph "External Services"
+        Redis
     end
 ```
 
@@ -84,15 +89,23 @@ flowchart TD
 
 ### 5. Rate Limit Manager Pattern
 
-A Rate Limit Manager tracks and enforces both Twitter API rate limits and client-side rate limits.
+A Rate Limit Manager tracks and enforces both Twitter API rate limits and client-side rate limits. The implementation uses the TwitterApiRateLimitPlugin to track rate limits automatically.
 
 ```mermaid
 flowchart TD
     Request[API Request] --> RateLimitCheck[Check Rate Limits]
     RateLimitCheck --> Allowed{Allowed?}
-    Allowed -->|Yes| ProcessRequest[Process Request]
+    Allowed -->|Yes| CacheCheck{Cache Hit?}
     Allowed -->|No| QueueOrReject[Queue or Reject]
+    
+    CacheCheck -->|Yes| ServeFromCache[Serve Cached Response]
+    CacheCheck -->|No| ProcessRequest[Process Request]
+    
     ProcessRequest --> UpdateLimits[Update Rate Limit Counters]
+    ProcessRequest --> CacheResponse[Cache Response]
+    
+    ServeFromCache --> ReturnResponse[Return Response]
+    CacheResponse --> ReturnResponse
 ```
 
 ### 6. Service Layer Pattern
@@ -105,6 +118,26 @@ flowchart TD
     Service --> TwitterAPI[Twitter API Client]
     Service --> TokenStore[Token Storage]
     Service --> ErrorHandler[Error Handling]
+```
+
+### 7. Cache-Aside Pattern
+
+The system implements a Cache-Aside pattern using Redis for caching Twitter API responses, reducing duplicate API calls and improving performance.
+
+```mermaid
+flowchart TD
+    Request[API Request] --> CheckCache[Check Cache]
+    CheckCache --> CacheHit{Cache Hit?}
+    
+    CacheHit -->|Yes| ServeCache[Serve from Cache]
+    CacheHit -->|No| CallAPI[Call Twitter API]
+    
+    CallAPI --> StoreCache[Store in Cache]
+    StoreCache --> SetExpiry[Set Expiry Based on Rate Limit]
+    SetExpiry --> ServeResponse[Serve API Response]
+    
+    ServeCache --> ReturnResponse[Return Response]
+    ServeResponse --> ReturnResponse
 ```
 
 ## Component Relationships
@@ -139,9 +172,16 @@ classDiagram
         +getMediaStatus()
     }
     
+    class RateLimitHandler {
+        +getRateLimitStatus()
+    }
+    
     class TwitterService {
         +getTwitterClient()
         +handleTwitterError()
+        +getRateLimitStatus()
+        +isRateLimited()
+        +isRateLimitObsolete()
     }
     
     class TweetService {
@@ -188,6 +228,7 @@ classDiagram
     Router --> AuthHandler
     Router --> TweetHandler
     Router --> MediaHandler
+    Router --> RateLimitHandler
     
     AuthHandler --> TwitterService
     TweetHandler --> TweetService

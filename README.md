@@ -10,6 +10,7 @@ A secure Cloudflare Workers proxy for the Twitter API that allows authorized fro
 - Rate limiting and circuit breaking
 - Support for all major Twitter API functions
 - Media upload handling
+- Redis-based request caching (optional)
 
 ## API Endpoints
 
@@ -103,6 +104,13 @@ bun run deploy:prod
 - Strict CORS policy is enforced
 - Token refresh is handled automatically
 - Rate limiting is implemented for both Twitter API and client requests
+- Optional Redis-based caching for improved performance and reduced API calls
+
+## Performance Optimizations
+
+- Rate limit tracking to avoid Twitter API limits
+- Redis-based request caching to reduce duplicate API calls
+- Automatic cache invalidation based on rate limit reset times
 
 ## License
 

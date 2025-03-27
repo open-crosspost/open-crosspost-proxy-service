@@ -1,5 +1,8 @@
 import { TwitterApiAutoTokenRefresher } from '@twitter-api-v2/plugin-token-refresher';
-import { ApiPartialResponseError, ApiRequestError, ApiResponseError, TwitterApi } from 'twitter-api-v2';
+import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
+import { TwitterApiCachePluginRedis } from '@twitter-api-v2/plugin-cache-redis';
+import { ApiPartialResponseError, ApiRequestError, ApiResponseError, ITwitterApiClientPlugin, TwitterApi } from 'twitter-api-v2';
+import { createClient } from 'redis';
 import { Env } from '../index';
 import { Errors } from '../middleware/errors';
 import { TokenStore, TwitterTokens } from './TokenService';
@@ -11,10 +14,30 @@ import { TokenStore, TwitterTokens } from './TokenService';
 export class BaseTwitterService {
   protected env: Env;
   protected tokenStore: TokenStore;
+  protected rateLimitPlugin: TwitterApiRateLimitPlugin;
+  protected redisClient: any;
+  protected redisPlugin: TwitterApiCachePluginRedis | null = null;
 
   constructor(env: Env) {
     this.env = env;
     this.tokenStore = new TokenStore(env);
+    this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
+    
+    // Initialize Redis client if REDIS_URL is available
+    if (env.REDIS_URL) {
+      try {
+        this.redisClient = createClient({
+          url: env.REDIS_URL
+        });
+        this.redisPlugin = new TwitterApiCachePluginRedis(this.redisClient, {
+          // Use default TTL (rate limit reset time)
+          // ttlIfNoRateLimit: 15 * 60 * 1000 // 15 minutes in milliseconds
+        });
+      } catch (error) {
+        console.error('Failed to initialize Redis client:', error);
+        // Continue without Redis cache if connection fails
+      }
+    }
   }
 
   /**
@@ -59,8 +82,16 @@ export class BaseTwitterService {
         }
       });
 
-      // Create a Twitter client with the access token and auto refresher plugin
-      return new TwitterApi(tokens.accessToken, { plugins: [autoRefresherPlugin] });
+      // Create plugins array with auto refresher and rate limit plugins
+      const plugins: ITwitterApiClientPlugin[] = [autoRefresherPlugin, this.rateLimitPlugin];
+      
+      // Add Redis cache plugin if available
+      if (this.redisPlugin) {
+        plugins.push(this.redisPlugin);
+      }
+
+      // Create a Twitter client with the access token and plugins
+      return new TwitterApi(tokens.accessToken, { plugins });
     } catch (error) {
       console.error('Error getting Twitter client:', error);
       throw error;
@@ -88,6 +119,38 @@ export class BaseTwitterService {
       status,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  /**
+   * Get the rate limit status for a specific endpoint
+   * @param endpoint The endpoint to check rate limits for
+   * @param version The API version (v1 or v2)
+   */
+  async getRateLimitStatus(endpoint: string, version: 'v1' | 'v2' = 'v2'): Promise<any> {
+    try {
+      return await this.rateLimitPlugin[version].getRateLimit(endpoint);
+    } catch (error) {
+      console.error('Error getting rate limit status:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if a rate limit has been hit
+   * @param rateLimitStatus The rate limit status object
+   */
+  isRateLimited(rateLimitStatus: any): boolean {
+    if (!rateLimitStatus) return false;
+    return this.rateLimitPlugin.hasHitRateLimit(rateLimitStatus);
+  }
+
+  /**
+   * Check if a rate limit status is obsolete (reset time has passed)
+   * @param rateLimitStatus The rate limit status object
+   */
+  isRateLimitObsolete(rateLimitStatus: any): boolean {
+    if (!rateLimitStatus) return true;
+    return this.rateLimitPlugin.isRateLimitStatusObsolete(rateLimitStatus);
   }
 
   /**

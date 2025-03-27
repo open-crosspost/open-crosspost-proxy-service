@@ -5,6 +5,7 @@ import { handleErrors } from './middleware/errors';
 import { authRoutes } from './handlers/auth';
 import { tweetRoutes } from './handlers/tweet';
 import { mediaRoutes } from './handlers/media';
+import { rateLimitRoutes } from './handlers/rate-limit';
 import { ExtendedRequest } from './types';
 
 // Create a new router
@@ -33,6 +34,9 @@ router.post('/api/reply', validateApiKey, tweetRoutes.replyToTweet);
 // Media routes
 router.post('/api/media/upload', validateApiKey, mediaRoutes.uploadMedia);
 router.get('/api/media/status/:id', validateApiKey, mediaRoutes.getMediaStatus);
+
+// Rate limit routes
+router.get('/api/rate-limit', validateApiKey, rateLimitRoutes.getRateLimitStatus);
 
 // Health check
 router.get('/health', () => new Response('OK', { status: 200 }));
@@ -72,4 +76,5 @@ export interface Env {
   ALLOWED_ORIGINS: string;
   API_KEYS: string;
   ENVIRONMENT: string;
+  REDIS_URL?: string;
 }
