@@ -43,11 +43,6 @@ export interface NearAuthData {
    * Callback URL
    */
   callback_url?: string;
-  
-  /**
-   * Scopes granted to the authentication
-   */
-  scopes?: string[];
 }
 
 /**

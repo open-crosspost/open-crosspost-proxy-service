@@ -35,12 +35,9 @@ export class NearAuthService {
         tag: 2147484061, // This is the tag value used in the Python implementation
         message: authData.message,
         nonce: nonce,
-        receiver: authData.recipient || 'crosspost.near',
-        callback_url: authData.callback_url
+        receiver: authData.recipient || 'crosspost.near'
       };
       
-
-      console.log("auth data", authData);
       // Validate signature
       const isValid = await this.validateSignature(
         authData.public_key,

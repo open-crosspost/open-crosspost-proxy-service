@@ -78,10 +78,6 @@ export class TwitterAuth implements PlatformAuth {
         clientReturnUrl // Store the client's return URL if provided
       };
       
-      if (clientReturnUrl) {
-        console.log("Storing client return URL in auth state:", clientReturnUrl);
-      }
-      
       // Initialize KV store
       await this.initializeKv();
       

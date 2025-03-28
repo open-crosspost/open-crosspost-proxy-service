@@ -303,7 +303,6 @@ export class AuthController {
 
       // Validate signature
       const validationResult = await nearAuthService.validateNearAuth(authData);
-      console.log("VALIDATED!!!!", validationResult.valid)
 
       if (!validationResult.valid) {
         return c.json({
