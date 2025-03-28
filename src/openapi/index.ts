@@ -97,18 +97,6 @@ export const openApiSpec: OpenAPIObject = {
   components: {
     schemas,
     securitySchemes: {
-      apiKey: {
-        type: 'apiKey',
-        in: 'header',
-        name: 'X-API-Key',
-        description: 'API key for client application authentication',
-      },
-      userId: {
-        type: 'apiKey',
-        in: 'header',
-        name: 'X-User-ID',
-        description: 'User ID for user context',
-      },
     },
   },
   security: [
@@ -143,6 +131,6 @@ export function generateOpenApiYaml(): string {
     .replace(/\]/g, '')
     .replace(/:/g, ': ')
     .replace(/\n/g, '\n');
-  
+
   return yaml;
 }

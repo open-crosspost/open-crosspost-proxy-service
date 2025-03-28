@@ -32,11 +32,7 @@ export const corsMiddleware = (): MiddlewareHandler => {
       return "";
     },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-API-Key", "X-User-ID", "X-Near-Account-Id",
-      "X-Near-Public-Key",
-      "X-Near-Signature",
-      "X-Near-Message",
-      "X-Near-Nonce"],
+    allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: ["X-Rate-Limit-Limit", "X-Rate-Limit-Remaining", "X-Rate-Limit-Reset"],
     maxAge: 600, // 10 minutes
     credentials: true,
