@@ -31,11 +31,12 @@ const api = new Hono();
 
 // Auth routes
 const auth = new Hono();
-auth.post("/init", (c) => authController.initializeAuth(c));
-auth.get("/callback", (c) => authController.handleCallback(c));
-auth.post("/refresh", (c) => authController.refreshToken(c));
-auth.delete("/revoke", (c) => authController.revokeToken(c));
-auth.get("/status", (c) => authController.hasValidTokens(c));
+auth.post("/init", AuthMiddleware.validateNearSignature(), (c) => authController.initializeAuth(c));
+auth.get("/callback", AuthMiddleware.validateNearSignature(), (c) => authController.handleCallback(c));
+auth.post("/refresh", AuthMiddleware.validateNearSignature(), (c) => authController.refreshToken(c));
+auth.delete("/revoke", AuthMiddleware.validateNearSignature(), (c) => authController.revokeToken(c));
+auth.get("/status", AuthMiddleware.validateNearSignature(), (c) => authController.hasValidTokens(c));
+auth.get("/accounts", AuthMiddleware.validateNearSignature(), (c) => authController.listConnectedAccounts(c));
 
 // Post routes
 const post = new Hono();
@@ -49,9 +50,9 @@ post.delete("/like/:id", AuthMiddleware.validateNearSignature(), (c) => postCont
 
 // Media routes
 const media = new Hono();
-media.post("/upload", (c) => mediaController.uploadMedia(c));
-media.get("/status/:id", (c) => mediaController.getMediaStatus(c));
-media.post("/:id/metadata", (c) => mediaController.updateMediaMetadata(c));
+media.post("/upload", AuthMiddleware.validateNearSignature(), (c) => mediaController.uploadMedia(c));
+media.get("/status/:id", AuthMiddleware.validateNearSignature(),  (c) => mediaController.getMediaStatus(c));
+media.post("/:id/metadata", AuthMiddleware.validateNearSignature(),  (c) => mediaController.updateMediaMetadata(c));
 
 // Rate limit routes
 const rateLimit = new Hono();

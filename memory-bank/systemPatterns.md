@@ -53,7 +53,9 @@ flowchart LR
     Gateway --> Platform[Platform APIs]
 ```
 
-### 3. OAuth Proxy Pattern
+### 3. Authentication Patterns
+
+#### 3.1 OAuth Proxy Pattern
 
 The system implements an OAuth Proxy pattern, handling the complete OAuth flow with social media platforms while providing a simplified authentication interface to clients.
 
@@ -72,6 +74,33 @@ sequenceDiagram
     Proxy->>KV: Store Tokens
     Proxy->>Client: Return Success
 ```
+
+#### 3.2 NEAR Wallet Signature Authentication Pattern
+
+The system supports authentication using NEAR wallet signatures, allowing users to authenticate and authorize actions using their NEAR wallet.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant NEAR Wallet
+    participant Proxy
+    participant Platform
+    
+    Client->>NEAR Wallet: Request Signature
+    NEAR Wallet->>Client: Return Signed Message
+    Client->>Proxy: Send Signature + Request
+    Proxy->>Proxy: Validate Signature
+    Proxy->>Proxy: Check Account Authorization
+    Proxy->>Platform: Execute Action with Stored Token
+    Platform->>Proxy: Return Result
+    Proxy->>Client: Return Result
+```
+
+This pattern enables:
+- Secure authentication without exposing OAuth tokens to the client
+- Multiple platform accounts linked to a single NEAR wallet
+- Cross-platform actions authorized by a single signature
+- Decentralized identity management
 
 ### 4. API Key Management Pattern
 

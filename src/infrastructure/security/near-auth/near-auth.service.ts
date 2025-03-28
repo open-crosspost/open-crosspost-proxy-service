@@ -60,7 +60,7 @@ export class NearAuthService {
       
       return {
         valid: true,
-        accountId: authData.account_id
+        signerId: authData.account_id
       };
     } catch (error: unknown) {
       console.error('Error validating NEAR authentication:', error);
@@ -168,17 +168,17 @@ export class NearAuthService {
   
   /**
    * Store a token for a NEAR account
-   * @param accountId NEAR account ID
+   * @param signerId NEAR account ID
    * @param platform Platform name (e.g., 'twitter')
    * @param userId User ID on the platform
    * @param token Token to store
    */
-  async storeToken(accountId: string, platform: string, userId: string, token: any): Promise<void> {
+  async storeToken(signerId: string, platform: string, userId: string, token: any): Promise<void> {
     try {
       if (!this.env.TOKENS) {
         throw new Error('TOKENS binding not available');
       }
-      const key = `${platform}:${accountId}:${userId}`;
+      const key = `${signerId}:${platform}:${userId}`;
       await this.env.TOKENS.put(key, JSON.stringify(token));
     } catch (error) {
       console.error('Error storing token:', error);
@@ -188,17 +188,17 @@ export class NearAuthService {
   
   /**
    * Get a token for a NEAR account
-   * @param accountId NEAR account ID
+   * @param signerId NEAR account ID
    * @param platform Platform name (e.g., 'twitter')
    * @param userId User ID on the platform
    * @returns Token or null if not found
    */
-  async getToken(accountId: string, platform: string, userId: string): Promise<any | null> {
+  async getToken(signerId: string, platform: string, userId: string): Promise<any | null> {
     try {
       if (!this.env.TOKENS) {
         throw new Error('TOKENS binding not available');
       }
-      const key = `${platform}:${accountId}:${userId}`;
+      const key = `${signerId}:${platform}:${userId}`;
       const token = await this.env.TOKENS.get(key);
       
       if (!token) return null;
@@ -212,20 +212,115 @@ export class NearAuthService {
   
   /**
    * Delete a token for a NEAR account
-   * @param accountId NEAR account ID
+   * @param signerId NEAR account ID
    * @param platform Platform name (e.g., 'twitter')
    * @param userId User ID on the platform
    */
-  async deleteToken(accountId: string, platform: string, userId: string): Promise<void> {
+  async deleteToken(signerId: string, platform: string, userId: string): Promise<void> {
     try {
       if (!this.env.TOKENS) {
         throw new Error('TOKENS binding not available');
       }
-      const key = `${platform}:${accountId}:${userId}`;
+      const key = `${signerId}:${platform}:${userId}`;
       await this.env.TOKENS.delete(key);
     } catch (error) {
       console.error('Error deleting token:', error);
       throw new Error('Failed to delete token');
+    }
+  }
+  
+  /**
+   * List all connected accounts for a NEAR wallet
+   * @param signerId NEAR account ID
+   * @returns Array of platform and userId pairs
+   */
+  async listConnectedAccounts(signerId: string): Promise<Array<{platform: string, userId: string}>> {
+    try {
+      if (!this.env.TOKENS) {
+        throw new Error('TOKENS binding not available');
+      }
+      
+      // Since we don't have a list method, we need to maintain a separate index
+      // This is a placeholder implementation that would need to be replaced with
+      // a proper implementation that uses a separate index or another approach
+      
+      // For now, we'll return an empty array with a console warning
+      console.warn('listConnectedAccounts is not fully implemented yet - needs a separate index');
+      
+      return [];
+      
+      // In a real implementation, we would have a separate index like:
+      // const indexKey = `index:${signerId}`;
+      // const indexJson = await this.env.TOKENS.get(indexKey);
+      // if (!indexJson) return [];
+      // return JSON.parse(indexJson);
+    } catch (error) {
+      console.error('Error listing connected accounts:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Add a connected account to the index
+   * @param signerId NEAR account ID
+   * @param platform Platform name
+   * @param userId User ID on the platform
+   */
+  async addToConnectedAccountsIndex(signerId: string, platform: string, userId: string): Promise<void> {
+    try {
+      if (!this.env.TOKENS) {
+        throw new Error('TOKENS binding not available');
+      }
+      
+      // This is a placeholder implementation
+      // In a real implementation, we would update a separate index
+      console.warn('addToConnectedAccountsIndex is not fully implemented yet');
+      
+      // Example implementation:
+      // const indexKey = `index:${signerId}`;
+      // const indexJson = await this.env.TOKENS.get(indexKey) || '[]';
+      // const accounts = JSON.parse(indexJson);
+      // 
+      // // Check if the account is already in the index
+      // const exists = accounts.some(acc => acc.platform === platform && acc.userId === userId);
+      // if (!exists) {
+      //   accounts.push({ platform, userId });
+      //   await this.env.TOKENS.put(indexKey, JSON.stringify(accounts));
+      // }
+    } catch (error) {
+      console.error('Error adding to connected accounts index:', error);
+    }
+  }
+  
+  /**
+   * Remove a connected account from the index
+   * @param signerId NEAR account ID
+   * @param platform Platform name
+   * @param userId User ID on the platform
+   */
+  async removeFromConnectedAccountsIndex(signerId: string, platform: string, userId: string): Promise<void> {
+    try {
+      if (!this.env.TOKENS) {
+        throw new Error('TOKENS binding not available');
+      }
+      
+      // This is a placeholder implementation
+      // In a real implementation, we would update a separate index
+      console.warn('removeFromConnectedAccountsIndex is not fully implemented yet');
+      
+      // Example implementation:
+      // const indexKey = `index:${signerId}`;
+      // const indexJson = await this.env.TOKENS.get(indexKey);
+      // if (!indexJson) return;
+      // 
+      // const accounts = JSON.parse(indexJson);
+      // const updatedAccounts = accounts.filter(
+      //   acc => !(acc.platform === platform && acc.userId === userId)
+      // );
+      // 
+      // await this.env.TOKENS.put(indexKey, JSON.stringify(updatedAccounts));
+    } catch (error) {
+      console.error('Error removing from connected accounts index:', error);
     }
   }
 }

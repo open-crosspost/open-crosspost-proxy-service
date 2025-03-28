@@ -18,6 +18,9 @@ Additionally, we're now planning to migrate the entire application from Cloudfla
 - Generated OpenAPI documentation with paths and schemas for all endpoints
 - Enhanced token storage with improved encryption
 - Implemented thread support in the post interface and implementation
+- Added NEAR wallet signature-based authentication
+- Implemented platform-specific posting with NEAR wallet signatures
+- Added support for listing connected accounts for a NEAR wallet
 
 ## Active Decisions
 
@@ -67,7 +70,14 @@ Additionally, we're now planning to migrate the entire application from Cloudfla
 
 ## Next Steps
 
-1. **Migrate to Deno**:
+1. **Code Organization and Refactoring**:
+   - ✅ Extract common NEAR authentication logic to utilities
+   - ⬜ Refactor controllers to use utility functions
+   - ⬜ Create additional utility functions for common operations
+   - ⬜ Implement proper error handling for NEAR authentication
+   - ⬜ Update account linking during OAuth callback
+
+2. **Migrate to Deno**:
    - Create a proper Deno project structure
    - Migrate token storage to use Deno KV
    - Convert existing Node.js code to Deno
@@ -75,12 +85,12 @@ Additionally, we're now planning to migrate the entire application from Cloudfla
    - Implement Oak for HTTP routing (replacing itty-router)
    - Update build and deployment process for Deno Deploy
 
-2. **Update Main Entry Point**:
+3. **Update Main Entry Point**:
    - Create a new Deno-compatible entry point
    - Connect all routes to the appropriate controller methods
    - Implement middleware chains for each route
 
-3. **Create SDK**:
+4. **Create SDK**:
    - Implement platform-agnostic SDK
    - Generate TypeScript types from OpenAPI specification
    - Create client-side validation

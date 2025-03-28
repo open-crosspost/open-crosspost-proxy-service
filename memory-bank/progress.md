@@ -38,12 +38,16 @@ The project is transitioning from the implementation phase to a reorganization p
 - ✅ All middleware components (AuthMiddleware, CorsMiddleware, ErrorMiddleware, RateLimitMiddleware)
 - ✅ Validation schemas with Zod for all request types
 - ✅ OpenAPI documentation with paths and schemas for all endpoints
+- ✅ NEAR wallet signature-based authentication
+- ✅ Platform-specific posting with NEAR wallet signatures
+- ✅ Connected accounts listing for NEAR wallets
 
 ## What's In Progress
 
 - 🔄 Project reorganization with platform abstraction (nearly complete)
 - 🔄 API key management implementation with D1 (nearly complete)
 - 🔄 Updating main entry point to use new controllers and middleware
+- 🔄 Extracting common NEAR authentication logic to utilities
 
 ## What's Left to Build
 

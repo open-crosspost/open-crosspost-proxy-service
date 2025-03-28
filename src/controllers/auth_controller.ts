@@ -284,4 +284,35 @@ export class AuthController {
       }, 500);
     }
   }
+  
+  /**
+   * List all connected accounts for a NEAR wallet
+   * @param c The Hono context
+   * @returns HTTP response with connected accounts
+   */
+  async listConnectedAccounts(c: Context): Promise<Response> {
+    try {
+      // Extract NEAR account ID from the validated signature
+      const signerId = c.get("signerId") as string;
+      
+      // Initialize NEAR auth service
+      const env = getEnv();
+      const nearAuthService = new NearAuthService(env);
+      
+      // Get all connected accounts
+      const accounts = await nearAuthService.listConnectedAccounts(signerId);
+      
+      // Return the accounts
+      return c.json({ data: { accounts } });
+    } catch (error) {
+      console.error("Error listing connected accounts:", error);
+      return c.json({
+        error: {
+          type: "internal_error",
+          message: error instanceof Error ? error.message : "An unexpected error occurred",
+          status: 500
+        }
+      }, 500);
+    }
+  }
 }

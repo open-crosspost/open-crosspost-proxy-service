@@ -101,7 +101,7 @@ export interface NearAuthResult {
   /**
    * NEAR account ID if valid
    */
-  accountId?: string;
+  signerId?: string;
   
   /**
    * Error message if invalid
