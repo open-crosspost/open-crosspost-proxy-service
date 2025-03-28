@@ -2,7 +2,7 @@ import { ITwitterApiClientPlugin, TwitterApi } from 'twitter-api-v2';
 import { TwitterApiAutoTokenRefresher } from '@twitter-api-v2/plugin-token-refresher';
 import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
 import { TwitterApiCachePluginRedis } from '@twitter-api-v2/plugin-cache-redis';
-import { Redis } from '@upstash/redis/cloudflare';
+import { Redis } from '@upstash/redis';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
 import { TokenStorage, TokenType, TwitterTokens } from '../../storage/token-storage.ts';
 import { Env } from '../../../config/env.ts';
@@ -20,7 +20,7 @@ export class TwitterClient implements PlatformClient {
 
   constructor(env: Env) {
     this.env = env;
-    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY);
+    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY, env);
     this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
 
     // Initialize Redis client if Upstash Redis credentials are available
