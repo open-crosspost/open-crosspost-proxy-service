@@ -54,17 +54,29 @@ ENVIRONMENT=development
 ### Running Locally
 
 ```bash
+# Install Deno
+curl -fsSL https://deno.land/x/install/install.sh | sh
+
 # Start the development server
 deno task dev
 
 # Format code
-deno task fmt
+deno fmt
 
 # Lint code
-deno task lint
+deno lint
 
 # Run tests
-deno task test
+deno test
+
+# Cache dependencies
+deno cache deps.ts
+
+# Bundle the application
+deno bundle main.ts bundle.js
+
+# Run with specific permissions
+deno run --allow-net --allow-env --allow-read main.ts
 ```
 
 ### Deployment
@@ -80,21 +92,29 @@ deno deploy
 
 ### Authentication
 
-- `POST /auth/init` - Initialize OAuth flow
-- `POST /auth/callback` - Handle OAuth callback
-- `POST /auth/refresh` - Refresh OAuth token
-- `DELETE /auth/revoke` - Revoke OAuth token
-- `GET /auth/status` - Check token status
+Platform-specific authentication routes:
+- `POST /auth/{platform}/login` - Initialize OAuth flow for a specific platform
+- `GET /auth/{platform}/callback` - Handle OAuth callback from a specific platform
+- `POST /auth/{platform}/refresh` - Refresh OAuth token for a specific platform
+- `DELETE /auth/{platform}/revoke` - Revoke OAuth token for a specific platform
+- `GET /auth/{platform}/status` - Check token status for a specific platform
+
+Common authentication routes:
+- `GET /auth/accounts` - List all connected accounts for a NEAR wallet
+
+Currently supported platforms: `twitter`
 
 ### Posts
 
-- `POST /api/post` - Create a post
-- `POST /api/repost` - Repost a post
-- `POST /api/quote` - Quote a post
+- `POST /api/post` - Create a post (platform-agnostic)
+- `POST /api/post/repost` - Repost a post
+- `POST /api/post/quote` - Quote a post
 - `DELETE /api/post/:id` - Delete a post
-- `POST /api/reply` - Reply to a post
-- `POST /api/like/:id` - Like a post
-- `DELETE /api/like/:id` - Unlike a post
+- `POST /api/post/reply` - Reply to a post
+- `POST /api/post/like/:id` - Like a post
+- `DELETE /api/post/like/:id` - Unlike a post
+
+All post endpoints accept `platform` and `userId` parameters to specify which platform and account to use.
 
 ### Media
 

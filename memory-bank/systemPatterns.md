@@ -53,9 +53,9 @@ flowchart LR
 
 ### 3. Authentication Patterns
 
-#### 3.1 OAuth Proxy Pattern
+#### 3.1 Platform-Specific OAuth Proxy Pattern
 
-The system implements an OAuth Proxy pattern, handling the complete OAuth flow with social media platforms while providing a simplified authentication interface to clients.
+The system implements a platform-specific OAuth Proxy pattern, handling the complete OAuth flow with social media platforms through platform-specific routes while providing a simplified authentication interface to clients.
 
 ```mermaid
 sequenceDiagram
@@ -63,15 +63,29 @@ sequenceDiagram
     participant Proxy
     participant Platform
     
-    Client->>Proxy: Request Auth URL
+    Client->>Proxy: Request Auth URL (platform-specific)
     Proxy->>Client: Return Auth URL
     Client->>Platform: Redirect to Auth URL
-    Platform->>Proxy: Callback with Auth Code
+    Platform->>Proxy: Callback to platform-specific endpoint
     Proxy->>Platform: Exchange Code for Tokens
     Platform->>Proxy: Return Tokens
     Proxy->>KV: Store Tokens
     Proxy->>Client: Return Success
 ```
+
+The platform-specific routes follow this pattern:
+- `/auth/{platform}/login` - Initialize authentication for a specific platform
+- `/auth/{platform}/callback` - Handle callback from a specific platform
+- `/auth/{platform}/refresh` - Refresh tokens for a specific platform
+- `/auth/{platform}/revoke` - Revoke tokens for a specific platform
+- `/auth/{platform}/status` - Check token status for a specific platform
+
+This approach:
+- Makes the platform explicit in the URL
+- Allows for platform-specific implementations
+- Maintains a consistent pattern
+- Simplifies routing logic
+- Makes it easier to add new platforms
 
 #### 3.2 NEAR Wallet Signature Authentication Pattern
 
@@ -223,12 +237,12 @@ classDiagram
     }
     
     class AuthController {
-        +initAuth()
-        +handleCallback()
-        +refreshToken()
-        +revokeToken()
-        +hasValidTokens()
-        +listConnectedAccounts()
+        +initializeAuth(c, platform)
+        +handleCallback(c, platform)
+        +refreshToken(c, platform)
+        +revokeToken(c, platform)
+        +hasValidTokens(c, platform)
+        +listConnectedAccounts(c)
     }
     
     class PostController {
@@ -253,11 +267,13 @@ classDiagram
     }
     
     class AuthService {
-        +initializeAuth()
-        +handleCallback()
-        +refreshToken()
-        +revokeToken()
-        +hasValidTokens()
+        +platformAuthMap: Map<string, PlatformAuth>
+        +getPlatformAuth(platform)
+        +initializeAuth(platform, signerId, redirectUri, scopes, successUrl, errorUrl)
+        +handleCallback(platform, code, state)
+        +refreshToken(platform, userId)
+        +revokeToken(platform, userId)
+        +hasValidTokens(platform, userId)
         +listConnectedAccounts()
     }
     
@@ -423,16 +439,17 @@ classDiagram
 ```mermaid
 flowchart TD
     Start[Start Auth] --> InitAuth[Initialize Auth]
-    InitAuth --> GenerateState[Generate State]
+    InitAuth --> SelectPlatform[Select Platform]
+    SelectPlatform --> GenerateState[Generate State]
     GenerateState --> StoreState[Store State in KV]
-    StoreState --> BuildURL[Build Auth URL]
+    StoreState --> BuildURL[Build Platform-Specific Auth URL]
     BuildURL --> ReturnURL[Return URL to Client]
     
-    Callback[Auth Callback] --> ValidateState[Validate State]
+    Callback[Platform-Specific Callback] --> ValidateState[Validate State]
     ValidateState --> ExchangeCode[Exchange Code for Tokens]
     ExchangeCode --> StoreTokens[Store Tokens in KV]
-    StoreTokens --> GenerateSession[Generate Session ID]
-    GenerateSession --> ReturnSession[Return Session to Client]
+    StoreTokens --> LinkAccount[Link to NEAR Account]
+    LinkAccount --> ReturnSuccess[Return Success to Client]
 ```
 
 ### Post Creation Flow

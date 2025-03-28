@@ -15,12 +15,14 @@ The project is transitioning from Cloudflare Workers to Deno Deploy to improve c
 - ✅ Authentication middleware
 - ✅ CORS handling middleware
 - ✅ Error handling middleware
+- ✅ Platform-specific authentication routes
 - ✅ OAuth initialization endpoint
 - ✅ OAuth callback handler
 - ✅ Token storage service with Deno KV
 - ✅ Token refresh mechanism
 - ✅ Token revocation endpoint
 - ✅ NEAR wallet signature authentication
+- ✅ Factory pattern for platform-specific auth implementations
 - ✅ Post creation endpoint
 - ✅ Repost functionality
 - ✅ Quote post functionality
@@ -60,6 +62,7 @@ The project is transitioning from Cloudflare Workers to Deno Deploy to improve c
 - ⬜ End-to-end testing
 - ⬜ Test fixtures and helpers
 - ⬜ Mock implementations for external dependencies
+- ⬜ Tests for platform-specific authentication routes
 
 ### Deployment Pipeline
 
@@ -110,6 +113,7 @@ The project is transitioning from Cloudflare Workers to Deno Deploy to improve c
    - Create unit tests for core components
    - Implement integration tests for API endpoints
    - Set up end-to-end testing
+   - Test platform-specific authentication routes
 
 2. **Deployment Pipeline (Target: Week 2)**
    - Configure Deno Deploy environment
@@ -145,6 +149,8 @@ The project is transitioning from Cloudflare Workers to Deno Deploy to improve c
 - ✅ Input validation with Zod (Completed)
 - ✅ NEAR wallet signature authentication (Completed)
 - ✅ Token storage with Deno KV (Completed)
+- ✅ Platform-specific authentication routes (Completed)
+- ✅ Factory pattern for platform-specific implementations (Completed)
 - ⬜ Unit tests (Not started)
 - ⬜ Integration tests (Not started)
 - ⬜ End-to-end tests (Not started)

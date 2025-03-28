@@ -24,9 +24,10 @@ export class AuthController {
   /**
    * Initialize authentication with NEAR signature
    * @param c The Hono context
+   * @param platform The platform name (e.g., 'twitter')
    * @returns HTTP response with auth URL and state
    */
-  async initializeAuth(c: Context): Promise<Response> {
+  async initializeAuth(c: Context, platform: string): Promise<Response> {
     try {
       // Extract and validate NEAR auth data
       const { signerId } = await extractAndValidateNearAuth(c);
@@ -35,8 +36,8 @@ export class AuthController {
       const requestUrl = new URL(c.req.url);
       const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
 
-      // Construct the callback URL (this is the proxy service's callback URL)
-      const callbackUrl = `${baseUrl}/api/twitter/callback`;
+      // Construct the platform-specific callback URL
+      const callbackUrl = `${baseUrl}/auth/${platform}/callback`;
 
       // Get successUrl and errorUrl from query parameters
       const successUrl = requestUrl.searchParams.get('successUrl');
@@ -45,10 +46,11 @@ export class AuthController {
       // Get the origin from the request headers as fallback
       const origin = c.req.header('origin') || c.req.header('referer') || requestUrl.origin;
 
-      // Initialize auth with the proxy service's callback URL and the client's return URL
+      // Initialize auth with the platform-specific callback URL and the client's return URL
       // We need to pass the successUrl to the auth service so it can be stored in KV
       // and retrieved during the callback
-      const twitterAuthData = await this.authService.initializeAuth(
+      const authData = await this.authService.initializeAuth(
+        platform,
         signerId, // Pass the NEAR account ID for linking during callback
         callbackUrl,
         DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
@@ -57,7 +59,7 @@ export class AuthController {
       );
 
       // Return the auth URL and state
-      return c.json({ data: twitterAuthData });
+      return c.json({ data: authData });
     } catch (error) {
       console.error("Error initializing auth with NEAR:", error);
       return c.json({
@@ -73,9 +75,10 @@ export class AuthController {
   /**
    * Handle the OAuth callback
    * @param c The Hono context
+   * @param platform The platform name (e.g., 'twitter')
    * @returns HTTP response with user ID and tokens or a redirect
    */
-  async handleCallback(c: Context): Promise<Response> {
+  async handleCallback(c: Context, platform: string): Promise<Response> {
     try {
       // Get the query parameters from the URL
       const url = new URL(c.req.url);
@@ -88,7 +91,7 @@ export class AuthController {
       // Check for errors
       if (error) {
         try {
-          const callbackResult = await this.authService.getAuthState(state || '');
+          const callbackResult = await this.authService.getAuthState(platform, state || '');
           if (callbackResult && callbackResult.errorUrl) {
             const errorRedirectUrl = new URL(callbackResult.errorUrl);
             errorRedirectUrl.searchParams.set('error', error);
@@ -121,6 +124,7 @@ export class AuthController {
       }
 
       const callbackResult = await this.authService.handleCallback(
+        platform,
         code,
         state
       );
@@ -148,40 +152,30 @@ export class AuthController {
   /**
    * Refresh a user's access token
    * @param c The Hono context
+   * @param platform The platform name (e.g., 'twitter')
    * @returns HTTP response with new tokens
    */
-  async refreshToken(c: Context): Promise<Response> {
+  async refreshToken(c: Context, platform: string): Promise<Response> {
     try {
       // Extract NEAR account ID from the validated signature
       const { signerId } = await extractAndValidateNearAuth(c);
       
-      // Extract platform and userId from request body
+      // Extract userId from request body
       const body = await c.req.json();
-      const { platform, userId } = body;
+      const { userId } = body;
       
-      if (!platform || !userId) {
+      if (!userId) {
         return c.json({
           error: {
             type: "validation_error",
-            message: "Platform and userId are required",
-            status: 400
-          }
-        }, 400);
-      }
-      
-      // Only support Twitter for now
-      if (platform !== 'twitter') {
-        return c.json({
-          error: {
-            type: "validation_error",
-            message: "Only Twitter platform is supported",
+            message: "userId is required",
             status: 400
           }
         }, 400);
       }
 
       // Refresh token
-      const tokens = await this.authService.refreshToken(userId);
+      const tokens = await this.authService.refreshToken(platform, userId);
 
       // Update the token in NEAR auth service
       await this.nearAuthService.storeToken(signerId, platform, userId, tokens);
@@ -203,40 +197,30 @@ export class AuthController {
   /**
    * Revoke a user's tokens
    * @param c The Hono context
+   * @param platform The platform name (e.g., 'twitter')
    * @returns HTTP response with success status
    */
-  async revokeToken(c: Context): Promise<Response> {
+  async revokeToken(c: Context, platform: string): Promise<Response> {
     try {
       // Extract NEAR account ID from the validated signature
       const { signerId } = await extractAndValidateNearAuth(c);
       
-      // Extract platform and userId from request body
+      // Extract userId from request body
       const body = await c.req.json();
-      const { platform, userId } = body;
+      const { userId } = body;
       
-      if (!platform || !userId) {
+      if (!userId) {
         return c.json({
           error: {
             type: "validation_error",
-            message: "Platform and userId are required",
-            status: 400
-          }
-        }, 400);
-      }
-      
-      // Only support Twitter for now
-      if (platform !== 'twitter') {
-        return c.json({
-          error: {
-            type: "validation_error",
-            message: "Only Twitter platform is supported",
+            message: "userId is required",
             status: 400
           }
         }, 400);
       }
 
       // Revoke token
-      const success = await this.authService.revokeToken(userId);
+      const success = await this.authService.revokeToken(platform, userId);
       
       // Unlink the account from the NEAR wallet
       if (success) {
@@ -260,54 +244,39 @@ export class AuthController {
   /**
    * Check if a user has valid tokens
    * @param c The Hono context
+   * @param platform The platform name (e.g., 'twitter')
    * @returns HTTP response with validity status
    */
-  async hasValidTokens(c: Context): Promise<Response> {
+  async hasValidTokens(c: Context, platform: string): Promise<Response> {
     try {
       // Extract NEAR account ID from the validated signature
       const { signerId } = await extractAndValidateNearAuth(c);
       
-      // Extract platform and userId from request body or query parameters
-      let platform, userId;
-      
-      // Try to get from query parameters first
-      platform = c.req.query('platform');
-      userId = c.req.query('userId');
+      // Extract userId from request body or query parameters
+      let userId = c.req.query('userId');
       
       // If not in query parameters, try to get from request body
-      if (!platform || !userId) {
+      if (!userId) {
         try {
           const body = await c.req.json();
-          platform = platform || body.platform;
-          userId = userId || body.userId;
+          userId = body.userId;
         } catch (e) {
           // Ignore JSON parsing errors
         }
       }
       
-      if (!platform || !userId) {
+      if (!userId) {
         return c.json({
           error: {
             type: "validation_error",
-            message: "Platform and userId are required",
-            status: 400
-          }
-        }, 400);
-      }
-      
-      // Only support Twitter for now
-      if (platform !== 'twitter') {
-        return c.json({
-          error: {
-            type: "validation_error",
-            message: "Only Twitter platform is supported",
+            message: "userId is required",
             status: 400
           }
         }, 400);
       }
 
       // Check if user has valid tokens
-      const hasTokens = await this.authService.hasValidTokens(userId);
+      const hasTokens = await this.authService.hasValidTokens(platform, userId);
       
       // Also check if the tokens are linked to this NEAR account
       const token = await this.nearAuthService.getToken(signerId, platform, userId);

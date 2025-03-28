@@ -11,19 +11,38 @@ import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
  * Domain service for authentication-related operations
  */
 export class AuthService {
-  private platformAuth: PlatformAuth;
+  private platformAuthMap: Map<string, PlatformAuth>;
   private tokenStorage: TokenStorage;
   private env: Env;
   
   constructor(env: Env) {
     this.env = env;
-    // For now, we only support Twitter
-    this.platformAuth = new TwitterAuth(env);
     this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY);
+    
+    // Initialize supported platforms
+    this.platformAuthMap = new Map();
+    this.platformAuthMap.set('twitter', new TwitterAuth(env));
+    // Add more platforms as they're implemented
+    // this.platformAuthMap.set('linkedin', new LinkedInAuth(env));
+  }
+  
+  /**
+   * Get the platform-specific auth implementation
+   * @param platform The platform name (e.g., 'twitter')
+   * @returns The platform-specific auth implementation
+   * @throws Error if the platform is not supported
+   */
+  private getPlatformAuth(platform: string): PlatformAuth {
+    const platformAuth = this.platformAuthMap.get(platform.toLowerCase());
+    if (!platformAuth) {
+      throw new Error(`Unsupported platform: ${platform}`);
+    }
+    return platformAuth;
   }
   
   /**
    * Initialize the authentication process
+   * @param platform The platform name (e.g., 'twitter')
    * @param signerId NEAR account ID for linking
    * @param redirectUri The redirect URI for the OAuth callback
    * @param scopes The requested OAuth scopes
@@ -32,6 +51,7 @@ export class AuthService {
    * @returns The authentication URL and state
    */
   async initializeAuth(
+    platform: string,
     signerId: string,
     redirectUri: string,
     scopes: string[] = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
@@ -39,7 +59,8 @@ export class AuthService {
     errorUrl?: string
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
-      return await this.platformAuth.initializeAuth(signerId, redirectUri, scopes, successUrl, errorUrl);
+      const platformAuth = this.getPlatformAuth(platform);
+      return await platformAuth.initializeAuth(signerId, redirectUri, scopes, successUrl, errorUrl);
     } catch (error) {
       console.error('Error initializing auth:', error);
       throw error;
@@ -48,12 +69,14 @@ export class AuthService {
   
   /**
    * Get the auth state data from storage
+   * @param platform The platform name (e.g., 'twitter')
    * @param state The state parameter from the callback
    * @returns The auth state data including successUrl and errorUrl
    */
-  async getAuthState(state: string): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
+  async getAuthState(platform: string, state: string): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
     try {
-      return await this.platformAuth.getAuthState(state);
+      const platformAuth = this.getPlatformAuth(platform);
+      return await platformAuth.getAuthState(state);
     } catch (error) {
       console.error('Error getting auth state:', error);
       return null;
@@ -62,16 +85,19 @@ export class AuthService {
 
   /**
    * Handle the OAuth callback
+   * @param platform The platform name (e.g., 'twitter')
    * @param code The authorization code from the OAuth callback
    * @param state The state parameter from the callback
    * @returns The user ID and tokens
    */
   async handleCallback(
+    platform: string,
     code: string,
     state: string,
   ): Promise<{ userId: string; tokens: TwitterTokens; successUrl: string }> {
     try {
-      return await this.platformAuth.handleCallback(code, state);
+      const platformAuth = this.getPlatformAuth(platform);
+      return await platformAuth.handleCallback(code, state);
     } catch (error) {
       console.error('Error handling callback:', error);
       throw error;
@@ -80,12 +106,14 @@ export class AuthService {
   
   /**
    * Refresh a user's access token
+   * @param platform The platform name (e.g., 'twitter')
    * @param userId The user ID whose token should be refreshed
    * @returns The new tokens
    */
-  async refreshToken(userId: string): Promise<TwitterTokens> {
+  async refreshToken(platform: string, userId: string): Promise<TwitterTokens> {
     try {
-      return await this.platformAuth.refreshToken(userId);
+      const platformAuth = this.getPlatformAuth(platform);
+      return await platformAuth.refreshToken(userId);
     } catch (error) {
       console.error('Error refreshing token:', error);
       throw error;
@@ -94,12 +122,14 @@ export class AuthService {
   
   /**
    * Revoke a user's tokens
+   * @param platform The platform name (e.g., 'twitter')
    * @param userId The user ID whose tokens should be revoked
    * @returns True if the tokens were revoked
    */
-  async revokeToken(userId: string): Promise<boolean> {
+  async revokeToken(platform: string, userId: string): Promise<boolean> {
     try {
-      return await this.platformAuth.revokeToken(userId);
+      const platformAuth = this.getPlatformAuth(platform);
+      return await platformAuth.revokeToken(userId);
     } catch (error) {
       console.error('Error revoking token:', error);
       throw error;
@@ -108,10 +138,11 @@ export class AuthService {
   
   /**
    * Check if a user has valid tokens
+   * @param platform The platform name (e.g., 'twitter')
    * @param userId The user ID to check
    * @returns True if the user has valid tokens
    */
-  async hasValidTokens(userId: string): Promise<boolean> {
+  async hasValidTokens(platform: string, userId: string): Promise<boolean> {
     try {
       return await this.tokenStorage.hasTokens(userId);
     } catch (error) {
@@ -134,7 +165,8 @@ export class AuthService {
   ): Promise<boolean> {
     try {
       // Get the tokens for the user
-      const tokens = await this.platformAuth.refreshToken(userId);
+      const platformAuth = this.getPlatformAuth(platform);
+      const tokens = await platformAuth.refreshToken(userId);
       
       // Link the account using the utility function
       await linkAccountToNear(signerId, platform, userId, tokens, this.env);

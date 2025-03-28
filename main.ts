@@ -29,13 +29,22 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 // API routes
 const api = new Hono();
 
-// Auth routes
+// Main auth router
 const auth = new Hono();
-auth.post("/init", AuthMiddleware.validateNearSignature(), (c) => authController.initializeAuth(c));
-auth.get("/callback", AuthMiddleware.validateNearSignature(), (c) => authController.handleCallback(c));
-auth.post("/refresh", AuthMiddleware.validateNearSignature(), (c) => authController.refreshToken(c));
-auth.delete("/revoke", AuthMiddleware.validateNearSignature(), (c) => authController.revokeToken(c));
-auth.get("/status", AuthMiddleware.validateNearSignature(), (c) => authController.hasValidTokens(c));
+
+// Twitter-specific auth routes
+const twitterAuth = new Hono();
+twitterAuth.post("/login", AuthMiddleware.validateNearSignature(), (c) => authController.initializeAuth(c, "twitter"));
+twitterAuth.get("/callback", (c) => authController.handleCallback(c, "twitter"));
+twitterAuth.post("/refresh", AuthMiddleware.validateNearSignature(), (c) => authController.refreshToken(c, "twitter"));
+twitterAuth.delete("/revoke", AuthMiddleware.validateNearSignature(), (c) => authController.revokeToken(c, "twitter"));
+twitterAuth.get("/status", AuthMiddleware.validateNearSignature(), (c) => authController.hasValidTokens(c, "twitter"));
+
+// Mount platform-specific routes to auth router
+auth.route("/twitter", twitterAuth);
+// more...
+
+// Common auth routes that aren't platform-specific
 auth.get("/accounts", AuthMiddleware.validateNearSignature(), (c) => authController.listConnectedAccounts(c));
 
 // Post routes
@@ -64,11 +73,6 @@ api.route("/post", post);
 api.route("/media", media);
 api.route("/rate-limit", rateLimit);
 app.route("/auth", auth);
-
-// Temporary route mapping for /api/twitter/callback to /auth/callback
-api.get("/twitter/callback", (c) => {
-  return authController.handleCallback(c);
-});
 
 app.route("/api", api);
 

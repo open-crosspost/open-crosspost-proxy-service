@@ -21,6 +21,10 @@ The project is undergoing a significant migration from Cloudflare Workers to Den
 - Enhanced token storage with improved encryption
 - Implemented thread support in the post interface and implementation
 - Added support for listing connected accounts for a NEAR wallet
+- Restructured authentication routes to be platform-specific
+- Implemented factory pattern in AuthService for platform-specific implementations
+- Updated controllers to support platform-specific parameters
+- Enhanced OpenAPI documentation to reflect platform-specific routes
 
 ## Active Decisions
 
@@ -47,6 +51,8 @@ The project is undergoing a significant migration from Cloudflare Workers to Den
    - ✅ Added token refresh and revocation
    - ✅ Implemented NEAR wallet signature authentication
    - ✅ Added support for multiple accounts per NEAR wallet
+   - ✅ Restructured authentication routes to be platform-specific
+   - ✅ Implemented factory pattern for platform-specific auth implementations
    - ⬜ Enhance security with proper key rotation
 
 4. **API Implementation**:
@@ -71,6 +77,7 @@ The project is undergoing a significant migration from Cloudflare Workers to Den
    - Implement integration tests for API endpoints
    - Set up end-to-end testing
    - Configure testing in Deno environment
+   - Test platform-specific authentication routes
 
 2. **Deployment Pipeline**:
    - Set up Deno Deploy environment
