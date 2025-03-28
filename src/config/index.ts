@@ -11,7 +11,7 @@ export const DEFAULT_CONFIG = {
     TOKEN_EXPIRY: 7200, // 2 hours in seconds
     REFRESH_BUFFER: 300, // 5 minutes in seconds
   },
-  
+
   // API configuration
   API: {
     RATE_LIMIT: {
@@ -23,7 +23,7 @@ export const DEFAULT_CONFIG = {
       IMMUTABLE_TTL: 86400, // 24 hours in seconds
     },
   },
-  
+
   // Security configuration
   SECURITY: {
     API_KEY: {
@@ -36,7 +36,7 @@ export const DEFAULT_CONFIG = {
       MAX_AGE: 86400, // 24 hours in seconds
     },
   },
-  
+
   // Media configuration
   MEDIA: {
     MAX_SIZE: 20 * 1024 * 1024, // 20MB

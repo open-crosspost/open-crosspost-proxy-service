@@ -1,8 +1,8 @@
-import { 
-  PostContent, 
-  PostResult, 
-  DeleteResult, 
-  LikeResult 
+import {
+  DeleteResult,
+  LikeResult,
+  PostContent,
+  PostResult,
 } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
 import { PlatformPost } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
 import { TwitterPost } from '../../infrastructure/platform/twitter/twitter-post.ts';
@@ -16,18 +16,18 @@ import { createApiResponse, createErrorResponse } from '../../types/response.typ
 export class PostService {
   private platformPosts: Map<string, PlatformPost>;
   private env: Env;
-  
+
   constructor(env: Env) {
     this.env = env;
     this.platformPosts = new Map();
-    
+
     // Initialize with Twitter
     this.platformPosts.set('twitter', new TwitterPost(env));
-    
+
     // Add other platforms as they become available
     // this.platformPosts.set('linkedin', new LinkedInPost(env));
   }
-  
+
   /**
    * Get the appropriate platform implementation
    * @param platform The platform name
@@ -35,14 +35,14 @@ export class PostService {
    */
   private getPlatformPost(platform: string): PlatformPost {
     const platformPost = this.platformPosts.get(platform.toLowerCase());
-    
+
     if (!platformPost) {
       throw new Error(`Unsupported platform: ${platform}`);
     }
-    
+
     return platformPost;
   }
-  
+
   /**
    * Create a new post
    * @param platform The platform to post to
@@ -50,7 +50,11 @@ export class PostService {
    * @param content The content of the post or an array of contents for a thread
    * @returns The created post result
    */
-  async createPost(platform: string, userId: string, content: PostContent | PostContent[]): Promise<PostResult> {
+  async createPost(
+    platform: string,
+    userId: string,
+    content: PostContent | PostContent[],
+  ): Promise<PostResult> {
     try {
       const platformPost = this.getPlatformPost(platform);
       return await platformPost.createPost(userId, content);
@@ -59,7 +63,7 @@ export class PostService {
       throw error;
     }
   }
-  
+
   /**
    * Repost/retweet an existing post
    * @param platform The platform to post to
@@ -76,7 +80,7 @@ export class PostService {
       throw error;
     }
   }
-  
+
   /**
    * Quote an existing post
    * @param platform The platform to post to
@@ -85,7 +89,12 @@ export class PostService {
    * @param content The content to add to the quote or an array of contents for a thread
    * @returns The quote post result
    */
-  async quotePost(platform: string, userId: string, postId: string, content: PostContent | PostContent[]): Promise<PostResult> {
+  async quotePost(
+    platform: string,
+    userId: string,
+    postId: string,
+    content: PostContent | PostContent[],
+  ): Promise<PostResult> {
     try {
       const platformPost = this.getPlatformPost(platform);
       return await platformPost.quotePost(userId, postId, content);
@@ -94,7 +103,7 @@ export class PostService {
       throw error;
     }
   }
-  
+
   /**
    * Delete a post
    * @param platform The platform to post to
@@ -111,7 +120,7 @@ export class PostService {
       throw error;
     }
   }
-  
+
   /**
    * Reply to an existing post
    * @param platform The platform to post to
@@ -120,7 +129,12 @@ export class PostService {
    * @param content The content of the reply or an array of contents for a thread
    * @returns The reply post result
    */
-  async replyToPost(platform: string, userId: string, postId: string, content: PostContent | PostContent[]): Promise<PostResult> {
+  async replyToPost(
+    platform: string,
+    userId: string,
+    postId: string,
+    content: PostContent | PostContent[],
+  ): Promise<PostResult> {
     try {
       const platformPost = this.getPlatformPost(platform);
       return await platformPost.replyToPost(userId, postId, content);
@@ -129,7 +143,7 @@ export class PostService {
       throw error;
     }
   }
-  
+
   /**
    * Like a post
    * @param platform The platform to post to
@@ -146,7 +160,7 @@ export class PostService {
       throw error;
     }
   }
-  
+
   /**
    * Unlike a post
    * @param platform The platform to post to
@@ -163,7 +177,7 @@ export class PostService {
       throw error;
     }
   }
-  
+
   /**
    * Create a standard API response
    * @param data The response data
@@ -173,10 +187,10 @@ export class PostService {
   createResponse(data: any): Response {
     return new Response(JSON.stringify(createApiResponse(data)), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
-  
+
   /**
    * Create an error response
    * @param error The error object
@@ -186,10 +200,13 @@ export class PostService {
   createErrorResponse(error: any, status = 500): Response {
     const errorMessage = error.message || 'An unexpected error occurred';
     const errorType = error.type || 'INTERNAL_ERROR';
-    
-    return new Response(JSON.stringify(createErrorResponse(errorType, errorMessage, error.code, error.details)), {
-      status,
-      headers: { 'Content-Type': 'application/json' }
-    });
+
+    return new Response(
+      JSON.stringify(createErrorResponse(errorType, errorMessage, error.code, error.details)),
+      {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 }

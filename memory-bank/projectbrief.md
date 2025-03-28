@@ -1,7 +1,12 @@
 # Social Media API Proxy Project Brief
 
 ## Project Overview
-A secure proxy for social media APIs that allows authorized frontends to perform actions on behalf of users who have granted permission. The system securely stores OAuth tokens, handles refreshes, enforces rate limits, and supports all major API functions including media uploads. Initially focused on Twitter, the architecture is designed to be platform-agnostic to support additional social media platforms in the future.
+
+A secure proxy for social media APIs that allows authorized frontends to perform actions on behalf
+of users who have granted permission. The system securely stores OAuth tokens, handles refreshes,
+enforces rate limits, and supports all major API functions including media uploads. Initially
+focused on Twitter, the architecture is designed to be platform-agnostic to support additional
+social media platforms in the future.
 
 ## Core Requirements
 
@@ -66,7 +71,11 @@ A secure proxy for social media APIs that allows authorized frontends to perform
 
 ## Implementation Status
 
-The project has progressed from the initial implementation phase to a reorganization phase. We've implemented a platform-agnostic architecture that makes it easier to adapt the service for other social media platforms beyond Twitter. The core infrastructure, authentication system, API endpoints, and middleware have been implemented. The project is currently being migrated from Cloudflare Workers to Deno Deploy.
+The project has progressed from the initial implementation phase to a reorganization phase. We've
+implemented a platform-agnostic architecture that makes it easier to adapt the service for other
+social media platforms beyond Twitter. The core infrastructure, authentication system, API
+endpoints, and middleware have been implemented. The project is currently being migrated from
+Cloudflare Workers to Deno Deploy.
 
 ### Completed Components
 

@@ -1,10 +1,14 @@
 # Twitter API Proxy (Deno Version)
 
-A secure Deno-based proxy for the Twitter API that allows authorized frontends to perform Twitter actions on behalf of users who have granted permission. The system securely stores OAuth tokens, handles refreshes, enforces rate limits, and supports all major Twitter API functions including media uploads.
+A secure Deno-based proxy for the Twitter API that allows authorized frontends to perform Twitter
+actions on behalf of users who have granted permission. The system securely stores OAuth tokens,
+handles refreshes, enforces rate limits, and supports all major Twitter API functions including
+media uploads.
 
 ## Migration to Deno
 
-This project has been migrated from Cloudflare Workers to Deno for improved compatibility with the twitter-api-v2 library and its plugins. The migration includes:
+This project has been migrated from Cloudflare Workers to Deno for improved compatibility with the
+twitter-api-v2 library and its plugins. The migration includes:
 
 - Replacing Cloudflare KV with Deno KV for token storage
 - Replacing itty-router with Hono for HTTP routing
@@ -81,18 +85,39 @@ deno run --allow-net --allow-env --allow-read main.ts
 
 ### Deployment
 
-The application can be deployed to Deno Deploy:
+The application is deployed to Deno Deploy using GitHub Actions workflows:
 
-```bash
-# Deploy to Deno Deploy
-deno deploy
-```
+#### Automatic Deployment to Staging
+
+When code is pushed to the `main` branch, it is automatically:
+
+1. Tested (format, lint, unit tests)
+2. Deployed to the staging environment on Deno Deploy
+
+#### Manual Deployment to Production
+
+To deploy to production:
+
+1. Go to the "Actions" tab in the GitHub repository
+2. Select "Deploy to Production" from the workflows list
+3. Click "Run workflow"
+4. Type "yes" in the confirmation field
+5. Click "Run workflow" to start the deployment
+
+#### Required GitHub Secrets
+
+The following secrets need to be configured in your GitHub repository:
+
+- `DENO_DEPLOY_TOKEN`: A token for authenticating with Deno Deploy
+
+See the [CI/CD documentation](.github/workflows/README.md) for more details.
 
 ## API Endpoints
 
 ### Authentication
 
 Platform-specific authentication routes:
+
 - `POST /auth/{platform}/login` - Initialize OAuth flow for a specific platform
 - `GET /auth/{platform}/callback` - Handle OAuth callback from a specific platform
 - `POST /auth/{platform}/refresh` - Refresh OAuth token for a specific platform
@@ -100,6 +125,7 @@ Platform-specific authentication routes:
 - `GET /auth/{platform}/status` - Check token status for a specific platform
 
 Common authentication routes:
+
 - `GET /auth/accounts` - List all connected accounts for a NEAR wallet
 
 Currently supported platforms: `twitter`
@@ -114,7 +140,8 @@ Currently supported platforms: `twitter`
 - `POST /api/post/like/:id` - Like a post
 - `DELETE /api/post/like/:id` - Unlike a post
 
-All post endpoints accept `platform` and `userId` parameters to specify which platform and account to use.
+All post endpoints accept `platform` and `userId` parameters to specify which platform and account
+to use.
 
 ### Media
 

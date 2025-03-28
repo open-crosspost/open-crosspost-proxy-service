@@ -2,7 +2,10 @@
 
 ## System Architecture
 
-The Social Media API Proxy follows a serverless architecture pattern using Deno Deploy as the compute platform. This architecture provides global distribution, high availability, and automatic scaling without managing traditional server infrastructure. The system is designed to be platform-agnostic, with Twitter as the initial implementation.
+The Social Media API Proxy follows a serverless architecture pattern using Deno Deploy as the
+compute platform. This architecture provides global distribution, high availability, and automatic
+scaling without managing traditional server infrastructure. The system is designed to be
+platform-agnostic, with Twitter as the initial implementation.
 
 ```mermaid
 flowchart TD
@@ -26,7 +29,8 @@ flowchart TD
 
 ### 1. Platform Abstraction Pattern
 
-The system implements a platform abstraction layer that separates the core proxy functionality from platform-specific implementations. This allows for easy extension to other social media platforms.
+The system implements a platform abstraction layer that separates the core proxy functionality from
+platform-specific implementations. This allows for easy extension to other social media platforms.
 
 ```mermaid
 flowchart TD
@@ -40,7 +44,8 @@ flowchart TD
 
 ### 2. API Gateway Pattern
 
-The Worker acts as an API Gateway, providing a unified interface to various social media APIs while handling cross-cutting concerns like authentication, rate limiting, and logging.
+The Worker acts as an API Gateway, providing a unified interface to various social media APIs while
+handling cross-cutting concerns like authentication, rate limiting, and logging.
 
 ```mermaid
 flowchart LR
@@ -55,7 +60,9 @@ flowchart LR
 
 #### 3.1 Platform-Specific OAuth Proxy Pattern
 
-The system implements a platform-specific OAuth Proxy pattern, handling the complete OAuth flow with social media platforms through platform-specific routes while providing a simplified authentication interface to clients.
+The system implements a platform-specific OAuth Proxy pattern, handling the complete OAuth flow with
+social media platforms through platform-specific routes while providing a simplified authentication
+interface to clients.
 
 ```mermaid
 sequenceDiagram
@@ -74,6 +81,7 @@ sequenceDiagram
 ```
 
 The platform-specific routes follow this pattern:
+
 - `/auth/{platform}/login` - Initialize authentication for a specific platform
 - `/auth/{platform}/callback` - Handle callback from a specific platform
 - `/auth/{platform}/refresh` - Refresh tokens for a specific platform
@@ -81,6 +89,7 @@ The platform-specific routes follow this pattern:
 - `/auth/{platform}/status` - Check token status for a specific platform
 
 This approach:
+
 - Makes the platform explicit in the URL
 - Allows for platform-specific implementations
 - Maintains a consistent pattern
@@ -89,7 +98,8 @@ This approach:
 
 #### 3.2 NEAR Wallet Signature Authentication Pattern
 
-The system supports authentication using NEAR wallet signatures, allowing users to authenticate and authorize actions using their NEAR wallet.
+The system supports authentication using NEAR wallet signatures, allowing users to authenticate and
+authorize actions using their NEAR wallet.
 
 ```mermaid
 sequenceDiagram
@@ -109,6 +119,7 @@ sequenceDiagram
 ```
 
 This pattern enables:
+
 - Secure authentication without exposing OAuth tokens to the client
 - Multiple platform accounts linked to a single NEAR wallet
 - Cross-platform actions authorized by a single signature
@@ -116,7 +127,8 @@ This pattern enables:
 
 ### 4. API Key Management Pattern
 
-A dedicated API Key Management system handles the creation, validation, rotation, and revocation of API keys for client applications.
+A dedicated API Key Management system handles the creation, validation, rotation, and revocation of
+API keys for client applications.
 
 ```mermaid
 flowchart TD
@@ -138,7 +150,8 @@ flowchart TD
 
 ### 5. Circuit Breaker Pattern
 
-To handle potential API outages or rate limiting, the system implements a Circuit Breaker pattern to prevent cascading failures.
+To handle potential API outages or rate limiting, the system implements a Circuit Breaker pattern to
+prevent cascading failures.
 
 ```mermaid
 stateDiagram-v2
@@ -167,7 +180,8 @@ flowchart TD
 
 ### 7. Multi-level Rate Limit Pattern
 
-A comprehensive Rate Limit Manager tracks and enforces rate limits at multiple levels: platform API limits, global service limits, per-API key limits, and per-user limits.
+A comprehensive Rate Limit Manager tracks and enforces rate limits at multiple levels: platform API
+limits, global service limits, per-API key limits, and per-user limits.
 
 ```mermaid
 flowchart TD
@@ -193,7 +207,8 @@ flowchart TD
 
 ### 8. Cache-Aside Pattern
 
-The system implements a Cache-Aside pattern using Redis for caching API responses, reducing duplicate API calls and improving performance.
+The system implements a Cache-Aside pattern using Redis for caching API responses, reducing
+duplicate API calls and improving performance.
 
 ```mermaid
 flowchart TD
@@ -213,7 +228,8 @@ flowchart TD
 
 ### 9. OpenAPI Documentation Pattern
 
-The system generates and serves OpenAPI documentation for all endpoints, providing a self-documenting API.
+The system generates and serves OpenAPI documentation for all endpoints, providing a
+self-documenting API.
 
 ```mermaid
 flowchart TD
@@ -553,3 +569,4 @@ flowchart TD
     Build --> DeployStaging[Deploy to Staging]
     DeployStaging --> StagingTests[Run Staging Tests]
     StagingTests --> DeployProd[Deploy to Production]
+```

@@ -6,7 +6,7 @@ export interface ApiResponse<T> {
    * Response data
    */
   data: T;
-  
+
   /**
    * Response metadata
    */
@@ -19,18 +19,18 @@ export interface ApiResponse<T> {
        * Number of requests remaining in the current window
        */
       remaining: number;
-      
+
       /**
        * Total number of requests allowed in the window
        */
       limit: number;
-      
+
       /**
        * Timestamp when the rate limit resets (in seconds since epoch)
        */
       reset: number;
     };
-    
+
     /**
      * Pagination information
      */
@@ -39,27 +39,27 @@ export interface ApiResponse<T> {
        * Current page number
        */
       page: number;
-      
+
       /**
        * Number of items per page
        */
       perPage: number;
-      
+
       /**
        * Total number of items
        */
       total: number;
-      
+
       /**
        * Total number of pages
        */
       totalPages: number;
-      
+
       /**
        * Next page cursor (if applicable)
        */
       nextCursor?: string;
-      
+
       /**
        * Previous page cursor (if applicable)
        */
@@ -80,17 +80,17 @@ export interface ErrorResponse {
      * Error type
      */
     type: string;
-    
+
     /**
      * Error message
      */
     message: string;
-    
+
     /**
      * Error code (if applicable)
      */
     code?: string;
-    
+
     /**
      * Additional error details
      */
@@ -123,7 +123,7 @@ export function createErrorResponse(
   type: string,
   message: string,
   code?: string,
-  details?: any
+  details?: any,
 ): ErrorResponse {
   return {
     error: {

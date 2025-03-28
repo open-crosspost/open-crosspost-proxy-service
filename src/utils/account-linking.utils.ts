@@ -1,5 +1,5 @@
-import { NearAuthService } from "../infrastructure/security/near-auth/near-auth.service.ts";
-import { Env } from "../config/env.ts";
+import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
+import { Env } from '../config/env.ts';
 
 /**
  * Account Linking Utilities
@@ -19,15 +19,15 @@ export async function linkAccountToNear(
   platform: string,
   userId: string,
   tokens: any,
-  env: Env
+  env: Env,
 ): Promise<void> {
   try {
     // Create NEAR auth service
     const nearAuthService = new NearAuthService(env);
-    
+
     // Store the token in the NEAR auth service
     await nearAuthService.storeToken(signerId, platform, userId, tokens);
-    
+
     console.log(`Linked ${platform} account ${userId} to NEAR wallet ${signerId}`);
   } catch (error) {
     console.error(`Error linking ${platform} account to NEAR wallet:`, error);
@@ -46,15 +46,15 @@ export async function unlinkAccountFromNear(
   signerId: string,
   platform: string,
   userId: string,
-  env: Env
+  env: Env,
 ): Promise<void> {
   try {
     // Create NEAR auth service
     const nearAuthService = new NearAuthService(env);
-    
+
     // Delete the token from the NEAR auth service
     await nearAuthService.deleteToken(signerId, platform, userId);
-    
+
     console.log(`Unlinked ${platform} account ${userId} from NEAR wallet ${signerId}`);
   } catch (error) {
     console.error(`Error unlinking ${platform} account from NEAR wallet:`, error);
@@ -70,12 +70,12 @@ export async function unlinkAccountFromNear(
  */
 export async function getLinkedAccounts(
   signerId: string,
-  env: Env
-): Promise<Array<{platform: string, userId: string}>> {
+  env: Env,
+): Promise<Array<{ platform: string; userId: string }>> {
   try {
     // Create NEAR auth service
     const nearAuthService = new NearAuthService(env);
-    
+
     // Get all connected accounts
     return await nearAuthService.listConnectedAccounts(signerId);
   } catch (error) {

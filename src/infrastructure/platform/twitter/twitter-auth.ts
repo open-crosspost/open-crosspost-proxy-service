@@ -46,17 +46,19 @@ export class TwitterAuth implements PlatformAuth {
    * @param state The state parameter from the callback
    * @returns The auth state data including successUrl and errorUrl
    */
-  async getAuthState(state: string): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
+  async getAuthState(
+    state: string,
+  ): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
     try {
       // Initialize KV store
       await this.initializeKv();
 
       if (!this.kv) {
-        throw new Error("KV store not initialized");
+        throw new Error('KV store not initialized');
       }
 
       // Get the auth state from KV
-      const authStateEntry = await this.kv.get<AuthState>(["auth", state]);
+      const authStateEntry = await this.kv.get<AuthState>(['auth', state]);
       const authState = authStateEntry.value;
 
       if (!authState) {
@@ -65,18 +67,18 @@ export class TwitterAuth implements PlatformAuth {
 
       // Ensure signerId is always returned
       if (!authState.signerId) {
-        console.warn("Auth state missing signerId, using default");
+        console.warn('Auth state missing signerId, using default');
         return {
           successUrl: authState.successUrl,
           errorUrl: authState.errorUrl,
-          signerId: "unknown.near" // Default value if missing
+          signerId: 'unknown.near', // Default value if missing
         };
       }
 
       return {
         successUrl: authState.successUrl,
         errorUrl: authState.errorUrl,
-        signerId: authState.signerId
+        signerId: authState.signerId,
       };
     } catch (error) {
       console.error('Error getting auth state:', error);
@@ -98,7 +100,7 @@ export class TwitterAuth implements PlatformAuth {
     redirectUri: string,
     scopes: string[],
     successUrl?: string,
-    errorUrl?: string
+    errorUrl?: string,
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
       // Create a Twitter API client
@@ -111,8 +113,8 @@ export class TwitterAuth implements PlatformAuth {
       const { url, codeVerifier, state } = twitterClient.generateOAuth2AuthLink(
         redirectUri,
         {
-          scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write']
-        }
+          scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write'],
+        },
       );
 
       // Store the auth state in Deno KV
@@ -123,19 +125,19 @@ export class TwitterAuth implements PlatformAuth {
         createdAt: Date.now(),
         successUrl: successUrl || redirectUri, // Use redirect URI as fallback
         errorUrl: errorUrl || (successUrl || redirectUri), // Use success URL or redirect URI as fallback
-        signerId // Store the NEAR account ID
+        signerId, // Store the NEAR account ID
       };
 
       // Initialize KV store
       await this.initializeKv();
 
       if (!this.kv) {
-        throw new Error("KV store not initialized");
+        throw new Error('KV store not initialized');
       }
 
       // Store the state in KV with 1 hour expiration
-      await this.kv.set(["auth", state], authState, {
-        expireIn: 3600000 // 1 hour in milliseconds
+      await this.kv.set(['auth', state], authState, {
+        expireIn: 3600000, // 1 hour in milliseconds
       });
 
       return {
@@ -164,11 +166,11 @@ export class TwitterAuth implements PlatformAuth {
       await this.initializeKv();
 
       if (!this.kv) {
-        throw new Error("KV store not initialized");
+        throw new Error('KV store not initialized');
       }
 
       // Get the auth state from KV
-      const authStateEntry = await this.kv.get<AuthState>(["auth", state]);
+      const authStateEntry = await this.kv.get<AuthState>(['auth', state]);
       const authState = authStateEntry.value;
 
       if (!authState) {
@@ -182,11 +184,11 @@ export class TwitterAuth implements PlatformAuth {
       });
 
       // Exchange the code for tokens using PKCE
-      const { client: loggedClient, accessToken, refreshToken, expiresIn } =
-        await twitterClient.loginWithOAuth2({
+      const { client: loggedClient, accessToken, refreshToken, expiresIn } = await twitterClient
+        .loginWithOAuth2({
           code,
           codeVerifier: authState.codeVerifier,
-          redirectUri: authState.redirectUri
+          redirectUri: authState.redirectUri,
         });
 
       // Get the user ID from the Twitter API
@@ -199,7 +201,7 @@ export class TwitterAuth implements PlatformAuth {
         refreshToken: refreshToken || '',
         expiresAt: Date.now() + expiresIn * 1000,
         scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write'],
-        tokenType: TokenType.OAUTH2
+        tokenType: TokenType.OAUTH2,
       };
 
       // Save the tokens
@@ -209,12 +211,12 @@ export class TwitterAuth implements PlatformAuth {
       await linkAccountToNear(authState.signerId, 'twitter', userId, tokens, this.env);
 
       // Delete the auth state from KV
-      await this.kv.delete(["auth", state]);
+      await this.kv.delete(['auth', state]);
 
       return {
         userId,
         tokens,
-        successUrl: authState.successUrl
+        successUrl: authState.successUrl,
       };
     } catch (error) {
       console.error('Error handling callback:', error);
@@ -245,8 +247,8 @@ export class TwitterAuth implements PlatformAuth {
 
       try {
         // Refresh the token
-        const { accessToken, refreshToken: newRefreshToken, expiresIn } =
-          await twitterClient.refreshOAuth2Token(tokens.refreshToken);
+        const { accessToken, refreshToken: newRefreshToken, expiresIn } = await twitterClient
+          .refreshOAuth2Token(tokens.refreshToken);
 
         // Create new tokens object
         const newTokens: TwitterTokens = {
@@ -254,7 +256,7 @@ export class TwitterAuth implements PlatformAuth {
           refreshToken: newRefreshToken || tokens.refreshToken, // Use old refresh token if new one isn't provided
           expiresAt: Date.now() + expiresIn * 1000,
           scope: tokens.scope,
-          tokenType: TokenType.OAUTH2
+          tokenType: TokenType.OAUTH2,
         };
 
         // Save the new tokens
@@ -263,8 +265,10 @@ export class TwitterAuth implements PlatformAuth {
         return newTokens;
       } catch (error: any) {
         // Handle specific Twitter API error for invalid token
-        if (error.data?.error === 'invalid_request' ||
-          (error.status === 400 && error.code === 'invalid_grant')) {
+        if (
+          error.data?.error === 'invalid_request' ||
+          (error.status === 400 && error.code === 'invalid_grant')
+        ) {
           await this.tokenStorage.deleteTokens(userId);
           throw new Error('User authentication expired. Please reconnect your Twitter account.');
         }

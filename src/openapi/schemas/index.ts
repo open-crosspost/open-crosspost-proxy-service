@@ -13,5 +13,5 @@ export const schemas = {
   ...authSchemas,
   ...postSchemas,
   ...mediaSchemas,
-  ...rateLimitSchemas
+  ...rateLimitSchemas,
 };

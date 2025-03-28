@@ -24,7 +24,7 @@ export const mediaSchemas = {
       },
     },
   },
-  
+
   MediaUploadFormRequest: {
     type: 'object',
     required: ['media'],
@@ -44,7 +44,7 @@ export const mediaSchemas = {
       },
     },
   },
-  
+
   MediaMetadataUpdateRequest: {
     type: 'object',
     required: ['altText'],
@@ -55,7 +55,7 @@ export const mediaSchemas = {
       },
     },
   },
-  
+
   // Response Schemas
   MediaUploadResponse: {
     type: 'object',
@@ -112,7 +112,7 @@ export const mediaSchemas = {
       },
     },
   },
-  
+
   MediaStatusResponse: {
     type: 'object',
     required: ['data'],
@@ -168,7 +168,7 @@ export const mediaSchemas = {
       },
     },
   },
-  
+
   MediaMetadataUpdateResponse: {
     type: 'object',
     required: ['data'],

@@ -14,7 +14,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   QuotePostRequest: {
     type: 'object',
     required: ['postId'],
@@ -36,7 +36,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   QuotePostThreadItem: {
     type: 'object',
     properties: {
@@ -57,7 +57,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   ReplyToPostRequest: {
     type: 'object',
     required: ['postId'],
@@ -79,7 +79,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   ReplyToPostThreadItem: {
     type: 'object',
     properties: {
@@ -100,7 +100,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   // Response Schemas
   Post: {
     type: 'object',
@@ -160,7 +160,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   PostResponse: {
     type: 'object',
     required: ['data'],
@@ -184,7 +184,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   DeletePostResponse: {
     type: 'object',
     required: ['data'],
@@ -208,7 +208,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   RepostResponse: {
     type: 'object',
     required: ['data'],
@@ -221,7 +221,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   QuotePostResponse: {
     type: 'object',
     required: ['data'],
@@ -245,7 +245,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   ReplyToPostResponse: {
     type: 'object',
     required: ['data'],
@@ -269,7 +269,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   LikePostResponse: {
     type: 'object',
     required: ['data'],
@@ -293,7 +293,7 @@ export const postSchemas = {
       },
     },
   },
-  
+
   UnlikePostResponse: {
     type: 'object',
     required: ['data'],

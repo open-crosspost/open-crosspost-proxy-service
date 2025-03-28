@@ -24,23 +24,23 @@ export enum ErrorCode {
   INVALID_NEAR_AUTH = 'INVALID_NEAR_AUTH',
   NEAR_AUTH_VALIDATION_ERROR = 'NEAR_AUTH_VALIDATION_ERROR',
   MISSING_NEAR_AUTH = 'MISSING_NEAR_AUTH',
-  
+
   // Authorization errors
   INSUFFICIENT_PERMISSION = 'INSUFFICIENT_PERMISSION',
-  
+
   // Validation errors
   MISSING_USER_ID = 'MISSING_USER_ID',
   INVALID_REQUEST_BODY = 'INVALID_REQUEST_BODY',
-  
+
   // Internal errors
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
-  
+
   // Not found errors
   RESOURCE_NOT_FOUND = 'RESOURCE_NOT_FOUND',
-  
+
   // Rate limit errors
   RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
-  
+
   // External API errors
   TWITTER_API_ERROR = 'TWITTER_API_ERROR',
 }
@@ -74,7 +74,7 @@ export class ApiError extends Error {
     message: string,
     public readonly status: number = 500,
     public readonly code?: string,
-    public readonly details?: any
+    public readonly details?: any,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -101,14 +101,14 @@ export const Errors = {
     message: 'NEAR authentication is required',
     code: ErrorCode.MISSING_NEAR_AUTH,
   },
-  
+
   // Authorization errors
   insufficientPermission: (permission: string) => ({
     type: ErrorType.AUTHORIZATION,
     message: `Missing required permission: ${permission}`,
     code: ErrorCode.INSUFFICIENT_PERMISSION,
   }),
-  
+
   // Validation errors
   missingUserId: {
     type: ErrorType.VALIDATION,
@@ -121,28 +121,28 @@ export const Errors = {
     code: ErrorCode.INVALID_REQUEST_BODY,
     details,
   }),
-  
+
   // Internal errors
   internalServerError: (message?: string) => ({
     type: ErrorType.INTERNAL,
     message: message || 'An internal server error occurred',
     code: ErrorCode.INTERNAL_SERVER_ERROR,
   }),
-  
+
   // Not found errors
   resourceNotFound: (resource?: string) => ({
     type: ErrorType.NOT_FOUND,
     message: resource ? `${resource} not found` : 'Resource not found',
     code: ErrorCode.RESOURCE_NOT_FOUND,
   }),
-  
+
   // Rate limit errors
   rateLimitExceeded: (endpoint?: string) => ({
     type: ErrorType.RATE_LIMIT,
     message: endpoint ? `Rate limit exceeded for ${endpoint}` : 'Rate limit exceeded',
     code: ErrorCode.RATE_LIMIT_EXCEEDED,
   }),
-  
+
   // External API errors
   twitterApiError: (message?: string) => ({
     type: ErrorType.EXTERNAL_API,

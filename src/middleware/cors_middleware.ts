@@ -1,5 +1,5 @@
-import { cors as honoCors, MiddlewareHandler } from "../../deps.ts";
-import { getAllowedOrigins } from "../config/env.ts";
+import { cors as honoCors, MiddlewareHandler } from '../../deps.ts';
+import { getAllowedOrigins } from '../config/env.ts';
 
 /**
  * CORS middleware for Hono
@@ -12,7 +12,7 @@ export const corsMiddleware = (): MiddlewareHandler => {
     origin: (origin) => {
       // If no allowed origins are configured, allow all origins
       if (allowedOrigins.length === 0) {
-        return "*";
+        return '*';
       }
 
       // If the origin is in the allowed origins list, allow it
@@ -21,11 +21,11 @@ export const corsMiddleware = (): MiddlewareHandler => {
       }
 
       // Otherwise, deny the request
-      return "";
+      return '';
     },
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    exposeHeaders: ["X-Rate-Limit-Limit", "X-Rate-Limit-Remaining", "X-Rate-Limit-Reset"],
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    exposeHeaders: ['X-Rate-Limit-Limit', 'X-Rate-Limit-Remaining', 'X-Rate-Limit-Reset'],
     maxAge: 600, // 10 minutes
     credentials: true,
   });

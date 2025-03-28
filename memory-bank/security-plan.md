@@ -1,6 +1,7 @@
 # Social Media API Proxy Security Plan
 
-This document outlines the comprehensive security plan for the Social Media API Proxy, focusing on protecting sensitive user data, particularly OAuth tokens stored in Deno KV.
+This document outlines the comprehensive security plan for the Social Media API Proxy, focusing on
+protecting sensitive user data, particularly OAuth tokens stored in Deno KV.
 
 ## Security Objectives
 
@@ -88,23 +89,23 @@ We've enhanced environment configuration to ensure secure defaults:
 - Prevented use of default encryption keys in production
 
 ```typescript
-export function validateSecurityConfig(env: Env): { 
-  isValid: boolean; 
-  warnings: string[]; 
-  errors: string[] 
+export function validateSecurityConfig(env: Env): {
+  isValid: boolean;
+  warnings: string[];
+  errors: string[];
 } {
   const warnings: string[] = [];
   const errors: string[] = [];
-  
+
   // Check encryption key
-  if (env.ENCRYPTION_KEY === "default-encryption-key") {
+  if (env.ENCRYPTION_KEY === 'default-encryption-key') {
     if (isProduction() || isStaging()) {
-      errors.push("Default encryption key used in production/staging environment");
+      errors.push('Default encryption key used in production/staging environment');
     } else {
-      warnings.push("Default encryption key used - not secure for production");
+      warnings.push('Default encryption key used - not secure for production');
     }
   }
-  
+
   // Additional validation...
 }
 ```

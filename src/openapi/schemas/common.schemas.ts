@@ -55,7 +55,7 @@ export const commonSchemas = {
       },
     },
   },
-  
+
   // Error Response
   ErrorResponse: {
     type: 'object',
@@ -96,7 +96,7 @@ export const commonSchemas = {
       },
     },
   },
-  
+
   // Media Object
   Media: {
     type: 'object',
@@ -119,7 +119,7 @@ export const commonSchemas = {
       },
     },
   },
-  
+
   // Post Content
   PostContent: {
     type: 'object',

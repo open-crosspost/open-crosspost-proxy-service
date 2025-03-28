@@ -1,6 +1,6 @@
-import { Context, MiddlewareHandler, Next } from "../../deps.ts";
-import { extractAndValidateNearAuth } from "../utils/near-auth.utils.ts";
-import { ApiError, ErrorType } from "./errors.ts";
+import { Context, MiddlewareHandler, Next } from '../../deps.ts';
+import { extractAndValidateNearAuth } from '../utils/near-auth.utils.ts';
+import { ApiError, ErrorType } from './errors.ts';
 
 /**
  * Authentication middleware for Hono
@@ -16,19 +16,19 @@ export class AuthMiddleware {
       try {
         // Extract and validate NEAR auth data
         const { signerId } = await extractAndValidateNearAuth(c);
-        
+
         // Set the NEAR account ID in the context for use in controllers
-        c.set("signerId", signerId);
-        
+        c.set('signerId', signerId);
+
         await next();
       } catch (error) {
         if (error instanceof ApiError) {
           throw error;
         }
         throw new ApiError(
-          ErrorType.AUTHENTICATION, 
-          "NEAR authentication failed", 
-          401
+          ErrorType.AUTHENTICATION,
+          'NEAR authentication failed',
+          401,
         );
       }
     };

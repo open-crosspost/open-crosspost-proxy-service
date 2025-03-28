@@ -1,5 +1,10 @@
-import { DeleteResult, LikeResult, PostContent, PostResult } from "../infrastructure/platform/abstract/platform-post.interface.ts";
-import { ApiResponse, ErrorResponse } from "./response.types.ts";
+import {
+  DeleteResult,
+  LikeResult,
+  PostContent,
+  PostResult,
+} from '../infrastructure/platform/abstract/platform-post.interface.ts';
+import { ApiResponse, ErrorResponse } from './response.types.ts';
 
 /**
  * Types for POST /posts endpoint
@@ -66,17 +71,18 @@ export interface CreatePostTargetError {
   error: string;
 }
 
-export interface CreatePostResponse extends ApiResponse<{
-  /**
-   * Array of successful post results
-   */
-  results: CreatePostTargetResult[];
+export interface CreatePostResponse extends
+  ApiResponse<{
+    /**
+     * Array of successful post results
+     */
+    results: CreatePostTargetResult[];
 
-  /**
-   * Array of errors that occurred (if any)
-   */
-  errors?: CreatePostTargetError[];
-}> { }
+    /**
+     * Array of errors that occurred (if any)
+     */
+    errors?: CreatePostTargetError[];
+  }> {}
 
 /**
  * Types for POST /posts/repost endpoint
@@ -101,7 +107,7 @@ export interface RepostRequest {
 }
 
 // Response types
-export interface RepostResponse extends ApiResponse<PostResult> { }
+export interface RepostResponse extends ApiResponse<PostResult> {}
 
 /**
  * Types for POST /posts/quote endpoint
@@ -149,7 +155,7 @@ export interface QuotePostRequest {
 }
 
 // Response types
-export interface QuotePostResponse extends ApiResponse<PostResult[]> { }
+export interface QuotePostResponse extends ApiResponse<PostResult[]> {}
 
 /**
  * Types for DELETE /posts/{id} endpoint
@@ -174,7 +180,7 @@ export interface DeletePostRequest {
 }
 
 // Response types
-export interface DeletePostResponse extends ApiResponse<DeleteResult> { }
+export interface DeletePostResponse extends ApiResponse<DeleteResult> {}
 
 /**
  * Types for POST /posts/reply endpoint
@@ -222,7 +228,7 @@ export interface ReplyToPostRequest {
 }
 
 // Response types
-export interface ReplyToPostResponse extends ApiResponse<PostResult[]> { }
+export interface ReplyToPostResponse extends ApiResponse<PostResult[]> {}
 
 /**
  * Types for POST /posts/{id}/like endpoint
@@ -247,7 +253,7 @@ export interface LikePostRequest {
 }
 
 // Response types
-export interface LikePostResponse extends ApiResponse<LikeResult> { }
+export interface LikePostResponse extends ApiResponse<LikeResult> {}
 
 /**
  * Types for DELETE /posts/{id}/like endpoint
@@ -272,7 +278,7 @@ export interface UnlikePostRequest {
 }
 
 // Response types
-export interface UnlikePostResponse extends ApiResponse<LikeResult> { }
+export interface UnlikePostResponse extends ApiResponse<LikeResult> {}
 
 /**
  * Common error response type for all post endpoints
@@ -282,7 +288,14 @@ export interface PostErrorResponse extends ErrorResponse {
     /**
      * Error type
      */
-    type: "validation_error" | "authentication_error" | "authorization_error" | "not_found" | "rate_limit_exceeded" | "internal_error" | string;
+    type:
+      | 'validation_error'
+      | 'authentication_error'
+      | 'authorization_error'
+      | 'not_found'
+      | 'rate_limit_exceeded'
+      | 'internal_error'
+      | string;
 
     /**
      * Error message

@@ -26,7 +26,7 @@ export const authSchemas = {
       },
     },
   },
-  
+
   AuthCallbackRequest: {
     type: 'object',
     required: ['code', 'state', 'savedState', 'redirectUri'],
@@ -54,7 +54,7 @@ export const authSchemas = {
       },
     },
   },
-  
+
   // Response Schemas
   InitializeAuthResponse: {
     type: 'object',
@@ -84,7 +84,7 @@ export const authSchemas = {
       },
     },
   },
-  
+
   AuthCallbackResponse: {
     type: 'object',
     required: ['data'],
@@ -122,7 +122,7 @@ export const authSchemas = {
       },
     },
   },
-  
+
   RefreshTokenResponse: {
     type: 'object',
     required: ['data'],
@@ -150,7 +150,7 @@ export const authSchemas = {
       },
     },
   },
-  
+
   RevokeTokenResponse: {
     type: 'object',
     required: ['data'],
@@ -170,7 +170,7 @@ export const authSchemas = {
       },
     },
   },
-  
+
   ValidateTokensResponse: {
     type: 'object',
     required: ['data'],

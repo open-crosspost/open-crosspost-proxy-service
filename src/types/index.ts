@@ -25,27 +25,27 @@ export interface Tokens {
    * Access token
    */
   accessToken: string;
-  
+
   /**
    * Refresh token (for OAuth 2.0)
    */
   refreshToken?: string;
-  
+
   /**
    * Token secret (for OAuth 1.0a)
    */
   tokenSecret?: string;
-  
+
   /**
    * Token type
    */
   tokenType: TokenType | string;
-  
+
   /**
    * Expiration timestamp (in milliseconds since epoch)
    */
   expiresAt?: number;
-  
+
   /**
    * OAuth scopes
    */
@@ -60,12 +60,12 @@ export interface PaginationParams {
    * Page number (1-based)
    */
   page?: number;
-  
+
   /**
    * Number of items per page
    */
   perPage?: number;
-  
+
   /**
    * Cursor for cursor-based pagination
    */
@@ -88,7 +88,7 @@ export interface SortParams {
    * Field to sort by
    */
   field: string;
-  
+
   /**
    * Sort direction
    */
@@ -120,12 +120,12 @@ export interface FilterParam {
    * Field to filter by
    */
   field: string;
-  
+
   /**
    * Filter operator
    */
   operator: FilterOperator;
-  
+
   /**
    * Filter value
    */
@@ -140,22 +140,22 @@ export interface QueryParams {
    * Pagination parameters
    */
   pagination?: PaginationParams;
-  
+
   /**
    * Sort parameters
    */
   sort?: SortParams[];
-  
+
   /**
    * Filter parameters
    */
   filters?: FilterParam[];
-  
+
   /**
    * Fields to include in the response
    */
   fields?: string[];
-  
+
   /**
    * Relations to include in the response
    */

@@ -8,12 +8,12 @@ import { createApiResponse, createErrorResponse } from '../../types/response.typ
  */
 export class RateLimitService {
   private twitterClient: TwitterClient;
-  
+
   constructor(env: Env) {
     // For now, we only support Twitter
     this.twitterClient = new TwitterClient(env);
   }
-  
+
   /**
    * Get the rate limit status for a specific endpoint
    * @param endpoint The endpoint to check rate limits for
@@ -28,7 +28,7 @@ export class RateLimitService {
       throw error;
     }
   }
-  
+
   /**
    * Check if a rate limit has been hit
    * @param rateLimitStatus The rate limit status object
@@ -38,7 +38,7 @@ export class RateLimitService {
     if (!rateLimitStatus) return false;
     return this.twitterClient.isRateLimited(rateLimitStatus);
   }
-  
+
   /**
    * Check if a rate limit status is obsolete (reset time has passed)
    * @param rateLimitStatus The rate limit status object
@@ -48,7 +48,7 @@ export class RateLimitService {
     if (!rateLimitStatus) return true;
     return this.twitterClient.isRateLimitObsolete(rateLimitStatus);
   }
-  
+
   /**
    * Get all rate limit statuses
    * @returns All rate limit statuses
@@ -62,39 +62,39 @@ export class RateLimitService {
           '/2/users/me',
           '/2/users/:id/tweets',
           '/2/users/:id/likes',
-          '/2/users/:id/retweets'
+          '/2/users/:id/retweets',
         ],
         v1: [
           'statuses/update',
           'statuses/retweet/:id',
           'favorites/create',
           'favorites/destroy',
-          'media/upload'
-        ]
+          'media/upload',
+        ],
       };
-      
+
       const rateLimits: any = {
         v2: {},
-        v1: {}
+        v1: {},
       };
-      
+
       // Get rate limits for v2 endpoints
       for (const endpoint of endpoints.v2) {
         rateLimits.v2[endpoint] = await this.getRateLimitStatus(endpoint, 'v2');
       }
-      
+
       // Get rate limits for v1 endpoints
       for (const endpoint of endpoints.v1) {
         rateLimits.v1[endpoint] = await this.getRateLimitStatus(endpoint, 'v1');
       }
-      
+
       return rateLimits;
     } catch (error) {
       console.error('Error getting all rate limits:', error);
       throw error;
     }
   }
-  
+
   /**
    * Create a standard API response
    * @param data The response data
@@ -103,10 +103,10 @@ export class RateLimitService {
   createResponse(data: any): Response {
     return new Response(JSON.stringify(createApiResponse(data)), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
-  
+
   /**
    * Create an error response
    * @param error The error object
@@ -116,10 +116,13 @@ export class RateLimitService {
   createErrorResponse(error: any, status = 500): Response {
     const errorMessage = error.message || 'An unexpected error occurred';
     const errorType = error.type || 'INTERNAL_ERROR';
-    
-    return new Response(JSON.stringify(createErrorResponse(errorType, errorMessage, error.code, error.details)), {
-      status,
-      headers: { 'Content-Type': 'application/json' }
-    });
+
+    return new Response(
+      JSON.stringify(createErrorResponse(errorType, errorMessage, error.code, error.details)),
+      {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 }

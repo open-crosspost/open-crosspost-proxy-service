@@ -4,38 +4,38 @@
 
 ### Core Infrastructure
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| Compute Platform | Deno Deploy | Edge runtime for JavaScript/TypeScript applications |
-| Primary Storage | Deno KV | Built-in key-value storage for tokens and configuration |
-| Database | Upstash Redis | External database for structured data storage |
-| Secrets Management | Deno Deploy Environment Variables | Secure storage for API credentials |
+| Component          | Technology                        | Purpose                                                 |
+| ------------------ | --------------------------------- | ------------------------------------------------------- |
+| Compute Platform   | Deno Deploy                       | Edge runtime for JavaScript/TypeScript applications     |
+| Primary Storage    | Deno KV                           | Built-in key-value storage for tokens and configuration |
+| Database           | Upstash Redis                     | External database for structured data storage           |
+| Secrets Management | Deno Deploy Environment Variables | Secure storage for API credentials                      |
 
 ### Development Technologies
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| TypeScript | Latest | Primary development language |
-| Deno | Latest | Runtime, package manager, and development environment |
-| Deno Deploy | Latest | Deployment platform for Deno applications |
-| Deno Test | Latest | Built-in testing framework |
-| Deno Lint | Latest | Built-in linting tool |
-| Deno Fmt | Latest | Built-in code formatter |
+| Technology  | Version | Purpose                                               |
+| ----------- | ------- | ----------------------------------------------------- |
+| TypeScript  | Latest  | Primary development language                          |
+| Deno        | Latest  | Runtime, package manager, and development environment |
+| Deno Deploy | Latest  | Deployment platform for Deno applications             |
+| Deno Test   | Latest  | Built-in testing framework                            |
+| Deno Lint   | Latest  | Built-in linting tool                                 |
+| Deno Fmt    | Latest  | Built-in code formatter                               |
 
 ### Dependencies
 
-| Dependency | Purpose |
-|------------|---------|
-| Hono | HTTP framework for routing |
-| twitter-api-v2 | Twitter API communication library |
-| @twitter-api-v2/plugin-token-refresher | Token refresh handling for Twitter API |
-| @twitter-api-v2/plugin-rate-limit | Rate limit tracking for Twitter API |
-| @twitter-api-v2/plugin-cache-redis | Redis-based caching for API requests |
-| @upstash/redis | Redis client for caching |
-| jose | JWT handling and cryptographic operations |
-| zod | Type validation and schema definition |
-| openapi3-ts | OpenAPI specification utilities |
-| bs58 | Base58 encoding/decoding for NEAR signatures |
+| Dependency                             | Purpose                                      |
+| -------------------------------------- | -------------------------------------------- |
+| Hono                                   | HTTP framework for routing                   |
+| twitter-api-v2                         | Twitter API communication library            |
+| @twitter-api-v2/plugin-token-refresher | Token refresh handling for Twitter API       |
+| @twitter-api-v2/plugin-rate-limit      | Rate limit tracking for Twitter API          |
+| @twitter-api-v2/plugin-cache-redis     | Redis-based caching for API requests         |
+| @upstash/redis                         | Redis client for caching                     |
+| jose                                   | JWT handling and cryptographic operations    |
+| zod                                    | Type validation and schema definition        |
+| openapi3-ts                            | OpenAPI specification utilities              |
+| bs58                                   | Base58 encoding/decoding for NEAR signatures |
 
 ## Development Setup
 
@@ -70,32 +70,32 @@ deno task cache
 
 The project uses the following environment variables, which should be configured in Deno Deploy:
 
-| Variable | Purpose |
-|----------|---------|
-| TWITTER_CLIENT_ID | Twitter OAuth client ID |
-| TWITTER_CLIENT_SECRET | Twitter OAuth client secret |
-| TWITTER_API_KEY | Twitter API key (for OAuth 1.0a) |
-| TWITTER_API_SECRET | Twitter API secret (for OAuth 1.0a) |
-| TWITTER_ACCESS_TOKEN | Twitter access token (for OAuth 1.0a) |
-| TWITTER_ACCESS_SECRET | Twitter access secret (for OAuth 1.0a) |
-| ENCRYPTION_KEY | Key for encrypting stored tokens |
-| ALLOWED_ORIGINS | Comma-separated list of allowed CORS origins |
-| API_KEYS | JSON string of valid API keys and their associated origins |
-| ENVIRONMENT | Current environment (development, staging, production) |
-| UPSTASH_REDIS_REST_URL | Upstash Redis REST URL for caching |
-| UPSTASH_REDIS_REST_TOKEN | Upstash Redis REST token for authentication |
+| Variable                 | Purpose                                                    |
+| ------------------------ | ---------------------------------------------------------- |
+| TWITTER_CLIENT_ID        | Twitter OAuth client ID                                    |
+| TWITTER_CLIENT_SECRET    | Twitter OAuth client secret                                |
+| TWITTER_API_KEY          | Twitter API key (for OAuth 1.0a)                           |
+| TWITTER_API_SECRET       | Twitter API secret (for OAuth 1.0a)                        |
+| TWITTER_ACCESS_TOKEN     | Twitter access token (for OAuth 1.0a)                      |
+| TWITTER_ACCESS_SECRET    | Twitter access secret (for OAuth 1.0a)                     |
+| ENCRYPTION_KEY           | Key for encrypting stored tokens                           |
+| ALLOWED_ORIGINS          | Comma-separated list of allowed CORS origins               |
+| API_KEYS                 | JSON string of valid API keys and their associated origins |
+| ENVIRONMENT              | Current environment (development, staging, production)     |
+| UPSTASH_REDIS_REST_URL   | Upstash Redis REST URL for caching                         |
+| UPSTASH_REDIS_REST_TOKEN | Upstash Redis REST token for authentication                |
 
 ## Technical Constraints
 
 ### Platform Limitations (Deno Deploy)
 
-1. **Execution Time**: 
+1. **Execution Time**:
    - 10 minute timeout for HTTP requests
    - No timeout for WebSocket connections
-2. **Memory Limit**: 
+2. **Memory Limit**:
    - 512MB memory limit per instance
    - 128MB limit for response size
-3. **CPU Limit**: 
+3. **CPU Limit**:
    - CPU time limits based on the plan
 4. **Deno KV Limitations**:
    - Currently in beta/unstable status
@@ -215,9 +215,11 @@ The project uses the following environment variables, which should be configured
 
 1. **CI/CD Integration**:
    - GitHub Actions for automated testing and deployment
-   - Deno-specific GitHub Actions
-   - Environment-specific configurations
-   - Direct deployment to Deno Deploy
+   - Deno-specific GitHub Actions for deployment to Deno Deploy
+   - Environment-specific configurations (staging and production)
+   - Automatic deployment to staging on push to main branch
+   - Manual deployment to production with confirmation step
+   - Automated testing before deployment
    - Automated rollbacks on failure
 2. **Testing Strategy**:
    - Deno's built-in testing framework
@@ -226,10 +228,13 @@ The project uses the following environment variables, which should be configured
    - Mock platform APIs for testing
    - End-to-end tests in staging environment
 3. **Deployment Process**:
-   - Git-based deployments
-   - Preview deployments for pull requests
+   - Git-based deployments through GitHub Actions
+   - Automatic deployment to staging on push to main branch
+   - Manual deployment to production with confirmation step
+   - Comprehensive testing before deployment (format, lint, unit tests)
    - Staging environment for pre-production testing
    - Production deployment with rollback capability
+   - Environment-specific configuration through Deno Deploy
 
 ## API Design
 

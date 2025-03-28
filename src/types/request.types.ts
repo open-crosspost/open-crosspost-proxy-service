@@ -26,12 +26,12 @@ export interface ExtendedRequest extends Request {
    * Environment variables and bindings
    */
   env: Env;
-  
+
   /**
    * Execution context for the request
    */
   ctx: ExecutionContext;
-  
+
   /**
    * CORS headers to be applied to the response
    */
@@ -41,32 +41,32 @@ export interface ExtendedRequest extends Request {
     'Access-Control-Allow-Headers': string;
     'Access-Control-Max-Age': string;
   };
-  
+
   /**
    * NEAR authentication data for the request
    */
   nearAuth?: NearAuthData;
-  
+
   /**
    * Request parameters from URL path
    */
   params?: Record<string, string>;
-  
+
   /**
    * Query parameters from URL
    */
   query?: Record<string, string>;
-  
+
   /**
    * Rate limit headers to be applied to the response
    */
   rateLimitHeaders?: Record<string, string>;
-  
+
   /**
    * Twitter rate limit headers to be applied to the response
    */
   twitterRateLimitHeaders?: Record<string, string>;
-  
+
   /**
    * API key for the request
    */

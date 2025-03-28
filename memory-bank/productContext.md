@@ -4,24 +4,35 @@
 
 Integrating directly with social media APIs presents several challenges for frontend applications:
 
-1. **Security Risks**: Exposing OAuth tokens in frontend code creates significant security vulnerabilities
-2. **Rate Limiting Complexity**: Managing complex rate limiting systems is difficult from client-side code
-3. **Token Management**: Securely storing and refreshing tokens is challenging in frontend environments
+1. **Security Risks**: Exposing OAuth tokens in frontend code creates significant security
+   vulnerabilities
+2. **Rate Limiting Complexity**: Managing complex rate limiting systems is difficult from
+   client-side code
+3. **Token Management**: Securely storing and refreshing tokens is challenging in frontend
+   environments
 4. **Cross-Origin Limitations**: Direct API calls from browsers face CORS restrictions
 5. **Implementation Overhead**: Each frontend application must implement the same integration logic
-6. **Media Upload Complexity**: Media upload processes are complex and often require specific credentials
+6. **Media Upload Complexity**: Media upload processes are complex and often require specific
+   credentials
 
 ## Solution
 
-The Social Media API Proxy provides a secure, managed interface between frontend applications and social media platforms:
+The Social Media API Proxy provides a secure, managed interface between frontend applications and
+social media platforms:
 
-1. **Secure Token Handling**: OAuth tokens are never exposed to frontend code, remaining securely stored in Deno KV
+1. **Secure Token Handling**: OAuth tokens are never exposed to frontend code, remaining securely
+   stored in Deno KV
 2. **Centralized Rate Limiting**: The proxy handles all rate limit tracking and backoff strategies
-3. **Automated Token Refresh**: Tokens are automatically refreshed when needed without client involvement
-4. **CORS-Enabled Endpoints**: Properly configured CORS headers allow browser-based applications to interact with the API
-5. **Simplified Client Integration**: Clients need only implement a simple REST API rather than the full OAuth flow
-6. **Unified Media Handling**: The proxy manages the complex media upload process, including chunked uploads and processing
-7. **Platform Abstraction**: A unified interface allows clients to interact with multiple social media platforms through a consistent API
+3. **Automated Token Refresh**: Tokens are automatically refreshed when needed without client
+   involvement
+4. **CORS-Enabled Endpoints**: Properly configured CORS headers allow browser-based applications to
+   interact with the API
+5. **Simplified Client Integration**: Clients need only implement a simple REST API rather than the
+   full OAuth flow
+6. **Unified Media Handling**: The proxy manages the complex media upload process, including chunked
+   uploads and processing
+7. **Platform Abstraction**: A unified interface allows clients to interact with multiple social
+   media platforms through a consistent API
 
 ## User Experience Goals
 
@@ -30,9 +41,12 @@ The Social Media API Proxy provides a secure, managed interface between frontend
 1. **Seamless Authentication**: Simple, secure authentication process with social media platforms
 2. **Consistent Performance**: Reliable access to functionality without rate limit errors
 3. **Data Privacy**: Assurance that their credentials are securely handled
-4. **Transparent Permissions**: Clear understanding of what actions the application can perform on their behalf
-5. **Rich Media Support**: Ability to upload images and videos with proper handling of alt text for accessibility
-6. **Multiple Account Support**: Ability to connect multiple social media accounts to a single NEAR wallet
+4. **Transparent Permissions**: Clear understanding of what actions the application can perform on
+   their behalf
+5. **Rich Media Support**: Ability to upload images and videos with proper handling of alt text for
+   accessibility
+6. **Multiple Account Support**: Ability to connect multiple social media accounts to a single NEAR
+   wallet
 
 ### For Client Developers
 
@@ -40,8 +54,10 @@ The Social Media API Proxy provides a secure, managed interface between frontend
 2. **Reduced Security Burden**: No need to handle sensitive OAuth tokens
 3. **Consistent Reliability**: Built-in handling for rate limits and API changes
 4. **Comprehensive Functionality**: Access to all needed features through a unified API
-5. **Flexible Implementation**: Support for various usage patterns including threads, quote posts, and media uploads
-6. **Platform Agnostic**: Ability to interact with multiple social media platforms through a single API
+5. **Flexible Implementation**: Support for various usage patterns including threads, quote posts,
+   and media uploads
+6. **Platform Agnostic**: Ability to interact with multiple social media platforms through a single
+   API
 
 ## Key Workflows
 
@@ -91,9 +107,11 @@ The Social Media API Proxy provides a secure, managed interface between frontend
 1. **Web Applications**: Browser-based apps that need social media integration
 2. **Mobile Applications**: Apps that need a secure backend for social media operations
 3. **Internal Tools**: Company dashboards that manage social media presence
-4. **Multi-platform Products**: Products that need consistent social media integration across platforms
+4. **Multi-platform Products**: Products that need consistent social media integration across
+   platforms
 5. **Content Management Systems**: Systems that publish content to social media
-6. **NEAR Ecosystem Applications**: Applications built on NEAR that want to integrate with social media
+6. **NEAR Ecosystem Applications**: Applications built on NEAR that want to integrate with social
+   media
 
 ## Feature Set
 

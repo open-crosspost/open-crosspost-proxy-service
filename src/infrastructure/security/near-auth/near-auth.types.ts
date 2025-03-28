@@ -14,32 +14,32 @@ export interface NearAuthData {
    * NEAR account ID
    */
   account_id: string;
-  
+
   /**
    * Public key used for signing
    */
   public_key: string;
-  
+
   /**
    * Signature of the message
    */
   signature: string;
-  
+
   /**
    * Message that was signed
    */
   message: string;
-  
+
   /**
    * Nonce used for signing
    */
   nonce: string;
-  
+
   /**
    * Recipient of the message
    */
   recipient?: string;
-  
+
   /**
    * Callback URL
    */
@@ -55,22 +55,22 @@ export interface NearAuthPayload {
    * Tag value for the payload (2147484061)
    */
   tag: number;
-  
+
   /**
    * Message that was signed
    */
   message: string;
-  
+
   /**
    * Nonce used for signing
    */
   nonce: Uint8Array;
-  
+
   /**
    * Recipient of the message
    */
   receiver: string;
-  
+
   /**
    * Callback URL
    */
@@ -85,7 +85,7 @@ export const PAYLOAD_SCHEMA = {
   message: BorshSchema.String,
   nonce: BorshSchema.Array(BorshSchema.u8, 32),
   receiver: BorshSchema.String,
-  callback_url: BorshSchema.Option(BorshSchema.String)
+  callback_url: BorshSchema.Option(BorshSchema.String),
 };
 
 /**
@@ -97,12 +97,12 @@ export interface NearAuthResult {
    * Whether the authentication is valid
    */
   valid: boolean;
-  
+
   /**
    * NEAR account ID if valid
    */
   signerId?: string;
-  
+
   /**
    * Error message if invalid
    */
@@ -113,13 +113,13 @@ export interface NearAuthResult {
  * Zod schema for NEAR Authentication Data
  */
 export const nearAuthDataSchema = z.object({
-  account_id: z.string().min(1, "Account ID is required"),
-  public_key: z.string().min(1, "Public key is required"),
-  signature: z.string().min(1, "Signature is required"),
-  message: z.string().min(1, "Message is required"),
-  nonce: z.string().min(1, "Nonce is required"),
+  account_id: z.string().min(1, 'Account ID is required'),
+  public_key: z.string().min(1, 'Public key is required'),
+  signature: z.string().min(1, 'Signature is required'),
+  message: z.string().min(1, 'Message is required'),
+  nonce: z.string().min(1, 'Nonce is required'),
   recipient: z.string().optional().default('crosspost.near'),
-  callback_url: z.string().optional()
+  callback_url: z.string().optional(),
 });
 
 /**

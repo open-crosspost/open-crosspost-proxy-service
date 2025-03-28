@@ -1,16 +1,16 @@
-import { Context, HTTPException, MiddlewareHandler, Next } from "../../deps.ts";
+import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.ts';
 
 /**
  * Error types
  */
 export enum ErrorType {
-  VALIDATION = "validation_error",
-  AUTHENTICATION = "authentication_error",
-  AUTHORIZATION = "authorization_error",
-  NOT_FOUND = "not_found",
-  RATE_LIMIT = "rate_limit_error",
-  PLATFORM_API = "platform_api_error",
-  INTERNAL = "internal_error",
+  VALIDATION = 'validation_error',
+  AUTHENTICATION = 'authentication_error',
+  AUTHORIZATION = 'authorization_error',
+  NOT_FOUND = 'not_found',
+  RATE_LIMIT = 'rate_limit_error',
+  PLATFORM_API = 'platform_api_error',
+  INTERNAL = 'internal_error',
 }
 
 /**
@@ -25,10 +25,10 @@ export class ApiError extends Error {
     message: string,
     type: ErrorType = ErrorType.INTERNAL,
     status = 500,
-    details?: unknown
+    details?: unknown,
   ) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     this.type = type;
     this.status = status;
     this.details = details;
@@ -114,19 +114,19 @@ export const errorMiddleware = (): MiddlewareHandler => {
     try {
       await next();
     } catch (err: unknown) {
-      console.error("Error:", err);
+      console.error('Error:', err);
 
       // Handle HTTPException from Hono
       if (err instanceof HTTPException) {
         return c.json(
           {
             error: {
-              type: "http_error",
+              type: 'http_error',
               message: err.message,
               status: err.status,
             },
           },
-          err.status
+          err.status,
         );
       }
 
@@ -140,7 +140,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
               status: err.status,
               details: err.details,
             },
-            status: err.status
+            status: err.status,
           },
         );
       }
@@ -151,11 +151,11 @@ export const errorMiddleware = (): MiddlewareHandler => {
           {
             error: {
               type: ErrorType.INTERNAL,
-              message: err.message || "An unexpected error occurred",
+              message: err.message || 'An unexpected error occurred',
               status: 500,
             },
           },
-          500
+          500,
         );
       }
 
@@ -164,11 +164,11 @@ export const errorMiddleware = (): MiddlewareHandler => {
         {
           error: {
             type: ErrorType.INTERNAL,
-            message: "An unexpected error occurred",
+            message: 'An unexpected error occurred',
             status: 500,
           },
         },
-        500
+        500,
       );
     }
   };

@@ -11,5 +11,5 @@ export const paths = {
   ...authPaths,
   ...postPaths,
   ...mediaPaths,
-  ...rateLimitPaths
+  ...rateLimitPaths,
 };

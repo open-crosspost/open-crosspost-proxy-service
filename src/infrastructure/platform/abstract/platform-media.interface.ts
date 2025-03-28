@@ -35,14 +35,14 @@ export interface PlatformMedia {
    * @param media The media content to upload
    */
   uploadMedia(userId: string, media: MediaContent): Promise<MediaUploadResult>;
-  
+
   /**
    * Get the status of a media upload
    * @param userId The user ID who uploaded the media
    * @param mediaId The ID of the media to check
    */
   getMediaStatus(userId: string, mediaId: string): Promise<MediaStatusResult>;
-  
+
   /**
    * Update media metadata (e.g., alt text)
    * @param userId The user ID updating the media

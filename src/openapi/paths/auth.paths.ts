@@ -7,7 +7,8 @@ export const authPaths = {
     post: {
       tags: ['auth'],
       summary: 'Initialize authentication',
-      description: 'Start the OAuth flow by generating an authentication URL for a specific platform',
+      description:
+        'Start the OAuth flow by generating an authentication URL for a specific platform',
       operationId: 'initializeAuth',
       parameters: [
         {
@@ -16,10 +17,10 @@ export const authPaths = {
           required: true,
           schema: {
             type: 'string',
-            enum: ['twitter']
+            enum: ['twitter'],
           },
-          description: 'The social media platform to authenticate with'
-        }
+          description: 'The social media platform to authenticate with',
+        },
       ],
       requestBody: {
         required: true,
@@ -84,7 +85,8 @@ export const authPaths = {
     get: {
       tags: ['auth'],
       summary: 'Handle OAuth callback',
-      description: 'Process the OAuth callback and exchange the code for tokens for a specific platform',
+      description:
+        'Process the OAuth callback and exchange the code for tokens for a specific platform',
       operationId: 'handleCallback',
       parameters: [
         {
@@ -93,28 +95,28 @@ export const authPaths = {
           required: true,
           schema: {
             type: 'string',
-            enum: ['twitter']
+            enum: ['twitter'],
           },
-          description: 'The social media platform handling the callback'
+          description: 'The social media platform handling the callback',
         },
         {
           name: 'code',
           in: 'query',
           required: true,
           schema: {
-            type: 'string'
+            type: 'string',
           },
-          description: 'The authorization code from the OAuth provider'
+          description: 'The authorization code from the OAuth provider',
         },
         {
           name: 'state',
           in: 'query',
           required: true,
           schema: {
-            type: 'string'
+            type: 'string',
           },
-          description: 'The state parameter for CSRF protection'
-        }
+          description: 'The state parameter for CSRF protection',
+        },
       ],
       responses: {
         '200': {
@@ -178,10 +180,10 @@ export const authPaths = {
           required: true,
           schema: {
             type: 'string',
-            enum: ['twitter']
+            enum: ['twitter'],
           },
-          description: 'The social media platform to refresh the token for'
-        }
+          description: 'The social media platform to refresh the token for',
+        },
       ],
       responses: {
         '200': {
@@ -237,7 +239,7 @@ export const authPaths = {
     delete: {
       tags: ['auth'],
       summary: 'Revoke token',
-      description: 'Revoke a user\'s tokens for a specific platform',
+      description: "Revoke a user's tokens for a specific platform",
       operationId: 'revokeToken',
       parameters: [
         {
@@ -246,10 +248,10 @@ export const authPaths = {
           required: true,
           schema: {
             type: 'string',
-            enum: ['twitter']
+            enum: ['twitter'],
           },
-          description: 'The social media platform to revoke the token for'
-        }
+          description: 'The social media platform to revoke the token for',
+        },
       ],
       responses: {
         '200': {
@@ -314,19 +316,19 @@ export const authPaths = {
           required: true,
           schema: {
             type: 'string',
-            enum: ['twitter']
+            enum: ['twitter'],
           },
-          description: 'The social media platform to check token status for'
+          description: 'The social media platform to check token status for',
         },
         {
           name: 'userId',
           in: 'query',
           required: true,
           schema: {
-            type: 'string'
+            type: 'string',
           },
-          description: 'The user ID on the platform'
-        }
+          description: 'The user ID on the platform',
+        },
       ],
       responses: {
         '200': {
@@ -402,25 +404,25 @@ export const authPaths = {
                           properties: {
                             platform: {
                               type: 'string',
-                              description: 'The social media platform'
+                              description: 'The social media platform',
                             },
                             userId: {
                               type: 'string',
-                              description: 'The user ID on the platform'
+                              description: 'The user ID on the platform',
                             },
                             username: {
                               type: 'string',
-                              description: 'The username on the platform'
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+                              description: 'The username on the platform',
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         '401': {
           description: 'Unauthorized',
@@ -449,5 +451,5 @@ export const authPaths = {
         },
       ],
     },
-  }
+  },
 };

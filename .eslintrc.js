@@ -21,7 +21,7 @@ module.exports = {
     'no-eval': 'error',
     'no-implied-eval': 'error',
     'no-new-func': 'error',
-    
+
     // Best practices
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     'no-debugger': 'warn',
@@ -29,11 +29,11 @@ module.exports = {
     'no-var': 'error',
     'prefer-const': 'error',
     'prefer-template': 'warn',
-    
+
     // TypeScript specific rules
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/no-unused-vars': ['warn', { 
+    '@typescript-eslint/no-unused-vars': ['warn', {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',
     }],

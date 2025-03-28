@@ -15,7 +15,7 @@ export const rateLimitSchemas = {
       },
     },
   },
-  
+
   RateLimitObsoleteRequest: {
     type: 'object',
     required: ['rateLimitStatus'],
@@ -27,7 +27,7 @@ export const rateLimitSchemas = {
       },
     },
   },
-  
+
   // Response Schemas
   RateLimitStatus: {
     type: 'object',
@@ -56,7 +56,7 @@ export const rateLimitSchemas = {
       },
     },
   },
-  
+
   RateLimitStatusResponse: {
     type: 'object',
     required: ['data'],
@@ -69,7 +69,7 @@ export const rateLimitSchemas = {
       },
     },
   },
-  
+
   AllRateLimitsResponse: {
     type: 'object',
     required: ['data'],
@@ -99,7 +99,7 @@ export const rateLimitSchemas = {
       },
     },
   },
-  
+
   RateLimitCheckResponse: {
     type: 'object',
     required: ['data'],
@@ -119,7 +119,7 @@ export const rateLimitSchemas = {
       },
     },
   },
-  
+
   RateLimitObsoleteResponse: {
     type: 'object',
     required: ['data'],

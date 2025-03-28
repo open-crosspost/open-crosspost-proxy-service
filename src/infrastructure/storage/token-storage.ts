@@ -2,8 +2,8 @@
  * Token Type enum
  */
 export enum TokenType {
-  OAUTH1 = "oauth1",
-  OAUTH2 = "oauth2",
+  OAUTH1 = 'oauth1',
+  OAUTH2 = 'oauth2',
 }
 
 /**
@@ -18,8 +18,8 @@ export interface TwitterTokens {
   tokenType: TokenType | string;
 }
 
-import { TokenAccessLogger, TokenOperation } from "../security/token-access-logger.ts";
-import { Env } from "../../config/env.ts";
+import { TokenAccessLogger, TokenOperation } from '../security/token-access-logger.ts';
+import { Env } from '../../config/env.ts';
 
 /**
  * Token Storage using Deno KV
@@ -29,16 +29,16 @@ export class TokenStorage {
   private kv: Deno.Kv | null = null;
   private encryptionKey: string;
   private logger: TokenAccessLogger;
-  
+
   // Version constants for encryption
   private readonly ENCRYPTION_VERSION_1 = 0x01;
   private readonly CURRENT_ENCRYPTION_VERSION = this.ENCRYPTION_VERSION_1;
-  
+
   constructor(encryptionKey: string, env: Env) {
     this.encryptionKey = encryptionKey;
     this.logger = new TokenAccessLogger(env);
   }
-  
+
   /**
    * Initialize the KV store
    */
@@ -47,7 +47,7 @@ export class TokenStorage {
       this.kv = await Deno.openKv();
     }
   }
-  
+
   /**
    * Get tokens for a user
    * @param userId The user ID to get tokens for
@@ -57,40 +57,40 @@ export class TokenStorage {
   async getTokens(userId: string): Promise<TwitterTokens> {
     try {
       await this.initialize();
-      
+
       if (!this.kv) {
-        throw new Error("KV store not initialized");
+        throw new Error('KV store not initialized');
       }
-      
+
       // Get the encrypted tokens from KV
-      const key = ["tokens", userId];
+      const key = ['tokens', userId];
       const result = await this.kv.get<string>(key);
-      
+
       if (!result.value) {
-        await this.logger.logAccess(TokenOperation.GET, userId, false, "Tokens not found");
-        throw new Error("Tokens not found");
+        await this.logger.logAccess(TokenOperation.GET, userId, false, 'Tokens not found');
+        throw new Error('Tokens not found');
       }
-      
+
       // Decrypt the tokens
       const tokens = await this.decryptTokens(result.value);
-      
+
       // Log successful access
       await this.logger.logAccess(TokenOperation.GET, userId, true);
-      
+
       return tokens;
     } catch (error) {
       // Log failed access
       await this.logger.logAccess(
-        TokenOperation.GET, 
-        userId, 
-        false, 
-        error instanceof Error ? error.message : "Unknown error"
+        TokenOperation.GET,
+        userId,
+        false,
+        error instanceof Error ? error.message : 'Unknown error',
       );
-      console.error("Error getting tokens:", error);
-      throw new Error("Failed to retrieve tokens");
+      console.error('Error getting tokens:', error);
+      throw new Error('Failed to retrieve tokens');
     }
   }
-  
+
   /**
    * Save tokens for a user
    * @param userId The user ID to save tokens for
@@ -99,38 +99,38 @@ export class TokenStorage {
   async saveTokens(userId: string, tokens: TwitterTokens): Promise<void> {
     try {
       await this.initialize();
-      
+
       if (!this.kv) {
-        throw new Error("KV store not initialized");
+        throw new Error('KV store not initialized');
       }
-      
+
       // Encrypt the tokens
       const encryptedTokens = await this.encryptTokens(tokens);
-      
+
       // Save the encrypted tokens to KV
-      const key = ["tokens", userId];
+      const key = ['tokens', userId];
       const result = await this.kv.set(key, encryptedTokens);
-      
+
       if (!result.ok) {
-        await this.logger.logAccess(TokenOperation.SAVE, userId, false, "Failed to save tokens");
+        await this.logger.logAccess(TokenOperation.SAVE, userId, false, 'Failed to save tokens');
         throw new Error(`Failed to save tokens for user ${userId}`);
       }
-      
+
       // Log successful save
       await this.logger.logAccess(TokenOperation.SAVE, userId, true);
     } catch (error) {
       // Log failed save
       await this.logger.logAccess(
-        TokenOperation.SAVE, 
-        userId, 
-        false, 
-        error instanceof Error ? error.message : "Unknown error"
+        TokenOperation.SAVE,
+        userId,
+        false,
+        error instanceof Error ? error.message : 'Unknown error',
       );
-      console.error("Error saving tokens:", error);
-      throw new Error("Failed to save tokens");
+      console.error('Error saving tokens:', error);
+      throw new Error('Failed to save tokens');
     }
   }
-  
+
   /**
    * Delete tokens for a user
    * @param userId The user ID to delete tokens for
@@ -138,30 +138,30 @@ export class TokenStorage {
   async deleteTokens(userId: string): Promise<void> {
     try {
       await this.initialize();
-      
+
       if (!this.kv) {
-        throw new Error("KV store not initialized");
+        throw new Error('KV store not initialized');
       }
-      
+
       // Delete the tokens from KV
-      const key = ["tokens", userId];
+      const key = ['tokens', userId];
       await this.kv.delete(key);
-      
+
       // Log successful deletion
       await this.logger.logAccess(TokenOperation.DELETE, userId, true);
     } catch (error) {
       // Log failed deletion
       await this.logger.logAccess(
-        TokenOperation.DELETE, 
-        userId, 
-        false, 
-        error instanceof Error ? error.message : "Unknown error"
+        TokenOperation.DELETE,
+        userId,
+        false,
+        error instanceof Error ? error.message : 'Unknown error',
       );
-      console.error("Error deleting tokens:", error);
-      throw new Error("Failed to delete tokens");
+      console.error('Error deleting tokens:', error);
+      throw new Error('Failed to delete tokens');
     }
   }
-  
+
   /**
    * Check if tokens exist for a user
    * @param userId The user ID to check
@@ -170,40 +170,40 @@ export class TokenStorage {
   async hasTokens(userId: string): Promise<boolean> {
     try {
       await this.initialize();
-      
+
       if (!this.kv) {
-        throw new Error("KV store not initialized");
+        throw new Error('KV store not initialized');
       }
-      
+
       // Check if tokens exist in KV
-      const key = ["tokens", userId];
+      const key = ['tokens', userId];
       const result = await this.kv.get(key);
       const exists = result.value !== null;
-      
+
       // Log check operation
       await this.logger.logAccess(TokenOperation.CHECK, userId, true);
-      
+
       return exists;
     } catch (error) {
       // Log failed check
       await this.logger.logAccess(
-        TokenOperation.CHECK, 
-        userId, 
-        false, 
-        error instanceof Error ? error.message : "Unknown error"
+        TokenOperation.CHECK,
+        userId,
+        false,
+        error instanceof Error ? error.message : 'Unknown error',
       );
-      console.error("Error checking tokens:", error);
+      console.error('Error checking tokens:', error);
       return false;
     }
   }
-  
+
   /**
    * Close the KV store
    */
   async close(): Promise<void> {
     // Deno KV doesn't require explicit closing
   }
-  
+
   /**
    * Encrypt tokens
    * @param tokens The tokens to encrypt
@@ -213,11 +213,11 @@ export class TokenStorage {
     try {
       // Get the encryption key bytes
       const rawKeyData = new TextEncoder().encode(this.encryptionKey);
-      
+
       // Normalize the key to a valid AES-GCM size (16, 24, or 32 bytes)
       // We'll use a cryptographic hash to derive a key of the right size
       let keyData: Uint8Array;
-      
+
       if (rawKeyData.length === 16 || rawKeyData.length === 24 || rawKeyData.length === 32) {
         // Key is already a valid size, use it directly
         keyData = rawKeyData;
@@ -226,44 +226,44 @@ export class TokenStorage {
         const hashBuffer = await crypto.subtle.digest('SHA-256', rawKeyData);
         keyData = new Uint8Array(hashBuffer);
       }
-      
+
       // Convert the encryption key to a CryptoKey
       const key = await crypto.subtle.importKey(
-        "raw",
+        'raw',
         keyData,
-        { name: "AES-GCM" },
+        { name: 'AES-GCM' },
         false,
-        ["encrypt"]
+        ['encrypt'],
       );
-      
+
       // Generate a random IV
       const iv = crypto.getRandomValues(new Uint8Array(12));
-      
+
       // Convert tokens to string
       const tokenString = JSON.stringify(tokens);
       const tokenData = new TextEncoder().encode(tokenString);
-      
+
       // Encrypt the tokens
       const encryptedData = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv },
+        { name: 'AES-GCM', iv },
         key,
-        tokenData
+        tokenData,
       );
-      
+
       // Create result with version byte + IV + encrypted data
       const result = new Uint8Array(1 + iv.length + encryptedData.byteLength);
       result[0] = this.CURRENT_ENCRYPTION_VERSION; // Version byte
       result.set(iv, 1);
       result.set(new Uint8Array(encryptedData), 1 + iv.length);
-      
+
       // Return as base64 string
       return btoa(String.fromCharCode(...result));
     } catch (error) {
-      console.error("Error encrypting tokens:", error);
-      throw new Error("Failed to encrypt tokens");
+      console.error('Error encrypting tokens:', error);
+      throw new Error('Failed to encrypt tokens');
     }
   }
-  
+
   /**
    * Decrypt tokens
    * @param encryptedTokens The encrypted tokens
@@ -273,11 +273,11 @@ export class TokenStorage {
     try {
       // Get the encryption key bytes
       const rawKeyData = new TextEncoder().encode(this.encryptionKey);
-      
+
       // Normalize the key to a valid AES-GCM size (16, 24, or 32 bytes)
       // We'll use a cryptographic hash to derive a key of the right size
       let keyData: Uint8Array;
-      
+
       if (rawKeyData.length === 16 || rawKeyData.length === 24 || rawKeyData.length === 32) {
         // Key is already a valid size, use it directly
         keyData = rawKeyData;
@@ -286,36 +286,36 @@ export class TokenStorage {
         const hashBuffer = await crypto.subtle.digest('SHA-256', rawKeyData);
         keyData = new Uint8Array(hashBuffer);
       }
-      
+
       // Convert the encryption key to a CryptoKey
       const key = await crypto.subtle.importKey(
-        "raw",
+        'raw',
         keyData,
-        { name: "AES-GCM" },
+        { name: 'AES-GCM' },
         false,
-        ["decrypt"]
+        ['decrypt'],
       );
-      
+
       // Convert base64 to Uint8Array
       const data = Uint8Array.from(atob(encryptedTokens), (c) => c.charCodeAt(0));
-      
+
       // Check if the data has a version byte
       if (data.length > 0) {
         const version = data[0];
-        
+
         // Handle different versions
         if (version === this.ENCRYPTION_VERSION_1) {
           // Version 1: version byte + 12-byte IV + encrypted data
           const iv = data.slice(1, 13);
           const encryptedData = data.slice(13);
-          
+
           // Decrypt the tokens
           const decryptedData = await crypto.subtle.decrypt(
-            { name: "AES-GCM", iv },
+            { name: 'AES-GCM', iv },
             key,
-            encryptedData
+            encryptedData,
           );
-          
+
           // Convert to string and parse JSON
           const tokenString = new TextDecoder().decode(decryptedData);
           return JSON.parse(tokenString);
@@ -324,24 +324,24 @@ export class TokenStorage {
           // This handles tokens encrypted with the old format
           const iv = data.slice(0, 12);
           const encryptedData = data.slice(12);
-          
+
           // Decrypt the tokens
           const decryptedData = await crypto.subtle.decrypt(
-            { name: "AES-GCM", iv },
+            { name: 'AES-GCM', iv },
             key,
-            encryptedData
+            encryptedData,
           );
-          
+
           // Convert to string and parse JSON
           const tokenString = new TextDecoder().decode(decryptedData);
           return JSON.parse(tokenString);
         }
       } else {
-        throw new Error("Invalid encrypted data format");
+        throw new Error('Invalid encrypted data format');
       }
     } catch (error) {
-      console.error("Error decrypting tokens:", error);
-      throw new Error("Failed to decrypt tokens");
+      console.error('Error decrypting tokens:', error);
+      throw new Error('Failed to decrypt tokens');
     }
   }
 }

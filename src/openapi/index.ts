@@ -50,7 +50,8 @@ export const openApiSpec: OpenAPIObject = {
   openapi: '3.0.3',
   info: {
     title: 'Twitter API Proxy',
-    description: 'A secure proxy for the Twitter API that allows authorized frontends to perform Twitter actions on behalf of users who have granted permission.',
+    description:
+      'A secure proxy for the Twitter API that allows authorized frontends to perform Twitter actions on behalf of users who have granted permission.',
     version: '1.0.0',
     contact: {
       name: 'API Support',
@@ -96,8 +97,7 @@ export const openApiSpec: OpenAPIObject = {
   paths,
   components: {
     schemas,
-    securitySchemes: {
-    },
+    securitySchemes: {},
   },
   security: [
     {

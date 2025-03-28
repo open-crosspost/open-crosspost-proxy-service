@@ -6,7 +6,7 @@ import {
   MediaContent,
   PlatformPost,
   PostContent,
-  PostResult
+  PostResult,
 } from '../abstract/platform-post.interface.ts';
 import { TwitterClient } from './twitter-client.ts';
 import { TwitterMedia } from './twitter-media.ts';
@@ -100,7 +100,7 @@ export class TwitterPost implements PlatformPost {
         id: result[0].data.id,
         text: result[0].data.text,
         createdAt: new Date().toISOString(),
-        threadIds: result.map(tweet => tweet.data.id),
+        threadIds: result.map((tweet) => tweet.data.id),
       };
     } catch (error) {
       console.error('Error creating thread:', error);
@@ -150,7 +150,7 @@ export class TwitterPost implements PlatformPost {
 
       // Prepare tweet data with the quoted tweet URL
       const tweetData: SendTweetV2Params = {
-        text: `${content.text || ''} https://twitter.com/i/web/status/${postId}`
+        text: `${content.text || ''} https://twitter.com/i/web/status/${postId}`,
       };
 
       // Handle media if present
@@ -182,7 +182,11 @@ export class TwitterPost implements PlatformPost {
    * @param contentArray Array of post contents for the thread
    * @returns The thread result
    */
-  private async createQuoteThread(userId: string, postId: string, contentArray: PostContent[]): Promise<PostResult> {
+  private async createQuoteThread(
+    userId: string,
+    postId: string,
+    contentArray: PostContent[],
+  ): Promise<PostResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
 
@@ -192,7 +196,7 @@ export class TwitterPost implements PlatformPost {
       // First tweet quotes the original
       const firstContent = contentArray[0];
       const firstTweetData: SendTweetV2Params = {
-        text: `${firstContent.text || ''} https://twitter.com/i/web/status/${postId}`
+        text: `${firstContent.text || ''} https://twitter.com/i/web/status/${postId}`,
       };
 
       // Handle media if present
@@ -226,7 +230,7 @@ export class TwitterPost implements PlatformPost {
         text: result[0].data.text,
         createdAt: new Date().toISOString(),
         quotedPostId: postId,
-        threadIds: result.map(tweet => tweet.data.id),
+        threadIds: result.map((tweet) => tweet.data.id),
       };
     } catch (error) {
       console.error('Error creating quote thread:', error);
@@ -276,7 +280,7 @@ export class TwitterPost implements PlatformPost {
       // Prepare tweet data
       const tweetData: SendTweetV2Params = {
         text: content.text || '',
-        reply: { in_reply_to_tweet_id: postId }
+        reply: { in_reply_to_tweet_id: postId },
       };
 
       // Handle media if present
@@ -308,7 +312,11 @@ export class TwitterPost implements PlatformPost {
    * @param contentArray Array of post contents for the thread
    * @returns The thread result
    */
-  private async createReplyThread(userId: string, postId: string, contentArray: PostContent[]): Promise<PostResult> {
+  private async createReplyThread(
+    userId: string,
+    postId: string,
+    contentArray: PostContent[],
+  ): Promise<PostResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
 
@@ -319,7 +327,7 @@ export class TwitterPost implements PlatformPost {
       const firstContent = contentArray[0];
       const firstTweetData: SendTweetV2Params = {
         text: firstContent.text || '',
-        reply: { in_reply_to_tweet_id: postId }
+        reply: { in_reply_to_tweet_id: postId },
       };
 
       // Handle media if present
@@ -353,7 +361,7 @@ export class TwitterPost implements PlatformPost {
         text: result[0].data.text,
         createdAt: new Date().toISOString(),
         inReplyToId: postId,
-        threadIds: result.map(tweet => tweet.data.id),
+        threadIds: result.map((tweet) => tweet.data.id),
       };
     } catch (error) {
       console.error('Error creating reply thread:', error);
@@ -454,7 +462,9 @@ export class TwitterPost implements PlatformPost {
     } else if (ids.length === 3) {
       tweetData.media = { media_ids: [ids[0], ids[1], ids[2]] as [string, string, string] };
     } else if (ids.length === 4) {
-      tweetData.media = { media_ids: [ids[0], ids[1], ids[2], ids[3]] as [string, string, string, string] };
+      tweetData.media = {
+        media_ids: [ids[0], ids[1], ids[2], ids[3]] as [string, string, string, string],
+      };
     }
   }
 }

@@ -1,10 +1,8 @@
-import { 
-  MediaContent 
-} from '../../infrastructure/platform/abstract/platform-post.interface.ts';
-import { 
-  PlatformMedia, 
-  MediaUploadResult, 
-  MediaStatusResult 
+import { MediaContent } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
+import {
+  MediaStatusResult,
+  MediaUploadResult,
+  PlatformMedia,
 } from '../../infrastructure/platform/abstract/platform-media.interface.ts';
 import { TwitterMedia } from '../../infrastructure/platform/twitter/twitter-media.ts';
 import { Env } from '../../config/env.ts';
@@ -16,12 +14,12 @@ import { createApiResponse, createErrorResponse } from '../../types/response.typ
  */
 export class MediaService {
   private platformMedia: PlatformMedia;
-  
+
   constructor(env: Env) {
     // For now, we only support Twitter
     this.platformMedia = new TwitterMedia(env);
   }
-  
+
   /**
    * Upload media
    * @param userId The user ID uploading the media
@@ -36,7 +34,7 @@ export class MediaService {
       throw error;
     }
   }
-  
+
   /**
    * Get the status of a media upload
    * @param userId The user ID who uploaded the media
@@ -51,7 +49,7 @@ export class MediaService {
       throw error;
     }
   }
-  
+
   /**
    * Update media metadata (e.g., alt text)
    * @param userId The user ID updating the media
@@ -67,7 +65,7 @@ export class MediaService {
       throw error;
     }
   }
-  
+
   /**
    * Create a standard API response
    * @param data The response data
@@ -76,10 +74,10 @@ export class MediaService {
   createResponse(data: any): Response {
     return new Response(JSON.stringify(createApiResponse(data)), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
-  
+
   /**
    * Create an error response
    * @param error The error object
@@ -89,13 +87,16 @@ export class MediaService {
   createErrorResponse(error: any, status = 500): Response {
     const errorMessage = error.message || 'An unexpected error occurred';
     const errorType = error.type || 'INTERNAL_ERROR';
-    
-    return new Response(JSON.stringify(createErrorResponse(errorType, errorMessage, error.code, error.details)), {
-      status,
-      headers: { 'Content-Type': 'application/json' }
-    });
+
+    return new Response(
+      JSON.stringify(createErrorResponse(errorType, errorMessage, error.code, error.details)),
+      {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
-  
+
   /**
    * Parse media content from form data
    * @param formData The form data containing the media
@@ -105,15 +106,15 @@ export class MediaService {
     const media = formData.get('media');
     const mimeType = formData.get('mimeType') as string || 'application/octet-stream';
     const altText = formData.get('altText') as string || undefined;
-    
+
     if (!media) {
       throw new Error('Media is required');
     }
-    
+
     return {
       data: media as Blob | string,
       mimeType,
-      altText
+      altText,
     };
   }
 }

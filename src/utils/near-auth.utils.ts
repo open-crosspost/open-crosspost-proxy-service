@@ -1,8 +1,11 @@
-import { Context } from "../../deps.ts";
-import { getEnv } from "../config/env.ts";
-import { NearAuthService } from "../infrastructure/security/near-auth/near-auth.service.ts";
-import { NearAuthData, nearAuthDataSchema } from "../infrastructure/security/near-auth/near-auth.types.ts";
-import { ApiError, ErrorType } from "../middleware/errors.ts";
+import { Context } from '../../deps.ts';
+import { getEnv } from '../config/env.ts';
+import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
+import {
+  NearAuthData,
+  nearAuthDataSchema,
+} from '../infrastructure/security/near-auth/near-auth.types.ts';
+import { ApiError, ErrorType } from '../middleware/errors.ts';
 
 /**
  * NEAR Authentication Utilities
@@ -22,7 +25,7 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
   const authHeader = c.req.header('Authorization');
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new ApiError(ErrorType.AUTHENTICATION, "Missing or invalid Authorization header", 401);
+    throw new ApiError(ErrorType.AUTHENTICATION, 'Missing or invalid Authorization header', 401);
   }
 
   // Extract the token part (after 'Bearer ')
@@ -33,7 +36,7 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
   try {
     authObject = JSON.parse(token);
   } catch (error) {
-    throw new ApiError(ErrorType.VALIDATION, "Invalid JSON in Authorization token", 400);
+    throw new ApiError(ErrorType.VALIDATION, 'Invalid JSON in Authorization token', 400);
   }
 
   // Validate with Zod schema
@@ -42,17 +45,17 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
   if (!validationResult.success) {
     throw new ApiError(
       ErrorType.VALIDATION,
-      "Missing required NEAR authentication data in token",
+      'Missing required NEAR authentication data in token',
       400,
       undefined,
-      validationResult.error.format()
+      validationResult.error.format(),
     );
   }
 
   // Use validated data with defaults applied
   const authData = {
     ...validationResult.data,
-    callback_url: validationResult.data.callback_url || c.req.url // Use current URL as callback if not provided
+    callback_url: validationResult.data.callback_url || c.req.url, // Use current URL as callback if not provided
   };
 
   // Initialize NEAR auth service
@@ -66,7 +69,7 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
     throw new ApiError(
       ErrorType.AUTHENTICATION,
       `NEAR authentication failed: ${result.error}`,
-      401
+      401,
     );
   }
 
@@ -75,14 +78,14 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
   if (!signerId) {
     throw new ApiError(
       ErrorType.AUTHENTICATION,
-      "NEAR authentication did not return an account ID",
-      401
+      'NEAR authentication did not return an account ID',
+      401,
     );
   }
 
   return {
     authData,
-    signerId
+    signerId,
   };
 }
 
@@ -96,7 +99,7 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
 export async function verifyPlatformAccess(
   signerId: string,
   platform: string,
-  userId: string
+  userId: string,
 ): Promise<any> {
   const env = getEnv();
   const nearAuthService = new NearAuthService(env);
@@ -108,7 +111,7 @@ export async function verifyPlatformAccess(
     throw new ApiError(
       ErrorType.AUTHENTICATION,
       `No connected ${platform} account found for user ID ${userId}`,
-      401
+      401,
     );
   }
 
