@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEAR Twitter Integration Example</title>
+    <script src="https://js.fastnear.com/near.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        button {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0b5ed7;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        button.near {
+            background-color: #5f8afa;
+        }
+        button.near:hover {
+            background-color: #4a75e6;
+        }
+        button.twitter {
+            background-color: #1da1f2;
+        }
+        button.twitter:hover {
+            background-color: #0c85d0;
+        }
+        button.post {
+            background-color: #198754;
+        }
+        button.post:hover {
+            background-color: #157347;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            min-height: 100px;
+            margin-bottom: 10px;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+        }
+        .success {
+            background-color: #d1e7dd !important;
+            color: #0f5132;
+        }
+        .error {
+            background-color: #f8d7da !important;
+            color: #842029;
+        }
+        .info {
+            background-color: #cff4fc !important;
+            color: #055160;
+        }
+        .connection-status {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .connection-indicator {
+            display: flex;
+            align-items: center;
+        }
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .connected {
+            background-color: #198754;
+        }
+        .disconnected {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NEAR Twitter Integration Example</h1>
+        
+        <div id="status">Not connected</div>
+        
+        <div class="connection-status">
+            <div class="connection-indicator">
+                <div id="near-indicator" class="indicator disconnected"></div>
+                <span>NEAR Wallet: <span id="near-account">Not connected</span></span>
+            </div>
+            <div class="connection-indicator">
+                <div id="twitter-indicator" class="indicator disconnected"></div>
+                <span>Twitter: <span id="twitter-account">Not connected</span></span>
+            </div>
+        </div>
+        
+        <div id="auth-section">
+            <button onclick="signIn()" class="near">Sign In with NEAR</button>
+            <button onclick="signOut()" class="near">Sign Out</button>
+            <button id="connect-twitter" class="twitter">Connect Twitter</button>
+        </div>
+        
+        <div id="tweet-section">
+            <h2>Post a Tweet</h2>
+            <textarea id="tweet-text" placeholder="What's happening?"></textarea>
+            <button id="post-tweet" class="post" disabled>Post Tweet</button>
+        </div>
+    </div>
+    
+    <!-- Load our app code -->
+    <script src="app.js"></script>
+</body>
+</html>

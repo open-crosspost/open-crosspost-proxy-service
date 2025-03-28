@@ -1,7 +1,7 @@
 name = "twitter-proxy"
 main = "dist/index.js"
 compatibility_date = "2023-10-30"
-node_compat = true
+compatibility_flags = ["nodejs_compat"]
 
 [build]
 command = "npm run build"

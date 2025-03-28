@@ -1,201 +1,159 @@
 /**
- * Error handling middleware
- * This middleware catches errors and returns appropriate responses
+ * Error Types
+ * Defines the types of errors that can occur in the application
  */
-import { ApiPartialResponseError, ApiRequestError, ApiResponseError } from 'twitter-api-v2';
-
-// Define error types
 export enum ErrorType {
   AUTHENTICATION = 'AUTHENTICATION',
   AUTHORIZATION = 'AUTHORIZATION',
   VALIDATION = 'VALIDATION',
+  INTERNAL = 'INTERNAL',
+  NOT_FOUND = 'NOT_FOUND',
   RATE_LIMIT = 'RATE_LIMIT',
+  EXTERNAL_API = 'EXTERNAL_API',
   TWITTER_API = 'TWITTER_API',
   TWITTER_REQUEST = 'TWITTER_REQUEST',
   TWITTER_PARTIAL_RESPONSE = 'TWITTER_PARTIAL_RESPONSE',
-  INTERNAL = 'INTERNAL',
 }
 
-// Define error response structure
+/**
+ * Error Codes
+ * Defines specific error codes for different error scenarios
+ */
+export enum ErrorCode {
+  // Authentication errors
+  MISSING_NEAR_AUTH_HEADERS = 'MISSING_NEAR_AUTH_HEADERS',
+  INVALID_NEAR_AUTH = 'INVALID_NEAR_AUTH',
+  NEAR_AUTH_VALIDATION_ERROR = 'NEAR_AUTH_VALIDATION_ERROR',
+  MISSING_NEAR_AUTH = 'MISSING_NEAR_AUTH',
+  
+  // Authorization errors
+  INSUFFICIENT_PERMISSION = 'INSUFFICIENT_PERMISSION',
+  
+  // Validation errors
+  MISSING_USER_ID = 'MISSING_USER_ID',
+  INVALID_REQUEST_BODY = 'INVALID_REQUEST_BODY',
+  
+  // Internal errors
+  INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
+  
+  // Not found errors
+  RESOURCE_NOT_FOUND = 'RESOURCE_NOT_FOUND',
+  
+  // Rate limit errors
+  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
+  
+  // External API errors
+  TWITTER_API_ERROR = 'TWITTER_API_ERROR',
+}
+
+/**
+ * Error Response
+ * Defines the structure of an error response
+ */
 export interface ErrorResponse {
-  error: {
-    type: ErrorType;
-    message: string;
-    code?: string;
-    details?: any;
-  };
+  type: ErrorType;
+  message: string;
+  code: string;
+  details?: any;
 }
 
-// Custom error class
+/**
+ * API Error class
+ * Custom error class for API errors
+ */
 export class ApiError extends Error {
-  type: ErrorType;
-  code?: string;
-  details?: any;
-  status: number;
-
+  /**
+   * Create a new API error
+   * @param type Error type
+   * @param message Error message
+   * @param status HTTP status code
+   * @param code Error code
+   * @param details Additional error details
+   */
   constructor(
-    type: ErrorType,
+    public readonly type: ErrorType,
     message: string,
-    status = 500,
-    code?: string,
-    details?: any
+    public readonly status: number = 500,
+    public readonly code?: string,
+    public readonly details?: any
   ) {
     super(message);
-    this.type = type;
-    this.code = code;
-    this.details = details;
-    this.status = status;
     this.name = 'ApiError';
   }
 }
 
 /**
- * Handle errors and return appropriate responses
- */
-export const handleErrors = (error: Error | ApiError | any): Response => {
-  console.error('Error:', error);
-
-  // Default error response
-  let status = 500;
-  let errorResponse: ErrorResponse = {
-    error: {
-      type: ErrorType.INTERNAL,
-      message: 'An unexpected error occurred',
-    },
-  };
-
-  // Handle ApiError instances
-  if (error instanceof ApiError) {
-    status = error.status;
-    errorResponse = {
-      error: {
-        type: error.type,
-        message: error.message,
-        code: error.code,
-        details: error.details,
-      },
-    };
-  }
-  // Handle Twitter API Request errors (network errors, bad URL, etc.)
-  else if (error instanceof ApiRequestError) {
-    status = 502; // Bad Gateway
-    errorResponse = {
-      error: {
-        type: ErrorType.TWITTER_REQUEST,
-        message: `Twitter API request failed: ${error.message}`,
-        code: 'REQUEST_FAILED',
-        details: {
-          requestError: error.requestError?.message,
-          type: error.type,
-        },
-      },
-    };
-  }
-  // Handle Twitter API Partial Response errors
-  else if (error instanceof ApiPartialResponseError) {
-    status = 502; // Bad Gateway
-    errorResponse = {
-      error: {
-        type: ErrorType.TWITTER_PARTIAL_RESPONSE,
-        message: `Twitter API partial response: ${error.message}`,
-        code: 'PARTIAL_RESPONSE',
-        details: {
-          responseError: error.responseError?.message,
-          type: error.type,
-          rawContent: error.rawContent?.toString().substring(0, 200) + '...',
-        },
-      },
-    };
-  }
-  // Handle Twitter API Response errors (Twitter replies with an error)
-  else if (error instanceof ApiResponseError) {
-    // Determine appropriate status code
-    if (error.rateLimitError) {
-      status = 429; // Too Many Requests
-    } else if (error.isAuthError) {
-      status = 401; // Unauthorized
-    } else {
-      status = error.code || 502; // Use Twitter's code or default to Bad Gateway
-    }
-
-    // Create detailed error response
-    errorResponse = {
-      error: {
-        type: error.rateLimitError ? ErrorType.RATE_LIMIT :
-          error.isAuthError ? ErrorType.AUTHENTICATION :
-            ErrorType.TWITTER_API,
-        message: error.message,
-        code: error.code?.toString(),
-        details: {
-          errors: error.errors,
-          rateLimit: error.rateLimit,
-          type: error.type,
-        },
-      },
-    };
-  }
-  // Handle other Twitter API errors (legacy handling)
-  else if (error?.name === 'TwitterApiError') {
-    status = error.status || 500;
-    errorResponse = {
-      error: {
-        type: ErrorType.TWITTER_API,
-        message: error.message,
-        code: error.code,
-        details: error.data,
-      },
-    };
-  }
-  // Handle other errors
-  else if (error instanceof Error) {
-    errorResponse = {
-      error: {
-        type: ErrorType.INTERNAL,
-        message: error.message,
-      },
-    };
-  }
-
-  // Return the error response
-  return new Response(JSON.stringify(errorResponse), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-};
-
-/**
- * Create common error instances
+ * Errors
+ * Defines standard error objects for different error scenarios
  */
 export const Errors = {
-  authentication: (message: string, code?: string) =>
-    new ApiError(ErrorType.AUTHENTICATION, message, 401, code),
-
-  authorization: (message: string, code?: string) =>
-    new ApiError(ErrorType.AUTHORIZATION, message, 403, code),
-
-  validation: (message: string, details?: any) =>
-    new ApiError(ErrorType.VALIDATION, message, 400, undefined, details),
-
-  rateLimit: (message: string, retryAfter?: number) =>
-    new ApiError(
-      ErrorType.RATE_LIMIT,
-      message,
-      429,
-      undefined,
-      { retryAfter }
-    ),
-
-  twitterApi: (message: string, code?: string, details?: any) =>
-    new ApiError(ErrorType.TWITTER_API, message, 502, code, details),
-
-  twitterRequest: (message: string, details?: any) =>
-    new ApiError(ErrorType.TWITTER_REQUEST, message, 502, 'REQUEST_FAILED', details),
-
-  twitterPartialResponse: (message: string, details?: any) =>
-    new ApiError(ErrorType.TWITTER_PARTIAL_RESPONSE, message, 502, 'PARTIAL_RESPONSE', details),
-
-  internal: (message: string) =>
-    new ApiError(ErrorType.INTERNAL, message, 500),
+  // Authentication errors
+  missingNearAuthHeaders: {
+    type: ErrorType.AUTHENTICATION,
+    message: 'NEAR authentication headers are required',
+    code: ErrorCode.MISSING_NEAR_AUTH_HEADERS,
+  },
+  invalidNearAuth: {
+    type: ErrorType.AUTHENTICATION,
+    message: 'Invalid NEAR authentication',
+    code: ErrorCode.INVALID_NEAR_AUTH,
+  },
+  nearAuthValidationError: {
+    type: ErrorType.AUTHENTICATION,
+    message: 'Error validating NEAR authentication',
+    code: ErrorCode.NEAR_AUTH_VALIDATION_ERROR,
+  },
+  missingNearAuth: {
+    type: ErrorType.AUTHENTICATION,
+    message: 'NEAR authentication is required',
+    code: ErrorCode.MISSING_NEAR_AUTH,
+  },
+  
+  // Authorization errors
+  insufficientPermission: (permission: string) => ({
+    type: ErrorType.AUTHORIZATION,
+    message: `Missing required permission: ${permission}`,
+    code: ErrorCode.INSUFFICIENT_PERMISSION,
+  }),
+  
+  // Validation errors
+  missingUserId: {
+    type: ErrorType.VALIDATION,
+    message: 'User ID is required',
+    code: ErrorCode.MISSING_USER_ID,
+  },
+  invalidRequestBody: (details?: any) => ({
+    type: ErrorType.VALIDATION,
+    message: 'Invalid request body',
+    code: ErrorCode.INVALID_REQUEST_BODY,
+    details,
+  }),
+  
+  // Internal errors
+  internalServerError: (message?: string) => ({
+    type: ErrorType.INTERNAL,
+    message: message || 'An internal server error occurred',
+    code: ErrorCode.INTERNAL_SERVER_ERROR,
+  }),
+  
+  // Not found errors
+  resourceNotFound: (resource?: string) => ({
+    type: ErrorType.NOT_FOUND,
+    message: resource ? `${resource} not found` : 'Resource not found',
+    code: ErrorCode.RESOURCE_NOT_FOUND,
+  }),
+  
+  // Rate limit errors
+  rateLimitExceeded: (endpoint?: string) => ({
+    type: ErrorType.RATE_LIMIT,
+    message: endpoint ? `Rate limit exceeded for ${endpoint}` : 'Rate limit exceeded',
+    code: ErrorCode.RATE_LIMIT_EXCEEDED,
+  }),
+  
+  // External API errors
+  twitterApiError: (message?: string) => ({
+    type: ErrorType.EXTERNAL_API,
+    message: message || 'Twitter API error',
+    code: ErrorCode.TWITTER_API_ERROR,
+  }),
 };

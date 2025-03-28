@@ -1,0 +1,18 @@
+{
+  "nodeModulesDir": "auto",
+  "imports": {
+    "twitter-api-v2": "npm:twitter-api-v2",
+    "@twitter-api-v2/plugin-rate-limit": "npm:@twitter-api-v2/plugin-rate-limit",
+    "@twitter-api-v2/plugin-token-refresher": "npm:@twitter-api-v2/plugin-token-refresher",
+    "@twitter-api-v2/plugin-cache-redis": "npm:@twitter-api-v2/plugin-cache-redis",
+    "@upstash/redis": "npm:@upstash/redis"
+  },
+  "tasks": {
+    "test:api": "deno run --allow-net --allow-env --allow-read twitter-api-test.ts",
+    "test:plugins": "deno run --allow-net --allow-env --allow-read twitter-plugins-test.ts",
+    "test:redis": "deno run --allow-net --allow-env --allow-read twitter-redis-test.ts",
+    "test:kv": "deno run --allow-net --allow-env --allow-read --allow-write --unstable-kv deno-kv-token-storage.ts",
+    "server": "deno run --allow-net --allow-env twitter-proxy-server.ts",
+    "test:all": "./run-all-tests.sh"
+  }
+}

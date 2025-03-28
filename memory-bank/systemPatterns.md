@@ -1,13 +1,13 @@
-# Twitter API Proxy System Patterns
+# Social Media API Proxy System Patterns
 
 ## System Architecture
 
-The Twitter API Proxy follows a serverless architecture pattern using Cloudflare Workers as the compute platform. This architecture provides global distribution, high availability, and automatic scaling without managing traditional server infrastructure.
+The Social Media API Proxy follows a serverless architecture pattern using Cloudflare Workers as the compute platform. This architecture provides global distribution, high availability, and automatic scaling without managing traditional server infrastructure. The system is designed to be platform-agnostic, with Twitter as the initial implementation.
 
 ```mermaid
 flowchart TD
     Client[Client Application] <--> Worker[Cloudflare Worker]
-    Worker <--> Twitter[Twitter API]
+    Worker <--> Platform[Social Media Platform APIs]
     Worker <--> KV[Cloudflare KV]
     Worker <--> D1[Cloudflare D1]
     Worker <--> Redis[Redis Cache]
@@ -19,15 +19,30 @@ flowchart TD
     end
     
     subgraph "External Services"
+        Platform
         Redis
     end
 ```
 
 ## Core Design Patterns
 
-### 1. API Gateway Pattern
+### 1. Platform Abstraction Pattern
 
-The Worker acts as an API Gateway, providing a unified interface to the Twitter API while handling cross-cutting concerns like authentication, rate limiting, and logging.
+The system implements a platform abstraction layer that separates the core proxy functionality from platform-specific implementations. This allows for easy extension to other social media platforms.
+
+```mermaid
+flowchart TD
+    Client[Client] --> API[API Layer]
+    API --> Domain[Domain Services]
+    Domain --> Abstraction[Platform Abstraction]
+    Abstraction --> Twitter[Twitter Implementation]
+    Abstraction --> LinkedIn[LinkedIn Implementation]
+    Abstraction --> Other[Other Platforms...]
+```
+
+### 2. API Gateway Pattern
+
+The Worker acts as an API Gateway, providing a unified interface to various social media APIs while handling cross-cutting concerns like authentication, rate limiting, and logging.
 
 ```mermaid
 flowchart LR
@@ -35,32 +50,54 @@ flowchart LR
     Gateway --> Auth[Authentication]
     Gateway --> Rate[Rate Limiting]
     Gateway --> Log[Logging]
-    Gateway --> Twitter[Twitter API]
+    Gateway --> Platform[Platform APIs]
 ```
 
-### 2. OAuth Proxy Pattern
+### 3. OAuth Proxy Pattern
 
-The system implements an OAuth Proxy pattern, handling the complete OAuth flow with Twitter while providing a simplified authentication interface to clients.
+The system implements an OAuth Proxy pattern, handling the complete OAuth flow with social media platforms while providing a simplified authentication interface to clients.
 
 ```mermaid
 sequenceDiagram
     participant Client
     participant Proxy
-    participant Twitter
+    participant Platform
     
     Client->>Proxy: Request Auth URL
     Proxy->>Client: Return Auth URL
-    Client->>Twitter: Redirect to Auth URL
-    Twitter->>Proxy: Callback with Auth Code
-    Proxy->>Twitter: Exchange Code for Tokens
-    Twitter->>Proxy: Return Tokens
+    Client->>Platform: Redirect to Auth URL
+    Platform->>Proxy: Callback with Auth Code
+    Proxy->>Platform: Exchange Code for Tokens
+    Platform->>Proxy: Return Tokens
     Proxy->>KV: Store Tokens
     Proxy->>Client: Return Success
 ```
 
-### 3. Circuit Breaker Pattern
+### 4. API Key Management Pattern
 
-To handle potential Twitter API outages or rate limiting, the system implements a Circuit Breaker pattern to prevent cascading failures.
+A dedicated API Key Management system handles the creation, validation, rotation, and revocation of API keys for client applications.
+
+```mermaid
+flowchart TD
+    Request[API Request] --> ExtractKey[Extract API Key]
+    ExtractKey --> ValidateKey[Validate API Key]
+    ValidateKey --> CheckValid{Valid Key?}
+    CheckValid -->|No| RejectRequest[Reject Request]
+    CheckValid -->|Yes| CheckScope{Has Required Scope?}
+    CheckScope -->|No| RejectRequest
+    CheckScope -->|Yes| TrackUsage[Track Key Usage]
+    TrackUsage --> ProcessRequest[Process Request]
+    
+    Admin[Admin Request] --> KeyManagement[API Key Management]
+    KeyManagement --> CreateKey[Create Key]
+    KeyManagement --> RevokeKey[Revoke Key]
+    KeyManagement --> RotateKey[Rotate Key]
+    KeyManagement --> ListKeys[List Keys]
+```
+
+### 5. Circuit Breaker Pattern
+
+To handle potential API outages or rate limiting, the system implements a Circuit Breaker pattern to prevent cascading failures.
 
 ```mermaid
 stateDiagram-v2
@@ -71,7 +108,7 @@ stateDiagram-v2
     HalfOpen --> Open: Failure
 ```
 
-### 4. Token Manager Pattern
+### 6. Token Manager Pattern
 
 A dedicated Token Manager handles secure storage, retrieval, and refresh of OAuth tokens.
 
@@ -82,19 +119,24 @@ flowchart TD
     TokenManager --> Valid{Token Valid?}
     Valid -->|Yes| UseToken[Use Token]
     Valid -->|No| Refresh[Refresh Token]
-    Refresh --> Twitter[Twitter API]
-    Twitter --> UpdateToken[Update Token in KV]
+    Refresh --> Platform[Platform API]
+    Platform --> UpdateToken[Update Token in KV]
     UpdateToken --> UseToken
 ```
 
-### 5. Rate Limit Manager Pattern
+### 7. Multi-level Rate Limit Pattern
 
-A Rate Limit Manager tracks and enforces both Twitter API rate limits and client-side rate limits. The implementation uses the TwitterApiRateLimitPlugin to track rate limits automatically.
+A comprehensive Rate Limit Manager tracks and enforces rate limits at multiple levels: platform API limits, global service limits, per-API key limits, and per-user limits.
 
 ```mermaid
 flowchart TD
-    Request[API Request] --> RateLimitCheck[Check Rate Limits]
-    RateLimitCheck --> Allowed{Allowed?}
+    Request[API Request] --> GlobalLimit[Check Global Limits]
+    GlobalLimit --> KeyLimit[Check API Key Limits]
+    KeyLimit --> UserLimit[Check User Limits]
+    UserLimit --> EndpointLimit[Check Endpoint Limits]
+    EndpointLimit --> PlatformLimit[Check Platform API Limits]
+    
+    PlatformLimit --> Allowed{Allowed?}
     Allowed -->|Yes| CacheCheck{Cache Hit?}
     Allowed -->|No| QueueOrReject[Queue or Reject]
     
@@ -108,21 +150,9 @@ flowchart TD
     CacheResponse --> ReturnResponse
 ```
 
-### 6. Service Layer Pattern
+### 8. Cache-Aside Pattern
 
-The application uses a Service Layer pattern to encapsulate business logic and provide a clean separation of concerns.
-
-```mermaid
-flowchart TD
-    Handler[Request Handler] --> Service[Service Layer]
-    Service --> TwitterAPI[Twitter API Client]
-    Service --> TokenStore[Token Storage]
-    Service --> ErrorHandler[Error Handling]
-```
-
-### 7. Cache-Aside Pattern
-
-The system implements a Cache-Aside pattern using Redis for caching Twitter API responses, reducing duplicate API calls and improving performance.
+The system implements a Cache-Aside pattern using Redis for caching API responses, reducing duplicate API calls and improving performance.
 
 ```mermaid
 flowchart TD
@@ -130,7 +160,7 @@ flowchart TD
     CheckCache --> CacheHit{Cache Hit?}
     
     CacheHit -->|Yes| ServeCache[Serve from Cache]
-    CacheHit -->|No| CallAPI[Call Twitter API]
+    CacheHit -->|No| CallAPI[Call Platform API]
     
     CallAPI --> StoreCache[Store in Cache]
     StoreCache --> SetExpiry[Set Expiry Based on Rate Limit]
@@ -138,6 +168,21 @@ flowchart TD
     
     ServeCache --> ReturnResponse[Return Response]
     ServeResponse --> ReturnResponse
+```
+
+### 9. OpenAPI Documentation Pattern
+
+The system generates and serves OpenAPI documentation for all endpoints, providing a self-documenting API.
+
+```mermaid
+flowchart TD
+    CodeFirst[Code-First Approach] --> TypeDefinitions[Type Definitions]
+    TypeDefinitions --> SchemaGeneration[Schema Generation]
+    SchemaGeneration --> OpenAPISpec[OpenAPI Specification]
+    
+    OpenAPISpec --> Documentation[API Documentation]
+    OpenAPISpec --> ClientGeneration[Client SDK Generation]
+    OpenAPISpec --> Validation[Request/Response Validation]
 ```
 
 ## Component Relationships
@@ -150,65 +195,161 @@ classDiagram
         +route(request)
     }
     
-    class AuthHandler {
+    class AuthController {
         +initAuth()
         +handleCallback()
         +refreshToken()
         +revokeToken()
     }
     
-    class TweetHandler {
-        +postTweet()
-        +retweet()
-        +quoteTweet()
-        +deleteTweet()
-        +likeTweet()
-        +unlikeTweet()
-        +replyToTweet()
+    class PostController {
+        +createPost()
+        +repost()
+        +quotePost()
+        +deletePost()
+        +likePost()
+        +unlikePost()
+        +replyToPost()
     }
     
-    class MediaHandler {
+    class MediaController {
         +uploadMedia()
         +getMediaStatus()
     }
     
-    class RateLimitHandler {
+    class RateLimitController {
         +getRateLimitStatus()
     }
     
-    class TwitterService {
-        +getTwitterClient()
-        +handleTwitterError()
-        +getRateLimitStatus()
-        +isRateLimited()
-        +isRateLimitObsolete()
+    class ApiKeyController {
+        +createApiKey()
+        +revokeApiKey()
+        +rotateApiKey()
+        +listApiKeys()
     }
     
-    class TweetService {
-        +tweet()
-        +retweet()
-        +quoteTweet()
-        +deleteTweet()
-        +replyToTweet()
+    class AuthService {
+        +initializeAuth()
+        +handleCallback()
+        +refreshToken()
+        +revokeToken()
     }
     
-    class LikeService {
-        +likeTweet()
-        +unlikeTweet()
+    class PostService {
+        +createPost()
+        +repost()
+        +quotePost()
+        +deletePost()
+        +replyToPost()
+        +likePost()
+        +unlikePost()
     }
     
     class MediaService {
         +uploadMedia()
         +getMediaStatus()
-        +uploadMediaDirect()
-        +setAltTextDirect()
+        +updateMediaMetadata()
     }
     
-    class TokenService {
+    class RateLimitService {
+        +getRateLimitStatus()
+        +checkRateLimit()
+        +updateRateLimitCounters()
+    }
+    
+    class ApiKeyService {
+        +validateApiKey()
+        +createApiKey()
+        +revokeApiKey()
+        +rotateApiKey()
+        +listApiKeys()
+    }
+    
+    class PlatformClient {
+        <<interface>>
+        +initialize()
+        +getClientForUser()
+        +getAuthUrl()
+        +exchangeCodeForToken()
+        +refreshToken()
+        +revokeToken()
+        +getRateLimitStatus()
+    }
+    
+    class PlatformAuth {
+        <<interface>>
+        +initializeAuth()
+        +handleCallback()
+        +refreshToken()
+        +revokeToken()
+    }
+    
+    class PlatformPost {
+        <<interface>>
+        +createPost()
+        +repost()
+        +quotePost()
+        +deletePost()
+        +replyToPost()
+        +likePost()
+        +unlikePost()
+    }
+    
+    class PlatformMedia {
+        <<interface>>
+        +uploadMedia()
+        +getMediaStatus()
+        +updateMediaMetadata()
+    }
+    
+    class TwitterClient {
+        +initialize()
+        +getClientForUser()
+        +getAuthUrl()
+        +exchangeCodeForToken()
+        +refreshToken()
+        +revokeToken()
+        +getRateLimitStatus()
+    }
+    
+    class TwitterAuth {
+        +initializeAuth()
+        +handleCallback()
+        +refreshToken()
+        +revokeToken()
+    }
+    
+    class TwitterPost {
+        +createPost()
+        +repost()
+        +quotePost()
+        +deletePost()
+        +replyToPost()
+        +likePost()
+        +unlikePost()
+    }
+    
+    class TwitterMedia {
+        +uploadMedia()
+        +getMediaStatus()
+        +updateMediaMetadata()
+    }
+    
+    class TokenStorage {
         +getTokens()
         +saveTokens()
-        +refreshTokens()
         +deleteTokens()
+        +hasTokens()
+    }
+    
+    class ApiKeyStorage {
+        +getApiKey()
+        +getApiKeyById()
+        +saveApiKey()
+        +updateApiKeyUsage()
+        +revokeApiKey()
+        +listApiKeys()
+        +deleteApiKey()
     }
     
     class AuthMiddleware {
@@ -225,26 +366,43 @@ classDiagram
         +handleErrors()
     }
     
-    Router --> AuthHandler
-    Router --> TweetHandler
-    Router --> MediaHandler
-    Router --> RateLimitHandler
+    class RateLimitMiddleware {
+        +checkRateLimits()
+        +updateRateLimitCounters()
+    }
     
-    AuthHandler --> TwitterService
-    TweetHandler --> TweetService
-    TweetHandler --> LikeService
-    MediaHandler --> MediaService
+    Router --> AuthController
+    Router --> PostController
+    Router --> MediaController
+    Router --> RateLimitController
+    Router --> ApiKeyController
     
-    TweetService --> TwitterService
-    TweetService --> MediaService
-    LikeService --> TwitterService
-    MediaService --> TwitterService
+    AuthController --> AuthService
+    PostController --> PostService
+    MediaController --> MediaService
+    RateLimitController --> RateLimitService
+    ApiKeyController --> ApiKeyService
     
-    TwitterService --> TokenService
+    AuthService --> PlatformAuth
+    PostService --> PlatformPost
+    MediaService --> PlatformMedia
+    
+    PlatformAuth <|-- TwitterAuth
+    PlatformPost <|-- TwitterPost
+    PlatformMedia <|-- TwitterMedia
+    PlatformClient <|-- TwitterClient
+    
+    TwitterAuth --> TwitterClient
+    TwitterPost --> TwitterClient
+    TwitterMedia --> TwitterClient
+    
+    AuthService --> TokenStorage
+    ApiKeyService --> ApiKeyStorage
     
     Router --> AuthMiddleware
     Router --> CorsMiddleware
     Router --> ErrorMiddleware
+    Router --> RateLimitMiddleware
 ```
 
 ## Data Flow Patterns
@@ -256,7 +414,7 @@ flowchart TD
     Start[Start Auth] --> InitAuth[Initialize Auth]
     InitAuth --> GenerateState[Generate State]
     GenerateState --> StoreState[Store State in KV]
-    StoreState --> BuildURL[Build Twitter Auth URL]
+    StoreState --> BuildURL[Build Auth URL]
     BuildURL --> ReturnURL[Return URL to Client]
     
     Callback[Auth Callback] --> ValidateState[Validate State]
@@ -266,12 +424,13 @@ flowchart TD
     GenerateSession --> ReturnSession[Return Session to Client]
 ```
 
-### Tweet Posting Flow
+### Post Creation Flow
 
 ```mermaid
 flowchart TD
     Start[API Request] --> ValidateAPIKey[Validate API Key]
-    ValidateAPIKey --> ExtractUserId[Extract User ID]
+    ValidateAPIKey --> CheckScope[Check API Key Scope]
+    CheckScope --> ExtractUserId[Extract User ID]
     ExtractUserId --> GetTokens[Retrieve Tokens]
     GetTokens --> CheckTokens{Tokens Valid?}
     CheckTokens -->|No| RefreshToken[Refresh Token]
@@ -279,11 +438,62 @@ flowchart TD
     RefreshToken --> ProcessMedia
     
     ProcessMedia -->|Yes| UploadMedia[Upload Media]
-    ProcessMedia -->|No| PostTweet[Post Tweet]
-    UploadMedia --> PostTweet
+    ProcessMedia -->|No| CreatePost[Create Post]
+    UploadMedia --> CreatePost
     
-    PostTweet --> HandleResponse[Handle Response]
+    CreatePost --> HandleResponse[Handle Response]
     HandleResponse --> ReturnResponse[Return Response]
+```
+
+### Thread Creation Flow
+
+```mermaid
+flowchart TD
+    Start[API Request] --> ValidateAPIKey[Validate API Key]
+    ValidateAPIKey --> ExtractUserId[Extract User ID]
+    ExtractUserId --> GetTokens[Retrieve Tokens]
+    GetTokens --> ParseBody[Parse Request Body]
+    ParseBody --> IsThread{Is Thread?}
+    
+    IsThread -->|Yes| ProcessThread[Process Thread Content]
+    IsThread -->|No| ProcessSinglePost[Process Single Post]
+    
+    ProcessThread --> ProcessMedia[Process Media for Each Post]
+    ProcessSinglePost --> ProcessMedia
+    
+    ProcessMedia --> CreateThread{Is Thread?}
+    CreateThread -->|Yes| PostThread[Post Thread]
+    CreateThread -->|No| PostSingle[Post Single Post]
+    
+    PostThread --> ReturnResponse[Return Response]
+    PostSingle --> ReturnResponse
+```
+
+### API Key Management Flow
+
+```mermaid
+flowchart TD
+    CreateKey[Create API Key] --> GenerateKey[Generate Secure Key]
+    GenerateKey --> SetScopes[Set Key Scopes]
+    SetScopes --> SetOrigins[Set Allowed Origins]
+    SetOrigins --> SetExpiry[Set Expiry Date]
+    SetExpiry --> StoreKey[Store Key in D1]
+    StoreKey --> ReturnKey[Return Key to Admin]
+    
+    ValidateKey[Validate API Key] --> FetchKey[Fetch Key from D1]
+    FetchKey --> CheckValid{Key Valid?}
+    CheckValid -->|No| RejectRequest[Reject Request]
+    CheckValid -->|Yes| CheckOrigin[Check Origin]
+    CheckOrigin --> CheckScope[Check Scope]
+    CheckScope --> CheckExpiry[Check Expiry]
+    CheckExpiry --> TrackUsage[Track Key Usage]
+    TrackUsage --> AllowRequest[Allow Request]
+    
+    RotateKey[Rotate API Key] --> GenerateNewKey[Generate New Key]
+    GenerateNewKey --> KeepOldKey[Keep Old Key Active]
+    KeepOldKey --> StoreNewKey[Store New Key]
+    StoreNewKey --> SetGracePeriod[Set Grace Period]
+    SetGracePeriod --> ReturnNewKey[Return New Key]
 ```
 
 ### Media Upload Flow
@@ -315,17 +525,20 @@ flowchart TD
     Error[Error Occurs] --> Classify{Classify Error}
     Classify -->|Auth Error| HandleAuth[Handle Auth Error]
     Classify -->|Rate Limit| HandleRate[Handle Rate Limit]
-    Classify -->|Twitter API| HandleTwitter[Handle Twitter Error]
+    Classify -->|Platform API| HandlePlatform[Handle Platform Error]
+    Classify -->|Validation| HandleValidation[Handle Validation Error]
     Classify -->|Internal| HandleInternal[Handle Internal Error]
     
     HandleAuth --> RefreshOrRevoke[Refresh or Revoke Token]
     HandleRate --> Backoff[Apply Backoff Strategy]
-    HandleTwitter --> RetryOrFail[Retry or Fail Gracefully]
+    HandlePlatform --> RetryOrFail[Retry or Fail Gracefully]
+    HandleValidation --> ReturnDetails[Return Validation Details]
     HandleInternal --> LogAndAlert[Log and Alert]
     
     RefreshOrRevoke --> ReturnError[Return Error Response]
     Backoff --> ReturnError
     RetryOrFail --> ReturnError
+    ReturnDetails --> ReturnError
     LogAndAlert --> ReturnError
 ```
 
@@ -334,7 +547,8 @@ flowchart TD
 ```mermaid
 flowchart TD
     Code[Code Changes] --> CI[CI Pipeline]
-    CI --> Tests[Run Tests]
+    CI --> Lint[Lint and Format]
+    Lint --> Tests[Run Tests]
     Tests --> Build[Build Worker]
     Build --> DeployStaging[Deploy to Staging]
     DeployStaging --> StagingTests[Run Staging Tests]
