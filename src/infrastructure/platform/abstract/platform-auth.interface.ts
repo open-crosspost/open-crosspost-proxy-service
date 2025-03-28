@@ -5,12 +5,14 @@
 export interface PlatformAuth {
   /**
    * Initialize the authentication process
+   * @param signerId NEAR account ID for linking
    * @param redirectUri The redirect URI for the OAuth callback
    * @param scopes The requested OAuth scopes
    * @param successUrl The URL to redirect to on successful authentication
    * @param errorUrl The URL to redirect to on authentication failure
    */
   initializeAuth(
+    signerId: string,
     redirectUri: string, 
     scopes: string[], 
     successUrl?: string, 
@@ -22,15 +24,12 @@ export interface PlatformAuth {
    * @param state The state parameter from the callback
    * @returns The auth state data including successUrl and errorUrl
    */
-  getAuthState(state: string): Promise<{ successUrl: string; errorUrl: string } | null>;
+  getAuthState(state: string): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null>;
   
   /**
    * Handle the OAuth callback
    * @param code The authorization code from the OAuth callback
    * @param state The state parameter from the callback
-   * @param savedState The state parameter saved during initialization
-   * @param redirectUri The redirect URI used in the initial request
-   * @param codeVerifier The PKCE code verifier (if applicable)
    */
   handleCallback(
     code: string,

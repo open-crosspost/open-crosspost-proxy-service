@@ -1,199 +1,151 @@
 # Social Media API Proxy Progress
 
-## Project Status: Reorganization Phase
+## Project Status: Migration Phase
 
-The project is transitioning from the implementation phase to a reorganization phase. We're implementing a platform-agnostic architecture that will make it easier to adapt the service for other social media platforms beyond Twitter, while also enhancing security, documentation, and maintainability. We've recently completed the implementation of all controllers, middleware, validation schemas, and OpenAPI documentation.
+The project is transitioning from Cloudflare Workers to Deno Deploy to improve compatibility with the twitter-api-v2 library. We've implemented a platform-agnostic architecture that makes it easier to adapt the service for other social media platforms beyond Twitter. The core infrastructure, authentication system, API endpoints, and middleware have been implemented.
 
 ## What Works
 
 - ✅ Project documentation and architecture design
 - ✅ Memory bank setup with comprehensive project context
-- ✅ Cloudflare Workers project initialization
+- ✅ Deno project initialization
 - ✅ TypeScript configuration
 - ✅ Core project structure
-- ✅ Routing system with itty-router
+- ✅ Routing system with Hono
 - ✅ Authentication middleware
 - ✅ CORS handling middleware
 - ✅ Error handling middleware
 - ✅ OAuth initialization endpoint
 - ✅ OAuth callback handler
-- ✅ Token storage service
+- ✅ Token storage service with Deno KV
 - ✅ Token refresh mechanism
 - ✅ Token revocation endpoint
-- ✅ Client application authentication
-- ✅ Tweet posting endpoint
-- ✅ Retweet functionality
-- ✅ Quote tweet functionality
-- ✅ Tweet deletion endpoint
+- ✅ NEAR wallet signature authentication
+- ✅ Post creation endpoint
+- ✅ Repost functionality
+- ✅ Quote post functionality
+- ✅ Post deletion endpoint
 - ✅ Like/unlike functionality
 - ✅ Reply functionality
+- ✅ Thread support
 - ✅ Media upload endpoint
 - ✅ Chunked upload support
 - ✅ Media status endpoint
-- ✅ Media attachment to tweets
+- ✅ Media attachment to posts
 - ✅ Rate limit tracking with TwitterApiRateLimitPlugin
 - ✅ Rate limit status endpoint
 - ✅ Redis-based request caching (optional)
-- ✅ All controllers (AuthController, MediaController, RateLimitController, ApiKeyController, PostController)
+- ✅ Platform abstraction interfaces
+- ✅ Twitter-specific implementations
+- ✅ Domain services
+- ✅ All controllers (AuthController, MediaController, RateLimitController, PostController)
 - ✅ All middleware components (AuthMiddleware, CorsMiddleware, ErrorMiddleware, RateLimitMiddleware)
 - ✅ Validation schemas with Zod for all request types
 - ✅ OpenAPI documentation with paths and schemas for all endpoints
-- ✅ NEAR wallet signature-based authentication
-- ✅ Platform-specific posting with NEAR wallet signatures
 - ✅ Connected accounts listing for NEAR wallets
 
 ## What's In Progress
 
-- 🔄 Project reorganization with platform abstraction (nearly complete)
-- 🔄 API key management implementation with D1 (nearly complete)
-- 🔄 Updating main entry point to use new controllers and middleware
-- 🔄 Extracting common NEAR authentication logic to utilities
+- 🔄 Deployment pipeline for Deno Deploy
+- 🔄 Testing framework setup
+- 🔄 Security enhancements
+- 🔄 Monitoring and observability implementation
 
 ## What's Left to Build
 
-### Project Reorganization
+### Testing Framework
 
-- ✅ Create platform abstraction interfaces
-  - ✅ PlatformClient interface
-  - ✅ PlatformAuth interface
-  - ✅ PlatformPost interface
-  - ✅ PlatformMedia interface
-- ✅ Implement Twitter-specific platform adapters
-  - ✅ TwitterClient implementation
-  - ✅ TwitterAuth implementation
-  - ✅ TwitterPost implementation
-  - ✅ TwitterMedia implementation
-- ✅ Create domain services
-  - ✅ AuthService
-  - ✅ PostService
-  - ✅ MediaService
-  - ✅ RateLimitService
-  - ✅ ApiKeyService
-- ✅ Create API controllers
-  - ✅ PostController
-  - ✅ AuthController
-  - ✅ MediaController
-  - ✅ RateLimitController
-  - ✅ ApiKeyController
-- ✅ Implement middleware
-  - ✅ AuthMiddleware
-  - ✅ CorsMiddleware
-  - ✅ ErrorMiddleware
-  - ✅ RateLimitMiddleware
-- ✅ Implement validation
-  - ✅ AuthValidation
-  - ✅ PostValidation
-  - ✅ MediaValidation
-  - ✅ RateLimitValidation
-  - ✅ ApiKeyValidation
-- ⬜ Update main entry point
+- ⬜ Unit tests for core components
+- ⬜ Integration tests for API endpoints
+- ⬜ End-to-end testing
+- ⬜ Test fixtures and helpers
+- ⬜ Mock implementations for external dependencies
 
-### API Key Management
+### Deployment Pipeline
 
-- ✅ Design API key database schema
-- ✅ Implement API key model
-- ✅ Implement API key service
-- ✅ Create API key storage with D1
-- ✅ Add API key endpoints (create, revoke, rotate, list)
-- ✅ Implement API key validation middleware
-- ✅ Add usage tracking for API keys
-
-### API Documentation
-
-- ✅ Set up OpenAPI specification
-- ✅ Implement code-first schema generation
-- ✅ Create OpenAPI endpoint
-- ✅ Generate comprehensive API documentation
-- ⬜ Update SDK to match new API structure
+- ⬜ Deno Deploy environment configuration
+- ⬜ CI/CD pipeline setup
+- ⬜ Staging environment
+- ⬜ Production environment
+- ⬜ Rollback capability
 
 ### Security Enhancements
 
-- ✅ Enhance token encryption
-- ✅ Implement input validation with Zod
-- ⬜ Add request sanitization
-- ⬜ Implement circuit breaker pattern
-- ✅ Strengthen CORS configuration
-
-### Multi-level Rate Limiting
-
-- ✅ Implement global rate limits
-- ✅ Add per-API key rate limits
-- ✅ Configure per-user rate limits
-- ✅ Set up per-endpoint rate limits
-- ⬜ Implement adaptive rate limiting based on platform responses
+- ⬜ Key rotation for token encryption
+- ⬜ Enhanced input validation and sanitization
+- ⬜ Circuit breaker pattern implementation
+- ⬜ Request size limits
+- ⬜ Rate limit backoff strategies
 
 ### Monitoring and Observability
 
-- ⬜ Structured logging implementation
+- ⬜ Structured logging
 - ⬜ Metrics collection
-- ⬜ Health check endpoint enhancement
-- ⬜ Alert configuration
+- ⬜ Alerting configuration
+- ⬜ Enhanced health check endpoints
+- ⬜ Performance monitoring
 
-### Testing
+### SDK Development
 
-- ⬜ Update tests to match new structure
-- ⬜ Comprehensive unit tests
-- ⬜ Integration tests
-- ⬜ End-to-end tests
-- ⬜ Performance tests
-- ⬜ Security tests
-
-### Deployment
-
-- ⬜ Staging environment setup
-- ⬜ Production environment setup
-- ⬜ CI/CD pipeline configuration
+- ⬜ Client SDK for easy integration
+- ⬜ TypeScript types from OpenAPI specification
+- ⬜ Client-side validation
+- ⬜ Examples and documentation
 
 ## Known Issues
 
-1. Media uploads require OAuth 1.0a credentials which need to be properly configured
-2. Redis connection management in serverless environment needs optimization
-3. Error handling for specific platform API errors could be improved
-4. Token refresh mechanism needs more robust error recovery
-5. Rate limit data is not persisted across worker restarts
-6. API key management is basic and lacks proper lifecycle management
-7. Input validation is inconsistent across endpoints
+1. Some npm packages have compatibility issues with Deno
+2. Deno KV is still in beta/unstable status
+3. Limited storage capacity on Deno KV free tier
+4. Need to implement proper encryption for sensitive data in Deno KV
+5. Performance impact when using npm packages through Deno's compatibility layer
+6. Token refresh mechanism needs more robust error recovery
+7. Rate limit data is not persisted across worker restarts
+8. Input validation is inconsistent across endpoints
 
 ## Next Milestones
 
-1. **Project Reorganization (Target: Week 1)**
-   - ✅ Implement new directory structure
-   - ✅ Create platform abstraction interfaces
-   - ✅ Create domain services
-   - ✅ Create initial controllers
-   - ✅ Complete remaining controllers
-   - ✅ Implement middleware
-   - ⬜ Update main entry point
+1. **Testing Framework (Target: Week 1)**
+   - Set up Deno's testing framework
+   - Create unit tests for core components
+   - Implement integration tests for API endpoints
+   - Set up end-to-end testing
 
-2. **API Key Management & Security (Target: Week 2)**
-   - ✅ Implement API key model and service
-   - ✅ Create API key endpoints
-   - ✅ Implement API key middleware
-   - ✅ Enhance input validation with Zod
-   - ✅ Strengthen CORS configuration
+2. **Deployment Pipeline (Target: Week 2)**
+   - Configure Deno Deploy environment
+   - Set up CI/CD pipeline
+   - Create staging environment
+   - Prepare for production deployment
 
-3. **API Documentation & SDK (Target: Week 3)**
-   - ✅ Generate OpenAPI specification
-   - ⬜ Update SDK to match new API structure
-   - ✅ Create comprehensive API documentation
-   - ✅ Implement request/response validation
+3. **Security Enhancements (Target: Week 3)**
+   - Implement key rotation for token encryption
+   - Enhance input validation and sanitization
+   - Implement circuit breaker pattern
+   - Add request size limits
 
-4. **Testing & Deployment (Target: Week 4)**
-   - ⬜ Update tests to match new structure
-   - ⬜ Set up staging environment
-   - ⬜ Configure CI/CD pipeline
-   - ⬜ Prepare for production deployment
+4. **Monitoring and Observability (Target: Week 4)**
+   - Set up structured logging
+   - Implement metrics collection
+   - Configure alerting
+   - Create enhanced health check endpoints
+
+5. **SDK Development (Target: Week 5)**
+   - Create client SDK for easy integration
+   - Generate TypeScript types from OpenAPI specification
+   - Implement client-side validation
+   - Add examples and documentation
 
 ## Implementation Status
 
 - ✅ Platform abstraction (Completed)
 - ✅ Domain services (Completed)
-- ✅ API key management model and service (Completed)
 - ✅ API controllers (Completed)
 - ✅ Middleware (Completed)
 - ✅ OpenAPI specification (Completed)
 - ✅ Input validation with Zod (Completed)
-- ⬜ Unit tests for new structure (Not started)
+- ✅ NEAR wallet signature authentication (Completed)
+- ✅ Token storage with Deno KV (Completed)
+- ⬜ Unit tests (Not started)
 - ⬜ Integration tests (Not started)
 - ⬜ End-to-end tests (Not started)
 - ⬜ Performance tests (Not started)
@@ -201,6 +153,6 @@ The project is transitioning from the implementation phase to a reorganization p
 
 ## Deployment Status
 
-- 🔄 Development environment (In progress)
+- ✅ Development environment (Completed)
 - ⬜ Staging environment (Not started)
 - ⬜ Production environment (Not started)

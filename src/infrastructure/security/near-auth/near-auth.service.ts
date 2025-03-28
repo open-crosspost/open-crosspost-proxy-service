@@ -10,8 +10,18 @@ import { BorshSchema } from 'borsher';
  */
 export class NearAuthService {
   private readonly ED25519_PREFIX = 'ed25519:';
+  private kv: Deno.Kv | null = null;
   
   constructor(private env: Env) {}
+  
+  /**
+   * Initialize the KV store
+   */
+  private async initializeKv(): Promise<void> {
+    if (!this.kv) {
+      this.kv = await Deno.openKv();
+    }
+  }
   
   /**
    * Validate NEAR authentication data
@@ -175,11 +185,18 @@ export class NearAuthService {
    */
   async storeToken(signerId: string, platform: string, userId: string, token: any): Promise<void> {
     try {
-      if (!this.env.TOKENS) {
-        throw new Error('TOKENS binding not available');
+      // Initialize KV store
+      await this.initializeKv();
+      
+      if (!this.kv) {
+        throw new Error('KV store not initialized');
       }
-      const key = `${signerId}:${platform}:${userId}`;
-      await this.env.TOKENS.put(key, JSON.stringify(token));
+      
+      const key = `token:${signerId}:${platform}:${userId}`;
+      await this.kv.set([key], token);
+      
+      // Update the connected accounts index
+      await this.addToConnectedAccountsIndex(signerId, platform, userId);
     } catch (error) {
       console.error('Error storing token:', error);
       throw new Error('Failed to store token');
@@ -195,15 +212,17 @@ export class NearAuthService {
    */
   async getToken(signerId: string, platform: string, userId: string): Promise<any | null> {
     try {
-      if (!this.env.TOKENS) {
-        throw new Error('TOKENS binding not available');
+      // Initialize KV store
+      await this.initializeKv();
+      
+      if (!this.kv) {
+        throw new Error('KV store not initialized');
       }
-      const key = `${signerId}:${platform}:${userId}`;
-      const token = await this.env.TOKENS.get(key);
       
-      if (!token) return null;
+      const key = `token:${signerId}:${platform}:${userId}`;
+      const result = await this.kv.get([key]);
       
-      return JSON.parse(token);
+      return result.value;
     } catch (error) {
       console.error('Error getting token:', error);
       return null;
@@ -218,11 +237,18 @@ export class NearAuthService {
    */
   async deleteToken(signerId: string, platform: string, userId: string): Promise<void> {
     try {
-      if (!this.env.TOKENS) {
-        throw new Error('TOKENS binding not available');
+      // Initialize KV store
+      await this.initializeKv();
+      
+      if (!this.kv) {
+        throw new Error('KV store not initialized');
       }
-      const key = `${signerId}:${platform}:${userId}`;
-      await this.env.TOKENS.delete(key);
+      
+      const key = `token:${signerId}:${platform}:${userId}`;
+      await this.kv.delete([key]);
+      
+      // Update the connected accounts index
+      await this.removeFromConnectedAccountsIndex(signerId, platform, userId);
     } catch (error) {
       console.error('Error deleting token:', error);
       throw new Error('Failed to delete token');
@@ -236,24 +262,21 @@ export class NearAuthService {
    */
   async listConnectedAccounts(signerId: string): Promise<Array<{platform: string, userId: string}>> {
     try {
-      if (!this.env.TOKENS) {
-        throw new Error('TOKENS binding not available');
+      // Initialize KV store
+      await this.initializeKv();
+      
+      if (!this.kv) {
+        throw new Error('KV store not initialized');
       }
       
-      // Since we don't have a list method, we need to maintain a separate index
-      // This is a placeholder implementation that would need to be replaced with
-      // a proper implementation that uses a separate index or another approach
+      const indexKey = `index:${signerId}`;
+      const result = await this.kv.get([indexKey]);
       
-      // For now, we'll return an empty array with a console warning
-      console.warn('listConnectedAccounts is not fully implemented yet - needs a separate index');
+      if (!result.value) {
+        return [];
+      }
       
-      return [];
-      
-      // In a real implementation, we would have a separate index like:
-      // const indexKey = `index:${signerId}`;
-      // const indexJson = await this.env.TOKENS.get(indexKey);
-      // if (!indexJson) return [];
-      // return JSON.parse(indexJson);
+      return result.value as Array<{platform: string, userId: string}>;
     } catch (error) {
       console.error('Error listing connected accounts:', error);
       return [];
@@ -268,27 +291,32 @@ export class NearAuthService {
    */
   async addToConnectedAccountsIndex(signerId: string, platform: string, userId: string): Promise<void> {
     try {
-      if (!this.env.TOKENS) {
-        throw new Error('TOKENS binding not available');
+      // Initialize KV store
+      await this.initializeKv();
+      
+      if (!this.kv) {
+        throw new Error('KV store not initialized');
       }
       
-      // This is a placeholder implementation
-      // In a real implementation, we would update a separate index
-      console.warn('addToConnectedAccountsIndex is not fully implemented yet');
+      const indexKey = `index:${signerId}`;
+      const result = await this.kv.get([indexKey]);
       
-      // Example implementation:
-      // const indexKey = `index:${signerId}`;
-      // const indexJson = await this.env.TOKENS.get(indexKey) || '[]';
-      // const accounts = JSON.parse(indexJson);
-      // 
-      // // Check if the account is already in the index
-      // const exists = accounts.some(acc => acc.platform === platform && acc.userId === userId);
-      // if (!exists) {
-      //   accounts.push({ platform, userId });
-      //   await this.env.TOKENS.put(indexKey, JSON.stringify(accounts));
-      // }
+      let accounts: Array<{platform: string, userId: string}> = [];
+      
+      if (result.value) {
+        accounts = result.value as Array<{platform: string, userId: string}>;
+      }
+      
+      // Check if the account is already in the index
+      const exists = accounts.some(acc => acc.platform === platform && acc.userId === userId);
+      
+      if (!exists) {
+        accounts.push({ platform, userId });
+        await this.kv.set([indexKey], accounts);
+      }
     } catch (error) {
       console.error('Error adding to connected accounts index:', error);
+      throw new Error('Failed to update connected accounts index');
     }
   }
   
@@ -300,27 +328,31 @@ export class NearAuthService {
    */
   async removeFromConnectedAccountsIndex(signerId: string, platform: string, userId: string): Promise<void> {
     try {
-      if (!this.env.TOKENS) {
-        throw new Error('TOKENS binding not available');
+      // Initialize KV store
+      await this.initializeKv();
+      
+      if (!this.kv) {
+        throw new Error('KV store not initialized');
       }
       
-      // This is a placeholder implementation
-      // In a real implementation, we would update a separate index
-      console.warn('removeFromConnectedAccountsIndex is not fully implemented yet');
+      const indexKey = `index:${signerId}`;
+      const result = await this.kv.get([indexKey]);
       
-      // Example implementation:
-      // const indexKey = `index:${signerId}`;
-      // const indexJson = await this.env.TOKENS.get(indexKey);
-      // if (!indexJson) return;
-      // 
-      // const accounts = JSON.parse(indexJson);
-      // const updatedAccounts = accounts.filter(
-      //   acc => !(acc.platform === platform && acc.userId === userId)
-      // );
-      // 
-      // await this.env.TOKENS.put(indexKey, JSON.stringify(updatedAccounts));
+      if (!result.value) {
+        return;
+      }
+      
+      const accounts = result.value as Array<{platform: string, userId: string}>;
+      
+      // Filter out the account to remove
+      const updatedAccounts = accounts.filter(
+        acc => !(acc.platform === platform && acc.userId === userId)
+      );
+      
+      await this.kv.set([indexKey], updatedAccounts);
     } catch (error) {
       console.error('Error removing from connected accounts index:', error);
+      throw new Error('Failed to update connected accounts index');
     }
   }
 }

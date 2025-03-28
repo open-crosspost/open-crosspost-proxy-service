@@ -1,9 +1,10 @@
 import { Context } from "../../deps.ts";
-import { getEnv } from "../config/env.ts";
+import { getEnv, Env } from "../config/env.ts";
 import { DEFAULT_CONFIG } from "../config/index.ts";
 import { AuthService } from "../domain/services/auth.service.ts";
 import { NearAuthService } from "../infrastructure/security/near-auth/near-auth.service.ts";
-import { NearAuthData, nearAuthDataSchema } from "../infrastructure/security/near-auth/near-auth.types.ts";
+import { extractAndValidateNearAuth } from "../utils/near-auth.utils.ts";
+import { unlinkAccountFromNear } from "../utils/account-linking.utils.ts";
 
 /**
  * Auth Controller
@@ -11,10 +12,13 @@ import { NearAuthData, nearAuthDataSchema } from "../infrastructure/security/nea
  */
 export class AuthController {
   private authService: AuthService;
+  private nearAuthService: NearAuthService;
+  private env: Env;
 
   constructor() {
-    const env = getEnv();
-    this.authService = new AuthService(env);
+    this.env = getEnv();
+    this.authService = new AuthService(this.env);
+    this.nearAuthService = new NearAuthService(this.env);
   }
 
   /**
@@ -24,73 +28,9 @@ export class AuthController {
    */
   async initializeAuth(c: Context): Promise<Response> {
     try {
-      // Extract NEAR auth data from Authorization header
-      const authHeader = c.req.header('Authorization');
-
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return c.json({
-          error: {
-            type: "validation_error",
-            message: "Missing or invalid Authorization header",
-            status: 400
-          }
-        }, 400);
-      }
-
-      // Extract the token part (after 'Bearer ')
-      const token = authHeader.substring(7);
-
-      // Parse the JSON token
-      let authObject: NearAuthData;
-      try {
-        authObject = JSON.parse(token);
-      } catch (error) {
-        return c.json({
-          error: {
-            type: "validation_error",
-            message: "Invalid JSON in Authorization token",
-            status: 400
-          }
-        }, 400);
-      }
-
-      // Validate with Zod schema
-      const zodValidationResult = nearAuthDataSchema.safeParse(authObject);
-
-      if (!zodValidationResult.success) {
-        return c.json({
-          error: {
-            type: "validation_error",
-            message: "Missing required NEAR authentication data in token",
-            details: zodValidationResult.error.format(),
-            status: 400
-          }
-        }, 400);
-      }
-
-      // Use validated data with defaults applied
-      const authData = {
-        ...zodValidationResult.data,
-        callback_url: zodValidationResult.data.callback_url || c.req.url // Use current URL as callback if not provided
-      };
-
-      // Initialize NEAR auth service
-      const env = getEnv();
-      const nearAuthService = new NearAuthService(env);
-
-      // Validate signature
-      const signatureValidationResult = await nearAuthService.validateNearAuth(authData);
-
-      if (!signatureValidationResult.valid) {
-        return c.json({
-          error: {
-            type: "authentication_error",
-            message: `NEAR authentication failed: ${signatureValidationResult.error}`,
-            status: 401
-          }
-        }, 401);
-      }
-
+      // Extract and validate NEAR auth data
+      const { signerId } = await extractAndValidateNearAuth(c);
+      
       // Get the base URL of the current request
       const requestUrl = new URL(c.req.url);
       const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
@@ -109,6 +49,7 @@ export class AuthController {
       // We need to pass the successUrl to the auth service so it can be stored in KV
       // and retrieved during the callback
       const twitterAuthData = await this.authService.initializeAuth(
+        signerId, // Pass the NEAR account ID for linking during callback
         callbackUrl,
         DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
         successUrl || origin,
@@ -211,11 +152,39 @@ export class AuthController {
    */
   async refreshToken(c: Context): Promise<Response> {
     try {
-      // Extract user ID from headers
-      const userId = c.get("userId") as string;
+      // Extract NEAR account ID from the validated signature
+      const { signerId } = await extractAndValidateNearAuth(c);
+      
+      // Extract platform and userId from request body
+      const body = await c.req.json();
+      const { platform, userId } = body;
+      
+      if (!platform || !userId) {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Platform and userId are required",
+            status: 400
+          }
+        }, 400);
+      }
+      
+      // Only support Twitter for now
+      if (platform !== 'twitter') {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Only Twitter platform is supported",
+            status: 400
+          }
+        }, 400);
+      }
 
       // Refresh token
       const tokens = await this.authService.refreshToken(userId);
+
+      // Update the token in NEAR auth service
+      await this.nearAuthService.storeToken(signerId, platform, userId, tokens);
 
       // Return the new tokens
       return c.json({ data: tokens });
@@ -238,11 +207,41 @@ export class AuthController {
    */
   async revokeToken(c: Context): Promise<Response> {
     try {
-      // Extract user ID from headers
-      const userId = c.get("userId") as string;
+      // Extract NEAR account ID from the validated signature
+      const { signerId } = await extractAndValidateNearAuth(c);
+      
+      // Extract platform and userId from request body
+      const body = await c.req.json();
+      const { platform, userId } = body;
+      
+      if (!platform || !userId) {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Platform and userId are required",
+            status: 400
+          }
+        }, 400);
+      }
+      
+      // Only support Twitter for now
+      if (platform !== 'twitter') {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Only Twitter platform is supported",
+            status: 400
+          }
+        }, 400);
+      }
 
       // Revoke token
       const success = await this.authService.revokeToken(userId);
+      
+      // Unlink the account from the NEAR wallet
+      if (success) {
+        await unlinkAccountFromNear(signerId, platform, userId, this.env);
+      }
 
       // Return success status
       return c.json({ data: { success } });
@@ -265,14 +264,57 @@ export class AuthController {
    */
   async hasValidTokens(c: Context): Promise<Response> {
     try {
-      // Extract user ID from headers
-      const userId = c.get("userId") as string;
+      // Extract NEAR account ID from the validated signature
+      const { signerId } = await extractAndValidateNearAuth(c);
+      
+      // Extract platform and userId from request body or query parameters
+      let platform, userId;
+      
+      // Try to get from query parameters first
+      platform = c.req.query('platform');
+      userId = c.req.query('userId');
+      
+      // If not in query parameters, try to get from request body
+      if (!platform || !userId) {
+        try {
+          const body = await c.req.json();
+          platform = platform || body.platform;
+          userId = userId || body.userId;
+        } catch (e) {
+          // Ignore JSON parsing errors
+        }
+      }
+      
+      if (!platform || !userId) {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Platform and userId are required",
+            status: 400
+          }
+        }, 400);
+      }
+      
+      // Only support Twitter for now
+      if (platform !== 'twitter') {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Only Twitter platform is supported",
+            status: 400
+          }
+        }, 400);
+      }
 
       // Check if user has valid tokens
       const hasTokens = await this.authService.hasValidTokens(userId);
+      
+      // Also check if the tokens are linked to this NEAR account
+      const token = await this.nearAuthService.getToken(signerId, platform, userId);
+      const isLinked = !!token;
 
       // Return validity status
-      return c.json({ data: { hasTokens } });
+      return c.json({ data: { hasTokens, isLinked } });
     } catch (error) {
       console.error("Error checking tokens:", error);
       return c.json({
@@ -293,14 +335,10 @@ export class AuthController {
   async listConnectedAccounts(c: Context): Promise<Response> {
     try {
       // Extract NEAR account ID from the validated signature
-      const signerId = c.get("signerId") as string;
-      
-      // Initialize NEAR auth service
-      const env = getEnv();
-      const nearAuthService = new NearAuthService(env);
+      const { signerId } = await extractAndValidateNearAuth(c);
       
       // Get all connected accounts
-      const accounts = await nearAuthService.listConnectedAccounts(signerId);
+      const accounts = await this.nearAuthService.listConnectedAccounts(signerId);
       
       // Return the accounts
       return c.json({ data: { accounts } });

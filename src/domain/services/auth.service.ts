@@ -4,6 +4,7 @@ import { Env } from '../../config/env.ts';
 import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 import { DEFAULT_CONFIG } from '../../config/index.ts';
 import { TokenStorage, TwitterTokens } from '../../infrastructure/storage/token-storage.ts';
+import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
 
 /**
  * Auth Service
@@ -12,7 +13,10 @@ import { TokenStorage, TwitterTokens } from '../../infrastructure/storage/token-
 export class AuthService {
   private platformAuth: PlatformAuth;
   private tokenStorage: TokenStorage;
+  private env: Env;
+  
   constructor(env: Env) {
+    this.env = env;
     // For now, we only support Twitter
     this.platformAuth = new TwitterAuth(env);
     this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY);
@@ -20,6 +24,7 @@ export class AuthService {
   
   /**
    * Initialize the authentication process
+   * @param signerId NEAR account ID for linking
    * @param redirectUri The redirect URI for the OAuth callback
    * @param scopes The requested OAuth scopes
    * @param successUrl The URL to redirect to on successful authentication
@@ -27,13 +32,14 @@ export class AuthService {
    * @returns The authentication URL and state
    */
   async initializeAuth(
+    signerId: string,
     redirectUri: string,
     scopes: string[] = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
     successUrl?: string,
     errorUrl?: string
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
-      return await this.platformAuth.initializeAuth(redirectUri, scopes, successUrl, errorUrl);
+      return await this.platformAuth.initializeAuth(signerId, redirectUri, scopes, successUrl, errorUrl);
     } catch (error) {
       console.error('Error initializing auth:', error);
       throw error;
@@ -45,7 +51,7 @@ export class AuthService {
    * @param state The state parameter from the callback
    * @returns The auth state data including successUrl and errorUrl
    */
-  async getAuthState(state: string): Promise<{ successUrl: string; errorUrl: string } | null> {
+  async getAuthState(state: string): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
     try {
       return await this.platformAuth.getAuthState(state);
     } catch (error) {
@@ -111,6 +117,32 @@ export class AuthService {
     } catch (error) {
       console.error('Error checking tokens:', error);
       return false;
+    }
+  }
+  
+  /**
+   * Link a social media account to a NEAR wallet
+   * @param signerId NEAR account ID
+   * @param platform Platform name (e.g., 'twitter')
+   * @param userId User ID on the platform
+   * @returns Success status
+   */
+  async linkAccount(
+    signerId: string,
+    platform: string,
+    userId: string
+  ): Promise<boolean> {
+    try {
+      // Get the tokens for the user
+      const tokens = await this.platformAuth.refreshToken(userId);
+      
+      // Link the account using the utility function
+      await linkAccountToNear(signerId, platform, userId, tokens, this.env);
+      
+      return true;
+    } catch (error) {
+      console.error(`Error linking ${platform} account to NEAR wallet:`, error);
+      throw new Error(`Failed to link ${platform} account to NEAR wallet`);
     }
   }
   

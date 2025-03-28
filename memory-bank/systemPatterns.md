@@ -2,20 +2,18 @@
 
 ## System Architecture
 
-The Social Media API Proxy follows a serverless architecture pattern using Cloudflare Workers as the compute platform. This architecture provides global distribution, high availability, and automatic scaling without managing traditional server infrastructure. The system is designed to be platform-agnostic, with Twitter as the initial implementation.
+The Social Media API Proxy follows a serverless architecture pattern using Deno Deploy as the compute platform. This architecture provides global distribution, high availability, and automatic scaling without managing traditional server infrastructure. The system is designed to be platform-agnostic, with Twitter as the initial implementation.
 
 ```mermaid
 flowchart TD
-    Client[Client Application] <--> Worker[Cloudflare Worker]
+    Client[Client Application] <--> Worker[Deno Deploy]
     Worker <--> Platform[Social Media Platform APIs]
-    Worker <--> KV[Cloudflare KV]
-    Worker <--> D1[Cloudflare D1]
-    Worker <--> Redis[Redis Cache]
+    Worker <--> KV[Deno KV]
+    Worker <--> Redis[Upstash Redis]
     
-    subgraph "Cloudflare Edge Network"
+    subgraph "Deno Deploy Edge Network"
         Worker
         KV
-        D1
     end
     
     subgraph "External Services"
@@ -229,6 +227,8 @@ classDiagram
         +handleCallback()
         +refreshToken()
         +revokeToken()
+        +hasValidTokens()
+        +listConnectedAccounts()
     }
     
     class PostController {
@@ -244,17 +244,12 @@ classDiagram
     class MediaController {
         +uploadMedia()
         +getMediaStatus()
+        +updateMediaMetadata()
     }
     
     class RateLimitController {
         +getRateLimitStatus()
-    }
-    
-    class ApiKeyController {
-        +createApiKey()
-        +revokeApiKey()
-        +rotateApiKey()
-        +listApiKeys()
+        +getAllRateLimits()
     }
     
     class AuthService {
@@ -262,6 +257,8 @@ classDiagram
         +handleCallback()
         +refreshToken()
         +revokeToken()
+        +hasValidTokens()
+        +listConnectedAccounts()
     }
     
     class PostService {
@@ -282,16 +279,9 @@ classDiagram
     
     class RateLimitService {
         +getRateLimitStatus()
+        +getAllRateLimits()
         +checkRateLimit()
         +updateRateLimitCounters()
-    }
-    
-    class ApiKeyService {
-        +validateApiKey()
-        +createApiKey()
-        +revokeApiKey()
-        +rotateApiKey()
-        +listApiKeys()
     }
     
     class PlatformClient {
@@ -311,6 +301,8 @@ classDiagram
         +handleCallback()
         +refreshToken()
         +revokeToken()
+        +hasValidTokens()
+        +listConnectedAccounts()
     }
     
     class PlatformPost {
@@ -346,6 +338,8 @@ classDiagram
         +handleCallback()
         +refreshToken()
         +revokeToken()
+        +hasValidTokens()
+        +listConnectedAccounts()
     }
     
     class TwitterPost {
@@ -369,21 +363,12 @@ classDiagram
         +saveTokens()
         +deleteTokens()
         +hasTokens()
-    }
-    
-    class ApiKeyStorage {
-        +getApiKey()
-        +getApiKeyById()
-        +saveApiKey()
-        +updateApiKeyUsage()
-        +revokeApiKey()
-        +listApiKeys()
-        +deleteApiKey()
+        +listTokens()
     }
     
     class AuthMiddleware {
         +validateApiKey()
-        +extractUserId()
+        +validateNearSignature()
     }
     
     class CorsMiddleware {
@@ -404,13 +389,11 @@ classDiagram
     Router --> PostController
     Router --> MediaController
     Router --> RateLimitController
-    Router --> ApiKeyController
     
     AuthController --> AuthService
     PostController --> PostService
     MediaController --> MediaService
     RateLimitController --> RateLimitService
-    ApiKeyController --> ApiKeyService
     
     AuthService --> PlatformAuth
     PostService --> PlatformPost
@@ -426,7 +409,6 @@ classDiagram
     TwitterMedia --> TwitterClient
     
     AuthService --> TokenStorage
-    ApiKeyService --> ApiKeyStorage
     
     Router --> AuthMiddleware
     Router --> CorsMiddleware
@@ -457,10 +439,9 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start[API Request] --> ValidateAPIKey[Validate API Key]
-    ValidateAPIKey --> CheckScope[Check API Key Scope]
-    CheckScope --> ExtractUserId[Extract User ID]
-    ExtractUserId --> GetTokens[Retrieve Tokens]
+    Start[API Request] --> ValidateSignature[Validate NEAR Signature]
+    ValidateSignature --> ExtractAccount[Extract NEAR Account]
+    ExtractAccount --> GetTokens[Retrieve Tokens]
     GetTokens --> CheckTokens{Tokens Valid?}
     CheckTokens -->|No| RefreshToken[Refresh Token]
     CheckTokens -->|Yes| ProcessMedia{Has Media?}
@@ -478,9 +459,9 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start[API Request] --> ValidateAPIKey[Validate API Key]
-    ValidateAPIKey --> ExtractUserId[Extract User ID]
-    ExtractUserId --> GetTokens[Retrieve Tokens]
+    Start[API Request] --> ValidateSignature[Validate NEAR Signature]
+    ValidateSignature --> ExtractAccount[Extract NEAR Account]
+    ExtractAccount --> GetTokens[Retrieve Tokens]
     GetTokens --> ParseBody[Parse Request Body]
     ParseBody --> IsThread{Is Thread?}
     
@@ -496,33 +477,6 @@ flowchart TD
     
     PostThread --> ReturnResponse[Return Response]
     PostSingle --> ReturnResponse
-```
-
-### API Key Management Flow
-
-```mermaid
-flowchart TD
-    CreateKey[Create API Key] --> GenerateKey[Generate Secure Key]
-    GenerateKey --> SetScopes[Set Key Scopes]
-    SetScopes --> SetOrigins[Set Allowed Origins]
-    SetOrigins --> SetExpiry[Set Expiry Date]
-    SetExpiry --> StoreKey[Store Key in D1]
-    StoreKey --> ReturnKey[Return Key to Admin]
-    
-    ValidateKey[Validate API Key] --> FetchKey[Fetch Key from D1]
-    FetchKey --> CheckValid{Key Valid?}
-    CheckValid -->|No| RejectRequest[Reject Request]
-    CheckValid -->|Yes| CheckOrigin[Check Origin]
-    CheckOrigin --> CheckScope[Check Scope]
-    CheckScope --> CheckExpiry[Check Expiry]
-    CheckExpiry --> TrackUsage[Track Key Usage]
-    TrackUsage --> AllowRequest[Allow Request]
-    
-    RotateKey[Rotate API Key] --> GenerateNewKey[Generate New Key]
-    GenerateNewKey --> KeepOldKey[Keep Old Key Active]
-    KeepOldKey --> StoreNewKey[Store New Key]
-    StoreNewKey --> SetGracePeriod[Set Grace Period]
-    SetGracePeriod --> ReturnNewKey[Return New Key]
 ```
 
 ### Media Upload Flow
@@ -578,7 +532,7 @@ flowchart TD
     Code[Code Changes] --> CI[CI Pipeline]
     CI --> Lint[Lint and Format]
     Lint --> Tests[Run Tests]
-    Tests --> Build[Build Worker]
+    Tests --> Build[Build]
     Build --> DeployStaging[Deploy to Staging]
     DeployStaging --> StagingTests[Run Staging Tests]
     StagingTests --> DeployProd[Deploy to Production]

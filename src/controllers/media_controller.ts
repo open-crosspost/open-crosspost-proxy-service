@@ -1,7 +1,7 @@
 import { Context } from "../../deps.ts";
 import { MediaService } from "../domain/services/media.service.ts";
 import { getEnv } from "../config/env.ts";
-import { z } from "../../deps.ts";
+import { z } from "zod";
 
 /**
  * Media Controller

@@ -3,6 +3,7 @@ import { Env } from '../../../config/env.ts';
 import { TokenStorage, TokenType, TwitterTokens } from '../../storage/token-storage.ts';
 import { PlatformAuth } from '../abstract/platform-auth.interface.ts';
 import { TwitterClient } from './twitter-client.ts';
+import { linkAccountToNear } from '../../../utils/account-linking.utils.ts';
 
 // Define the auth state structure
 interface AuthState {
@@ -12,6 +13,7 @@ interface AuthState {
   createdAt: number;
   successUrl: string; // Store the original client return URL
   errorUrl: string; // Store the URL to redirect to on error
+  signerId: string; // Store the NEAR account ID for linking
 }
 
 /**
@@ -44,7 +46,7 @@ export class TwitterAuth implements PlatformAuth {
    * @param state The state parameter from the callback
    * @returns The auth state data including successUrl and errorUrl
    */
-  async getAuthState(state: string): Promise<{ successUrl: string; errorUrl: string } | null> {
+  async getAuthState(state: string): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
     try {
       // Initialize KV store
       await this.initializeKv();
@@ -61,9 +63,20 @@ export class TwitterAuth implements PlatformAuth {
         return null;
       }
 
+      // Ensure signerId is always returned
+      if (!authState.signerId) {
+        console.warn("Auth state missing signerId, using default");
+        return {
+          successUrl: authState.successUrl,
+          errorUrl: authState.errorUrl,
+          signerId: "unknown.near" // Default value if missing
+        };
+      }
+
       return {
         successUrl: authState.successUrl,
-        errorUrl: authState.errorUrl
+        errorUrl: authState.errorUrl,
+        signerId: authState.signerId
       };
     } catch (error) {
       console.error('Error getting auth state:', error);
@@ -73,6 +86,7 @@ export class TwitterAuth implements PlatformAuth {
 
   /**
    * Initialize the authentication process
+   * @param signerId NEAR account ID for linking
    * @param redirectUri The redirect URI for the OAuth callback
    * @param scopes The requested OAuth scopes
    * @param successUrl The URL to redirect to on successful authentication
@@ -80,9 +94,10 @@ export class TwitterAuth implements PlatformAuth {
    * @returns The authentication URL and state
    */
   async initializeAuth(
+    signerId: string,
     redirectUri: string,
     scopes: string[],
-    successUrl: string,
+    successUrl?: string,
     errorUrl?: string
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
@@ -106,8 +121,9 @@ export class TwitterAuth implements PlatformAuth {
         codeVerifier,
         state,
         createdAt: Date.now(),
-        successUrl, // Store the client's success URL
-        errorUrl: errorUrl || successUrl // Use success URL as fallback for error URL
+        successUrl: successUrl || redirectUri, // Use redirect URI as fallback
+        errorUrl: errorUrl || (successUrl || redirectUri), // Use success URL or redirect URI as fallback
+        signerId // Store the NEAR account ID
       };
 
       // Initialize KV store
@@ -188,6 +204,9 @@ export class TwitterAuth implements PlatformAuth {
 
       // Save the tokens
       await this.tokenStorage.saveTokens(userId, tokens);
+
+      // Link the Twitter account to the NEAR wallet
+      await linkAccountToNear(authState.signerId, 'twitter', userId, tokens, this.env);
 
       // Delete the auth state from KV
       await this.kv.delete(["auth", state]);
