@@ -157,8 +157,10 @@ The project uses the following environment variables, which should be configured
 
 1. **Token Security**:
    - Encrypt tokens before storing in Deno KV
-   - Use Deno's crypto APIs for encryption
-   - Implement proper key rotation
+   - Use Deno's crypto APIs for encryption with AES-GCM
+   - Implement versioned encryption for future key rotation
+   - Comprehensive token access logging with PII redaction
+   - Secure environment configuration validation
    - Never expose tokens to clients
 2. **API Key Management**:
    - Store API keys securely in external database (Upstash Redis)
@@ -189,7 +191,8 @@ The project uses the following environment variables, which should be configured
 1. **Logging Strategy**:
    - Structured logging format with Deno's logger
    - Different log levels (error, warn, info, debug)
-   - PII redaction in logs
+   - PII redaction in logs (implemented for token access logs)
+   - Token access audit logging for security operations
    - Deno Deploy logs integration
    - Potential integration with external logging services
 2. **Metrics Collection**:

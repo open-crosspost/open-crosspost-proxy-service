@@ -93,3 +93,72 @@ export function isDevelopment(): boolean {
   const env = getEnv();
   return env.ENVIRONMENT === "development";
 }
+
+/**
+ * Validate environment configuration for security
+ * @param env Environment configuration
+ * @returns Validation result with warnings and errors
+ */
+export function validateSecurityConfig(env: Env): { 
+  isValid: boolean; 
+  warnings: string[]; 
+  errors: string[] 
+} {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  
+  // Check encryption key
+  if (env.ENCRYPTION_KEY === "default-encryption-key") {
+    if (isProduction() || isStaging()) {
+      errors.push("Default encryption key used in production/staging environment");
+    } else {
+      warnings.push("Default encryption key used - not secure for production");
+    }
+  }
+  
+  // Check encryption key length
+  const keyLength = new TextEncoder().encode(env.ENCRYPTION_KEY).length;
+  if (keyLength < 16) {
+    errors.push(`Encryption key too short (${keyLength} bytes). Minimum 16 bytes required.`);
+  }
+  
+  // Check allowed origins
+  if (!env.ALLOWED_ORIGINS && (isProduction() || isStaging())) {
+    errors.push("No ALLOWED_ORIGINS specified in production/staging environment");
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    warnings,
+    errors
+  };
+}
+
+/**
+ * Get environment variables with validation
+ * @param enforceSecure Whether to enforce secure configuration
+ * @returns Environment variables
+ * @throws Error if enforceSecure is true and configuration is insecure
+ */
+export function getSecureEnv(enforceSecure = false): Env {
+  const env = getEnv();
+  const validation = validateSecurityConfig(env);
+  
+  // Log warnings
+  validation.warnings.forEach(warning => {
+    console.warn(`[Security Warning] ${warning}`);
+  });
+  
+  // Log or throw errors
+  if (!validation.isValid) {
+    const errorMessage = `Security configuration errors:\n${validation.errors.join('\n')}`;
+    
+    if (enforceSecure) {
+      throw new Error(errorMessage);
+    } else {
+      console.error(errorMessage);
+    }
+  }
+  
+  return env;
+}

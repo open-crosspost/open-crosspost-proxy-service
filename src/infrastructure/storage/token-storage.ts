@@ -18,6 +18,9 @@ export interface TwitterTokens {
   tokenType: TokenType | string;
 }
 
+import { TokenAccessLogger, TokenOperation } from "../security/token-access-logger.ts";
+import { Env } from "../../config/env.ts";
+
 /**
  * Token Storage using Deno KV
  * Handles secure storage and retrieval of OAuth tokens
@@ -25,9 +28,15 @@ export interface TwitterTokens {
 export class TokenStorage {
   private kv: Deno.Kv | null = null;
   private encryptionKey: string;
+  private logger: TokenAccessLogger;
   
-  constructor(encryptionKey: string) {
+  // Version constants for encryption
+  private readonly ENCRYPTION_VERSION_1 = 0x01;
+  private readonly CURRENT_ENCRYPTION_VERSION = this.ENCRYPTION_VERSION_1;
+  
+  constructor(encryptionKey: string, env: Env) {
     this.encryptionKey = encryptionKey;
+    this.logger = new TokenAccessLogger(env);
   }
   
   /**
@@ -58,14 +67,25 @@ export class TokenStorage {
       const result = await this.kv.get<string>(key);
       
       if (!result.value) {
+        await this.logger.logAccess(TokenOperation.GET, userId, false, "Tokens not found");
         throw new Error("Tokens not found");
       }
       
       // Decrypt the tokens
       const tokens = await this.decryptTokens(result.value);
       
+      // Log successful access
+      await this.logger.logAccess(TokenOperation.GET, userId, true);
+      
       return tokens;
     } catch (error) {
+      // Log failed access
+      await this.logger.logAccess(
+        TokenOperation.GET, 
+        userId, 
+        false, 
+        error instanceof Error ? error.message : "Unknown error"
+      );
       console.error("Error getting tokens:", error);
       throw new Error("Failed to retrieve tokens");
     }
@@ -92,9 +112,20 @@ export class TokenStorage {
       const result = await this.kv.set(key, encryptedTokens);
       
       if (!result.ok) {
+        await this.logger.logAccess(TokenOperation.SAVE, userId, false, "Failed to save tokens");
         throw new Error(`Failed to save tokens for user ${userId}`);
       }
+      
+      // Log successful save
+      await this.logger.logAccess(TokenOperation.SAVE, userId, true);
     } catch (error) {
+      // Log failed save
+      await this.logger.logAccess(
+        TokenOperation.SAVE, 
+        userId, 
+        false, 
+        error instanceof Error ? error.message : "Unknown error"
+      );
       console.error("Error saving tokens:", error);
       throw new Error("Failed to save tokens");
     }
@@ -115,7 +146,17 @@ export class TokenStorage {
       // Delete the tokens from KV
       const key = ["tokens", userId];
       await this.kv.delete(key);
+      
+      // Log successful deletion
+      await this.logger.logAccess(TokenOperation.DELETE, userId, true);
     } catch (error) {
+      // Log failed deletion
+      await this.logger.logAccess(
+        TokenOperation.DELETE, 
+        userId, 
+        false, 
+        error instanceof Error ? error.message : "Unknown error"
+      );
       console.error("Error deleting tokens:", error);
       throw new Error("Failed to delete tokens");
     }
@@ -137,8 +178,20 @@ export class TokenStorage {
       // Check if tokens exist in KV
       const key = ["tokens", userId];
       const result = await this.kv.get(key);
-      return result.value !== null;
+      const exists = result.value !== null;
+      
+      // Log check operation
+      await this.logger.logAccess(TokenOperation.CHECK, userId, true);
+      
+      return exists;
     } catch (error) {
+      // Log failed check
+      await this.logger.logAccess(
+        TokenOperation.CHECK, 
+        userId, 
+        false, 
+        error instanceof Error ? error.message : "Unknown error"
+      );
       console.error("Error checking tokens:", error);
       return false;
     }
@@ -158,23 +211,20 @@ export class TokenStorage {
    */
   private async encryptTokens(tokens: TwitterTokens): Promise<string> {
     try {
-      // Ensure the encryption key is the correct length for AES-GCM (16, 24, or 32 bytes)
-      let keyData = new TextEncoder().encode(this.encryptionKey);
+      // Get the encryption key bytes
+      const rawKeyData = new TextEncoder().encode(this.encryptionKey);
       
-      // If the key is not 16, 24, or 32 bytes, pad or truncate it
-      if (keyData.length !== 16 && keyData.length !== 24 && keyData.length !== 32) {
-        console.warn(`Encryption key length (${keyData.length} bytes) is not valid for AES-GCM. Adjusting to 32 bytes.`);
-        
-        // Create a new array of 32 bytes
-        const newKeyData = new Uint8Array(32);
-        
-        // Fill with zeros
-        newKeyData.fill(0);
-        
-        // Copy the original key data (up to 32 bytes)
-        newKeyData.set(keyData.slice(0, Math.min(keyData.length, 32)));
-        
-        keyData = newKeyData;
+      // Normalize the key to a valid AES-GCM size (16, 24, or 32 bytes)
+      // We'll use a cryptographic hash to derive a key of the right size
+      let keyData: Uint8Array;
+      
+      if (rawKeyData.length === 16 || rawKeyData.length === 24 || rawKeyData.length === 32) {
+        // Key is already a valid size, use it directly
+        keyData = rawKeyData;
+      } else {
+        // Use SHA-256 to derive a 32-byte key
+        const hashBuffer = await crypto.subtle.digest('SHA-256', rawKeyData);
+        keyData = new Uint8Array(hashBuffer);
       }
       
       // Convert the encryption key to a CryptoKey
@@ -200,10 +250,11 @@ export class TokenStorage {
         tokenData
       );
       
-      // Combine IV and encrypted data
-      const result = new Uint8Array(iv.length + encryptedData.byteLength);
-      result.set(iv, 0);
-      result.set(new Uint8Array(encryptedData), iv.length);
+      // Create result with version byte + IV + encrypted data
+      const result = new Uint8Array(1 + iv.length + encryptedData.byteLength);
+      result[0] = this.CURRENT_ENCRYPTION_VERSION; // Version byte
+      result.set(iv, 1);
+      result.set(new Uint8Array(encryptedData), 1 + iv.length);
       
       // Return as base64 string
       return btoa(String.fromCharCode(...result));
@@ -220,23 +271,20 @@ export class TokenStorage {
    */
   private async decryptTokens(encryptedTokens: string): Promise<TwitterTokens> {
     try {
-      // Ensure the encryption key is the correct length for AES-GCM (16, 24, or 32 bytes)
-      let keyData = new TextEncoder().encode(this.encryptionKey);
+      // Get the encryption key bytes
+      const rawKeyData = new TextEncoder().encode(this.encryptionKey);
       
-      // If the key is not 16, 24, or 32 bytes, pad or truncate it
-      if (keyData.length !== 16 && keyData.length !== 24 && keyData.length !== 32) {
-        console.warn(`Encryption key length (${keyData.length} bytes) is not valid for AES-GCM. Adjusting to 32 bytes.`);
-        
-        // Create a new array of 32 bytes
-        const newKeyData = new Uint8Array(32);
-        
-        // Fill with zeros
-        newKeyData.fill(0);
-        
-        // Copy the original key data (up to 32 bytes)
-        newKeyData.set(keyData.slice(0, Math.min(keyData.length, 32)));
-        
-        keyData = newKeyData;
+      // Normalize the key to a valid AES-GCM size (16, 24, or 32 bytes)
+      // We'll use a cryptographic hash to derive a key of the right size
+      let keyData: Uint8Array;
+      
+      if (rawKeyData.length === 16 || rawKeyData.length === 24 || rawKeyData.length === 32) {
+        // Key is already a valid size, use it directly
+        keyData = rawKeyData;
+      } else {
+        // Use SHA-256 to derive a 32-byte key
+        const hashBuffer = await crypto.subtle.digest('SHA-256', rawKeyData);
+        keyData = new Uint8Array(hashBuffer);
       }
       
       // Convert the encryption key to a CryptoKey
@@ -251,20 +299,46 @@ export class TokenStorage {
       // Convert base64 to Uint8Array
       const data = Uint8Array.from(atob(encryptedTokens), (c) => c.charCodeAt(0));
       
-      // Extract IV and encrypted data
-      const iv = data.slice(0, 12);
-      const encryptedData = data.slice(12);
-      
-      // Decrypt the tokens
-      const decryptedData = await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv },
-        key,
-        encryptedData
-      );
-      
-      // Convert to string and parse JSON
-      const tokenString = new TextDecoder().decode(decryptedData);
-      return JSON.parse(tokenString);
+      // Check if the data has a version byte
+      if (data.length > 0) {
+        const version = data[0];
+        
+        // Handle different versions
+        if (version === this.ENCRYPTION_VERSION_1) {
+          // Version 1: version byte + 12-byte IV + encrypted data
+          const iv = data.slice(1, 13);
+          const encryptedData = data.slice(13);
+          
+          // Decrypt the tokens
+          const decryptedData = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv },
+            key,
+            encryptedData
+          );
+          
+          // Convert to string and parse JSON
+          const tokenString = new TextDecoder().decode(decryptedData);
+          return JSON.parse(tokenString);
+        } else {
+          // Legacy format (no version byte): IV + encrypted data
+          // This handles tokens encrypted with the old format
+          const iv = data.slice(0, 12);
+          const encryptedData = data.slice(12);
+          
+          // Decrypt the tokens
+          const decryptedData = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv },
+            key,
+            encryptedData
+          );
+          
+          // Convert to string and parse JSON
+          const tokenString = new TextDecoder().decode(decryptedData);
+          return JSON.parse(tokenString);
+        }
+      } else {
+        throw new Error("Invalid encrypted data format");
+      }
     } catch (error) {
       console.error("Error decrypting tokens:", error);
       throw new Error("Failed to decrypt tokens");

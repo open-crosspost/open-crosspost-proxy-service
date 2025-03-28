@@ -17,7 +17,7 @@ export class AuthService {
   
   constructor(env: Env) {
     this.env = env;
-    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY);
+    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY, env);
     
     // Initialize supported platforms
     this.platformAuthMap = new Map();

@@ -23,6 +23,9 @@ The project is transitioning from Cloudflare Workers to Deno Deploy to improve c
 - ✅ Token revocation endpoint
 - ✅ NEAR wallet signature authentication
 - ✅ Factory pattern for platform-specific auth implementations
+- ✅ Versioned encryption for token storage
+- ✅ Token access logging with PII redaction
+- ✅ Secure environment configuration validation
 - ✅ Post creation endpoint
 - ✅ Repost functionality
 - ✅ Quote post functionality
@@ -50,7 +53,7 @@ The project is transitioning from Cloudflare Workers to Deno Deploy to improve c
 
 - 🔄 Deployment pipeline for Deno Deploy
 - 🔄 Testing framework setup
-- 🔄 Security enhancements
+- 🔄 Advanced security enhancements (Phase 2 & 3)
 - 🔄 Monitoring and observability implementation
 
 ## What's Left to Build
@@ -74,7 +77,15 @@ The project is transitioning from Cloudflare Workers to Deno Deploy to improve c
 
 ### Security Enhancements
 
-- ⬜ Key rotation for token encryption
+- ✅ Versioned encryption for tokens (Completed)
+- ✅ Token access logging with PII redaction (Completed)
+- ✅ Secure environment configuration validation (Completed)
+- ⬜ Metadata separation for token storage (Planned - Phase 2)
+- ⬜ Token expiry management (Planned - Phase 2)
+- ⬜ Anomaly detection for token operations (Planned - Phase 2)
+- ⬜ Key rotation mechanism (Planned - Phase 3)
+- ⬜ User-specific key derivation (Planned - Phase 3)
+- ⬜ Enhanced token revocation system (Planned - Phase 3)
 - ⬜ Enhanced input validation and sanitization
 - ⬜ Circuit breaker pattern implementation
 - ⬜ Request size limits
@@ -100,11 +111,10 @@ The project is transitioning from Cloudflare Workers to Deno Deploy to improve c
 1. Some npm packages have compatibility issues with Deno
 2. Deno KV is still in beta/unstable status
 3. Limited storage capacity on Deno KV free tier
-4. Need to implement proper encryption for sensitive data in Deno KV
-5. Performance impact when using npm packages through Deno's compatibility layer
-6. Token refresh mechanism needs more robust error recovery
-7. Rate limit data is not persisted across worker restarts
-8. Input validation is inconsistent across endpoints
+4. Performance impact when using npm packages through Deno's compatibility layer
+5. Token refresh mechanism needs more robust error recovery
+6. Rate limit data is not persisted across worker restarts
+7. Input validation is inconsistent across endpoints
 
 ## Next Milestones
 
@@ -122,7 +132,12 @@ The project is transitioning from Cloudflare Workers to Deno Deploy to improve c
    - Prepare for production deployment
 
 3. **Security Enhancements (Target: Week 3)**
-   - Implement key rotation for token encryption
+   - ✅ Implement versioned encryption for tokens (Completed)
+   - ✅ Add token access logging with PII redaction (Completed)
+   - ✅ Create secure environment configuration validation (Completed)
+   - Implement metadata separation for token storage (Phase 2)
+   - Add token expiry management (Phase 2)
+   - Implement anomaly detection for token operations (Phase 2)
    - Enhance input validation and sanitization
    - Implement circuit breaker pattern
    - Add request size limits
@@ -151,6 +166,8 @@ The project is transitioning from Cloudflare Workers to Deno Deploy to improve c
 - ✅ Token storage with Deno KV (Completed)
 - ✅ Platform-specific authentication routes (Completed)
 - ✅ Factory pattern for platform-specific implementations (Completed)
+- ✅ Phase 1 security enhancements (Completed)
+- 🔄 Phase 2 & 3 security enhancements (In planning)
 - ⬜ Unit tests (Not started)
 - ⬜ Integration tests (Not started)
 - ⬜ End-to-end tests (Not started)

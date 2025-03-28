@@ -1,6 +1,5 @@
-import { MediaContent, PostContent, PostResult, DeleteResult, LikeResult } from "../infrastructure/platform/abstract/platform-post.interface.ts";
+import { DeleteResult, LikeResult, PostContent, PostResult } from "../infrastructure/platform/abstract/platform-post.interface.ts";
 import { ApiResponse, ErrorResponse } from "./response.types.ts";
-import { z } from "zod";
 
 /**
  * Types for POST /posts endpoint
@@ -12,7 +11,7 @@ export interface PostTarget {
    * The platform to post to (e.g., "twitter")
    */
   platform: string;
-  
+
   /**
    * The user ID on the platform
    */
@@ -24,7 +23,7 @@ export interface CreatePostRequest {
    * Array of targets to post to (can be a single target)
    */
   targets: PostTarget[];
-  
+
   /**
    * The content of the post
    * Always an array of PostContent objects, even for a single post
@@ -38,12 +37,12 @@ export interface CreatePostTargetResult {
    * The platform the post was created on
    */
   platform: string;
-  
+
   /**
    * The user ID on the platform
    */
   userId: string;
-  
+
   /**
    * The result of the post creation
    */
@@ -55,12 +54,12 @@ export interface CreatePostTargetError {
    * The platform where the error occurred (if applicable)
    */
   platform?: string;
-  
+
   /**
    * The user ID where the error occurred (if applicable)
    */
   userId?: string;
-  
+
   /**
    * The error message
    */
@@ -72,12 +71,12 @@ export interface CreatePostResponse extends ApiResponse<{
    * Array of successful post results
    */
   results: CreatePostTargetResult[];
-  
+
   /**
    * Array of errors that occurred (if any)
    */
   errors?: CreatePostTargetError[];
-}> {}
+}> { }
 
 /**
  * Types for POST /posts/repost endpoint
@@ -89,12 +88,12 @@ export interface RepostRequest {
    * The platform to repost on (e.g., "twitter")
    */
   platform: string;
-  
+
   /**
    * The user ID on the platform
    */
   userId: string;
-  
+
   /**
    * The ID of the post to repost
    */
@@ -102,7 +101,7 @@ export interface RepostRequest {
 }
 
 // Response types
-export interface RepostResponse extends ApiResponse<PostResult> {}
+export interface RepostResponse extends ApiResponse<PostResult> { }
 
 /**
  * Types for POST /posts/quote endpoint
@@ -114,12 +113,12 @@ export interface QuotePostContent extends PostContent {
    * The platform to post on (required for the first item only in a thread)
    */
   platform?: string;
-  
+
   /**
    * The user ID on the platform (required for the first item only in a thread)
    */
   userId?: string;
-  
+
   /**
    * The ID of the post to quote (required for the first item only in a thread)
    */
@@ -131,17 +130,17 @@ export interface QuotePostRequest {
    * The platform to post on
    */
   platform: string;
-  
+
   /**
    * The user ID on the platform
    */
   userId: string;
-  
+
   /**
    * The ID of the post to quote
    */
   postId: string;
-  
+
   /**
    * Content for the quote post(s)
    * Always an array, even for a single post
@@ -150,7 +149,7 @@ export interface QuotePostRequest {
 }
 
 // Response types
-export interface QuotePostResponse extends ApiResponse<PostResult[]> {}
+export interface QuotePostResponse extends ApiResponse<PostResult[]> { }
 
 /**
  * Types for DELETE /posts/{id} endpoint
@@ -162,12 +161,12 @@ export interface DeletePostRequest {
    * The platform to delete from (e.g., "twitter")
    */
   platform: string;
-  
+
   /**
    * The user ID on the platform
    */
   userId: string;
-  
+
   /**
    * The ID of the post to delete
    */
@@ -175,7 +174,7 @@ export interface DeletePostRequest {
 }
 
 // Response types
-export interface DeletePostResponse extends ApiResponse<DeleteResult> {}
+export interface DeletePostResponse extends ApiResponse<DeleteResult> { }
 
 /**
  * Types for POST /posts/reply endpoint
@@ -187,12 +186,12 @@ export interface ReplyPostContent extends PostContent {
    * The platform to post on (required for the first item only in a thread)
    */
   platform?: string;
-  
+
   /**
    * The user ID on the platform (required for the first item only in a thread)
    */
   userId?: string;
-  
+
   /**
    * The ID of the post to reply to (required for the first item only in a thread)
    */
@@ -204,17 +203,17 @@ export interface ReplyToPostRequest {
    * The platform to post on
    */
   platform: string;
-  
+
   /**
    * The user ID on the platform
    */
   userId: string;
-  
+
   /**
    * The ID of the post to reply to
    */
   postId: string;
-  
+
   /**
    * Content for the reply post(s)
    * Always an array, even for a single post
@@ -223,7 +222,7 @@ export interface ReplyToPostRequest {
 }
 
 // Response types
-export interface ReplyToPostResponse extends ApiResponse<PostResult[]> {}
+export interface ReplyToPostResponse extends ApiResponse<PostResult[]> { }
 
 /**
  * Types for POST /posts/{id}/like endpoint
@@ -235,12 +234,12 @@ export interface LikePostRequest {
    * The platform to like on (e.g., "twitter")
    */
   platform: string;
-  
+
   /**
    * The user ID on the platform
    */
   userId: string;
-  
+
   /**
    * The ID of the post to like
    */
@@ -248,7 +247,7 @@ export interface LikePostRequest {
 }
 
 // Response types
-export interface LikePostResponse extends ApiResponse<LikeResult> {}
+export interface LikePostResponse extends ApiResponse<LikeResult> { }
 
 /**
  * Types for DELETE /posts/{id}/like endpoint
@@ -260,12 +259,12 @@ export interface UnlikePostRequest {
    * The platform to unlike on (e.g., "twitter")
    */
   platform: string;
-  
+
   /**
    * The user ID on the platform
    */
   userId: string;
-  
+
   /**
    * The ID of the post to unlike
    */
@@ -273,7 +272,7 @@ export interface UnlikePostRequest {
 }
 
 // Response types
-export interface UnlikePostResponse extends ApiResponse<LikeResult> {}
+export interface UnlikePostResponse extends ApiResponse<LikeResult> { }
 
 /**
  * Common error response type for all post endpoints
@@ -284,17 +283,17 @@ export interface PostErrorResponse extends ErrorResponse {
      * Error type
      */
     type: "validation_error" | "authentication_error" | "authorization_error" | "not_found" | "rate_limit_exceeded" | "internal_error" | string;
-    
+
     /**
      * Error message
      */
     message: string;
-    
+
     /**
      * HTTP status code
      */
     status?: number;
-    
+
     /**
      * Additional error details
      */

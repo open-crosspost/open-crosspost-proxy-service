@@ -25,6 +25,9 @@ The project is undergoing a significant migration from Cloudflare Workers to Den
 - Implemented factory pattern in AuthService for platform-specific implementations
 - Updated controllers to support platform-specific parameters
 - Enhanced OpenAPI documentation to reflect platform-specific routes
+- **Enhanced token storage security with versioned encryption**
+- **Added token access logging with PII redaction**
+- **Implemented secure environment configuration validation**
 
 ## Active Decisions
 
@@ -86,10 +89,13 @@ The project is undergoing a significant migration from Cloudflare Workers to Den
    - Prepare for production deployment
 
 3. **Security Enhancements**:
-   - Implement proper key rotation for token encryption
-   - Enhance input validation and sanitization
-   - Implement circuit breaker pattern
-   - Add request size limits
+   - ✅ Implemented versioned encryption for tokens
+   - ✅ Added token access logging with PII redaction
+   - ✅ Created secure environment configuration validation
+   - ⬜ Implement proper key rotation for token encryption
+   - ⬜ Enhance input validation and sanitization
+   - ⬜ Implement circuit breaker pattern
+   - ⬜ Add request size limits
 
 4. **Monitoring and Observability**:
    - Set up structured logging
@@ -163,6 +169,7 @@ The project is undergoing a significant migration from Cloudflare Workers to Den
         /near-auth        # NEAR wallet authentication
           near-auth.service.ts
           near-auth.types.ts
+        token-access-logger.ts # Token access logging
       /storage
         token-storage.ts  # Token storage service
     /middleware

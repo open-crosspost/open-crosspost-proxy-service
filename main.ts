@@ -1,5 +1,5 @@
 import { Hono } from "./deps.ts";
-import { getEnv } from "./src/config/env.ts";
+import { getSecureEnv, isProduction } from "./src/config/env.ts";
 import { AuthMiddleware } from "./src/middleware/auth_middleware.ts";
 import { corsMiddleware } from "./src/middleware/cors_middleware.ts";
 import { errorMiddleware } from "./src/middleware/error_middleware.ts";
@@ -76,8 +76,7 @@ app.route("/auth", auth);
 
 app.route("/api", api);
 
-// Start the server
-const env = getEnv();
+const env = getSecureEnv(isProduction());
 const port = parseInt(Deno.env.get("PORT") || "8000");
 
 console.log(`Starting server on port ${port}...`);
