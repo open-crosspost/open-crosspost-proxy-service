@@ -107,13 +107,6 @@ deno deploy
 - `GET /api/rate-limit/:endpoint?` - Get rate limit status for an endpoint
 - `GET /api/rate-limit` - Get all rate limits
 
-## Authentication
-
-The API uses API keys for client authentication and user IDs for user context. Include the following headers in your requests:
-
-- `X-API-Key`: Your API key
-- `X-User-ID`: The user ID for which to perform actions
-
 ## Error Handling
 
 The API returns structured error responses with the following format:
@@ -132,7 +125,6 @@ The API returns structured error responses with the following format:
 ## Security
 
 - OAuth tokens are encrypted before storage in Deno KV
-- API keys are validated against allowed origins
 - CORS is configured to only allow requests from allowed origins
 - Input validation is performed on all requests
 

@@ -17,7 +17,6 @@ export interface Env {
   // Security
   ENCRYPTION_KEY: string;
   ALLOWED_ORIGINS: string;
-  API_KEYS: string;
   
   // Environment
   ENVIRONMENT: string;
@@ -48,7 +47,6 @@ export function getEnv(): Env {
     TWITTER_ACCESS_SECRET: Deno.env.get("TWITTER_ACCESS_SECRET") || "",
     ENCRYPTION_KEY: Deno.env.get("ENCRYPTION_KEY") || "default-encryption-key",
     ALLOWED_ORIGINS: Deno.env.get("ALLOWED_ORIGINS") || "",
-    API_KEYS: Deno.env.get("API_KEYS") || "{}",
     ENVIRONMENT: Deno.env.get("ENVIRONMENT") || "development",
     UPSTASH_REDIS_REST_URL: Deno.env.get("UPSTASH_REDIS_REST_URL"),
     UPSTASH_REDIS_REST_TOKEN: Deno.env.get("UPSTASH_REDIS_REST_TOKEN"),
@@ -66,27 +64,6 @@ export function getAllowedOrigins(): string[] {
   } catch (error) {
     console.error("Error parsing ALLOWED_ORIGINS:", error);
     return [];
-  }
-}
-
-/**
- * Get API keys from environment variable
- * @returns Map of API keys to allowed origins
- */
-export function getApiKeys(): Map<string, string[]> {
-  try {
-    const env = getEnv();
-    const apiKeysMap = new Map<string, string[]>();
-    const apiKeys = JSON.parse(env.API_KEYS);
-    
-    for (const [key, origins] of Object.entries(apiKeys)) {
-      apiKeysMap.set(key, origins as string[]);
-    }
-    
-    return apiKeysMap;
-  } catch (error) {
-    console.error("Error parsing API_KEYS:", error);
-    return new Map();
   }
 }
 

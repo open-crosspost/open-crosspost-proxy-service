@@ -6,7 +6,7 @@ import { ApiError } from "./error_middleware.ts";
 
 /**
  * Authentication middleware for Hono
- * Validates API keys and extracts user IDs
+ * Validates NEAR Signature
  */
 export class AuthMiddleware {
   /**
@@ -42,7 +42,7 @@ export class AuthMiddleware {
 
         // Check if all required fields are present
         if (!authObject.account_id || !authObject.public_key || !authObject.signature ||
-          !authObject.message || !authObject.nonce) {
+          !authObject.message || !authObject.nonce) { // TODO: replace with Zod
           console.log("authObject", authObject);
           return c.json({
             error: {
@@ -70,12 +70,6 @@ export class AuthMiddleware {
         if (!result.valid) {
           throw ApiError.authentication(`NEAR authentication failed: ${result.error}`);
         }
-
-        // Store NEAR account ID in context for later use
-        c.set("nearAccountId", result.accountId);
-
-        console.log("near auth validated");
-
         await next();
       } catch (error) {
         if (error instanceof ApiError) {

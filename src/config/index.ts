@@ -32,7 +32,7 @@ export const DEFAULT_CONFIG = {
     },
     CORS: {
       METHODS: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      HEADERS: ['Content-Type', 'Authorization', 'X-API-Key', 'X-User-ID'],
+      HEADERS: ['Content-Type', 'Authorization'],
       MAX_AGE: 86400, // 24 hours in seconds
     },
   },

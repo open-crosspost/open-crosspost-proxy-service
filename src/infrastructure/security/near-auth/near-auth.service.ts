@@ -20,7 +20,7 @@ export class NearAuthService {
    */
   async validateNearAuth(authData: NearAuthData): Promise<NearAuthResult> {
     try {
-      if (!authData.account_id || !authData.public_key || !authData.signature || !authData.message || !authData.nonce) {
+      if (!authData.account_id || !authData.public_key || !authData.signature || !authData.message || !authData.nonce) { // TODO: replace with Zod
         return {
           valid: false,
           error: 'Missing required authentication data'
@@ -35,7 +35,7 @@ export class NearAuthService {
         tag: 2147484061, // This is the tag value used in the Python implementation
         message: authData.message,
         nonce: nonce,
-        receiver: authData.recipient || 'twitter-proxy.near',
+        receiver: authData.recipient || 'crosspost.near',
         callback_url: authData.callback_url
       };
       
