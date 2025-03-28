@@ -1,4 +1,4 @@
-import { Context } from "../deps.ts";
+import { Context } from "../../deps.ts";
 import { RateLimitService } from "../domain/services/rate-limit.service.ts";
 import { getEnv } from "../config/env.ts";
 

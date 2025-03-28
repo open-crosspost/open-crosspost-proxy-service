@@ -1,4 +1,4 @@
-import { cors as honoCors, MiddlewareHandler } from "../deps.ts";
+import { cors as honoCors, MiddlewareHandler } from "../../deps.ts";
 import { getAllowedOrigins } from "../config/env.ts";
 
 /**

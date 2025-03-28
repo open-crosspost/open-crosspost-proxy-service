@@ -1,7 +1,7 @@
-import { Context } from "../deps.ts";
+import { Context } from "../../deps.ts";
 import { PostService } from "../domain/services/post.service.ts";
 import { getEnv } from "../config/env.ts";
-import { z } from "../deps.ts";
+import { z } from "../../deps.ts";
 import { PostContent } from "../infrastructure/platform/abstract/platform-post.interface.ts";
 
 /**

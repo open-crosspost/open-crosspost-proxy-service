@@ -1,5 +1,5 @@
 import { getEnv } from "../config/env.ts";
-import { Context, MiddlewareHandler, Next } from "../deps.ts";
+import { Context, MiddlewareHandler, Next } from "../../deps.ts";
 import { NearAuthService } from "../infrastructure/security/near-auth/near-auth.service.ts";
 import { NearAuthData } from "../infrastructure/security/near-auth/near-auth.types.ts";
 import { ApiError } from "./error_middleware.ts";

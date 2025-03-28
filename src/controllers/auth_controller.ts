@@ -1,6 +1,6 @@
 import { getEnv } from "../config/env.ts";
 import { DEFAULT_CONFIG } from "../config/index.ts";
-import { Context, z } from "../deps.ts";
+import { Context, z } from "../../deps.ts";
 import { AuthService } from "../domain/services/auth.service.ts";
 import { NearAuthService } from "../infrastructure/security/near-auth/near-auth.service.ts";
 import { NearAuthData } from "../infrastructure/security/near-auth/near-auth.types.ts";

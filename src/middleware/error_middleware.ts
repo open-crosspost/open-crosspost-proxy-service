@@ -1,4 +1,4 @@
-import { Context, HTTPException, MiddlewareHandler, Next } from "../deps.ts";
+import { Context, HTTPException, MiddlewareHandler, Next } from "../../deps.ts";
 
 /**
  * Error types
