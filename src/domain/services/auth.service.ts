@@ -26,10 +26,11 @@ export class AuthService {
    */
   async initializeAuth(
     redirectUri: string,
-    scopes: string[] = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES
+    scopes: string[] = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
+    clientReturnUrl?: string
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
-      return await this.platformAuth.initializeAuth(redirectUri, scopes);
+      return await this.platformAuth.initializeAuth(redirectUri, scopes, clientReturnUrl);
     } catch (error) {
       console.error('Error initializing auth:', error);
       throw error;
@@ -51,7 +52,7 @@ export class AuthService {
     savedState: string,
     redirectUri: string,
     codeVerifier?: string
-  ): Promise<{ userId: string; tokens: TwitterTokens }> {
+  ): Promise<{ userId: string; tokens: TwitterTokens; clientReturnUrl?: string }> {
     try {
       return await this.platformAuth.handleCallback(code, state, savedState, redirectUri, codeVerifier);
     } catch (error) {

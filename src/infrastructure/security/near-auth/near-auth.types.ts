@@ -2,6 +2,7 @@
  * NEAR Authentication Types
  * Defines types for NEAR authentication data
  */
+import { BorshSchema } from 'npm:borsher';
 
 /**
  * NEAR Authentication Data
@@ -11,12 +12,12 @@ export interface NearAuthData {
   /**
    * NEAR account ID
    */
-  accountId: string;
+  account_id: string;
   
   /**
    * Public key used for signing
    */
-  publicKey: string;
+  public_key: string;
   
   /**
    * Signature of the message
@@ -41,7 +42,7 @@ export interface NearAuthData {
   /**
    * Callback URL
    */
-  callbackUrl?: string;
+  callback_url?: string;
   
   /**
    * Scopes granted to the authentication
@@ -54,6 +55,11 @@ export interface NearAuthData {
  * Represents the payload that was signed
  */
 export interface NearAuthPayload {
+  /**
+   * Tag value for the payload (2147484061)
+   */
+  tag: number;
+  
   /**
    * Message that was signed
    */
@@ -74,6 +80,17 @@ export interface NearAuthPayload {
    */
   callback_url?: string;
 }
+
+/**
+ * NEAR Authentication Payload Schema for borsher serialization
+ */
+export const PAYLOAD_SCHEMA = {
+  tag: BorshSchema.u32,
+  message: BorshSchema.String,
+  nonce: BorshSchema.Array(BorshSchema.u8, 32),
+  receiver: BorshSchema.String,
+  callback_url: BorshSchema.Option(BorshSchema.String)
+};
 
 /**
  * NEAR Authentication Result

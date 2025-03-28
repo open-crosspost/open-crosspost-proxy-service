@@ -158,8 +158,26 @@ export class TokenStorage {
    */
   private async encryptTokens(tokens: TwitterTokens): Promise<string> {
     try {
+      // Ensure the encryption key is the correct length for AES-GCM (16, 24, or 32 bytes)
+      let keyData = new TextEncoder().encode(this.encryptionKey);
+      
+      // If the key is not 16, 24, or 32 bytes, pad or truncate it
+      if (keyData.length !== 16 && keyData.length !== 24 && keyData.length !== 32) {
+        console.warn(`Encryption key length (${keyData.length} bytes) is not valid for AES-GCM. Adjusting to 32 bytes.`);
+        
+        // Create a new array of 32 bytes
+        const newKeyData = new Uint8Array(32);
+        
+        // Fill with zeros
+        newKeyData.fill(0);
+        
+        // Copy the original key data (up to 32 bytes)
+        newKeyData.set(keyData.slice(0, Math.min(keyData.length, 32)));
+        
+        keyData = newKeyData;
+      }
+      
       // Convert the encryption key to a CryptoKey
-      const keyData = new TextEncoder().encode(this.encryptionKey);
       const key = await crypto.subtle.importKey(
         "raw",
         keyData,
@@ -202,8 +220,26 @@ export class TokenStorage {
    */
   private async decryptTokens(encryptedTokens: string): Promise<TwitterTokens> {
     try {
+      // Ensure the encryption key is the correct length for AES-GCM (16, 24, or 32 bytes)
+      let keyData = new TextEncoder().encode(this.encryptionKey);
+      
+      // If the key is not 16, 24, or 32 bytes, pad or truncate it
+      if (keyData.length !== 16 && keyData.length !== 24 && keyData.length !== 32) {
+        console.warn(`Encryption key length (${keyData.length} bytes) is not valid for AES-GCM. Adjusting to 32 bytes.`);
+        
+        // Create a new array of 32 bytes
+        const newKeyData = new Uint8Array(32);
+        
+        // Fill with zeros
+        newKeyData.fill(0);
+        
+        // Copy the original key data (up to 32 bytes)
+        newKeyData.set(keyData.slice(0, Math.min(keyData.length, 32)));
+        
+        keyData = newKeyData;
+      }
+      
       // Convert the encryption key to a CryptoKey
-      const keyData = new TextEncoder().encode(this.encryptionKey);
       const key = await crypto.subtle.importKey(
         "raw",
         keyData,

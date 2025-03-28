@@ -2,11 +2,12 @@
 
 // Constants
 const TWITTER_AUTH_STORAGE_KEY = 'twitter-auth-data';
-const API_BASE_URL = 'http://localhost:8000'; // Replace with your actual API URL
+const API_BASE_URL = 'http://localhost:3000'; // Twitter proxy service URL
+const SAMPLE_APP_URL = 'http://localhost:4000'; // This app's URL
 const API_KEY = 'test-api-key'; // Replace with your actual API key
 
 // Initialize NEAR
-near.config({ networkId: 'testnet' });
+near.config({ networkId: 'mainnet' });
 
 // DOM Elements
 const connectTwitterBtn = document.getElementById('connect-twitter');
@@ -126,32 +127,66 @@ function signOut() {
 // Connect to Twitter
 async function connectTwitter() {
     try {
-        updateStatus('Initializing Twitter authentication...', 'info');
-        
-        // Initialize Twitter OAuth flow
-        const response = await fetch(`${API_BASE_URL}/auth/init`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': API_KEY,
-            },
-            body: JSON.stringify({
-                redirectUri: window.location.href,
-                scopes: ['tweet.read', 'tweet.write', 'users.read']
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
+        // Check if NEAR is connected
+        if (!currentAccount) {
+            updateStatus('Please sign in with NEAR first', 'error');
+            return;
         }
         
-        const data = await response.json();
+        updateStatus('Initializing Twitter authentication...', 'info');
         
-        // Store state for verification
-        localStorage.setItem('twitter-oauth-state', data.data.state);
+        // Create a message to sign
+        const message = `Connect Twitter account to ${currentAccount}`;
+        const nonce = Date.now().toString();
         
-        // Redirect to Twitter auth URL
-        window.location.href = data.data.authUrl;
+        try {
+            // Sign the message with NEAR
+            const signResult = await near.signMessage({
+                message,
+                nonce: new TextEncoder().encode(nonce.padStart(32, "0")),
+                recipient: 'twitter-proxy.near',
+                callbackUrl: window.location.href
+            });
+            
+            // Create auth object
+            const authObject = {
+                accountId: signResult.accountId,
+                publicKey: signResult.publicKey,
+                signature: signResult.signature,
+                message: message,
+                nonce: nonce,
+                recipient: 'crosspost.near',
+                callback_url: window.location.href
+            };
+            
+            // Initialize Twitter OAuth flow with NEAR signature
+            const response = await fetch(`${API_BASE_URL}/auth/init-with-near`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Key': API_KEY,
+                    'Authorization': `Bearer ${JSON.stringify(authObject)}`
+                },
+                body: JSON.stringify({
+                    returnUrl: SAMPLE_APP_URL
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Store state for verification
+            localStorage.setItem('twitter-oauth-state', data.data.state);
+            
+            // Redirect to Twitter auth URL
+            window.location.href = data.data.authUrl;
+        } catch (error) {
+            console.error('Error signing message:', error);
+            updateStatus('Error signing message: ' + error.message, 'error');
+        }
     } catch (error) {
         console.error('Error connecting to Twitter:', error);
         updateStatus('Error connecting to Twitter: ' + error.message, 'error');
@@ -161,16 +196,53 @@ async function connectTwitter() {
 // Check for Twitter OAuth callback
 function checkTwitterCallback() {
     const urlParams = new URLSearchParams(window.location.search);
+    
+    // Check for success or error from the proxy service
+    const success = urlParams.get('success');
+    const error = urlParams.get('error');
+    const error_description = urlParams.get('error_description');
+    
+    // Check for NEAR account ID
+    const nearAccountId = urlParams.get('nearAccountId');
+    const userId = urlParams.get('userId');
+    
+    // Check for direct Twitter callback parameters
     const code = urlParams.get('code');
     const state = urlParams.get('state');
     
+    // Handle error case
+    if (error) {
+        updateStatus(`Twitter authentication failed: ${error}${error_description ? ` - ${error_description}` : ''}`, 'error');
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+    }
+    
+    // Handle success case with NEAR authentication
+    if (success === 'true' && nearAccountId && userId) {
+        // Save Twitter auth data (minimal info since tokens are stored on the server)
+        twitterAuthData = {
+            userId,
+            nearAccountId
+        };
+        
+        localStorage.setItem(TWITTER_AUTH_STORAGE_KEY, JSON.stringify(twitterAuthData));
+        
+        updateStatus('Successfully connected to Twitter!', 'success');
+        updateUI();
+        
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+    }
+    
+    // Handle legacy direct Twitter callback
     if (code && state) {
         // Get saved state
         const savedState = localStorage.getItem('twitter-oauth-state');
         
         if (state === savedState) {
             // Handle the callback
-            handleTwitterCallback(code, state);
+            handleLegacyTwitterCallback(code, state);
         } else {
             updateStatus('Twitter authentication failed: State mismatch', 'error');
         }
@@ -180,15 +252,15 @@ function checkTwitterCallback() {
     }
 }
 
-// Handle Twitter OAuth callback
-async function handleTwitterCallback(code, state) {
+// Handle legacy Twitter OAuth callback (without NEAR)
+async function handleLegacyTwitterCallback(code, state) {
     try {
         updateStatus('Completing Twitter authentication...', 'info');
         
         const savedState = localStorage.getItem('twitter-oauth-state');
         
         // Complete OAuth flow
-        const response = await fetch(`${API_BASE_URL}/auth/callback`, {
+        const response = await fetch(`${API_BASE_URL}/api/twitter/callback`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -211,7 +283,6 @@ async function handleTwitterCallback(code, state) {
         // Save Twitter auth data
         twitterAuthData = {
             userId: data.data.userId,
-            username: data.data.username,
             accessToken: data.data.accessToken,
             refreshToken: data.data.refreshToken,
             expiresAt: data.data.expiresAt
@@ -265,6 +336,17 @@ async function postTweet() {
             
             updateStatus('Posting tweet...', 'info');
             
+            // Create auth object
+            const authObject = {
+                accountId: signResult.accountId,
+                publicKey: signResult.publicKey,
+                signature: signResult.signature,
+                message: message,
+                nonce: nonce,
+                recipient: 'crosspost.near',
+                callback_url: window.location.href
+            };
+            
             // Create the request to post a tweet
             const response = await fetch(`${API_BASE_URL}/api/post/`, {
                 method: 'POST',
@@ -272,11 +354,7 @@ async function postTweet() {
                     'Content-Type': 'application/json',
                     'X-API-Key': API_KEY,
                     'X-User-ID': twitterAuthData.userId,
-                    'X-Near-Account-Id': signResult.accountId,
-                    'X-Near-Public-Key': signResult.publicKey,
-                    'X-Near-Signature': signResult.signature,
-                    'X-Near-Message': message,
-                    'X-Near-Nonce': nonce
+                    'Authorization': `Bearer ${JSON.stringify(authObject)}`
                 },
                 body: JSON.stringify({
                     text: tweetText

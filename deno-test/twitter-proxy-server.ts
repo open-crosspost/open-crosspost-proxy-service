@@ -36,7 +36,7 @@ router
     });
     
     // Generate OAuth URL
-    const authLink = client.generateOAuth2AuthLink("http://localhost:8000/auth/callback", {
+    const authLink = client.generateOAuth2AuthLink("http://localhost:3000/api/twitter/callback", {
       scope: ["tweet.read", "tweet.write", "users.read", "offline.access"],
       state: "state123", // In a real app, generate a random state
     });
@@ -65,7 +65,7 @@ router
       // Exchange code for token
       const { accessToken, refreshToken, expiresIn } = await client.loginWithOAuth2({
         code,
-        redirectUri: "http://localhost:8000/auth/callback",
+        redirectUri: "http://localhost:3000/api/twitter/callback",
         codeVerifier: "", // In a real app, use PKCE
       });
       
@@ -124,6 +124,6 @@ app.use(router.routes());
 app.use(router.allowedMethods());
 
 // Start server
-const port = 8000;
+const port = 3000;
 console.log(`Deno Twitter Proxy Server running on http://localhost:${port}`);
 await app.listen({ port });

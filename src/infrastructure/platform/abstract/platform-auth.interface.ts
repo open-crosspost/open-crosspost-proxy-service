@@ -8,7 +8,7 @@ export interface PlatformAuth {
    * @param redirectUri The redirect URI for the OAuth callback
    * @param scopes The requested OAuth scopes
    */
-  initializeAuth(redirectUri: string, scopes: string[]): Promise<{ authUrl: string; state: string; codeVerifier?: string }>;
+  initializeAuth(redirectUri: string, scopes: string[], clientReturnUrl?: string): Promise<{ authUrl: string; state: string; codeVerifier?: string }>;
   
   /**
    * Handle the OAuth callback
@@ -24,7 +24,7 @@ export interface PlatformAuth {
     savedState: string,
     redirectUri: string,
     codeVerifier?: string
-  ): Promise<{ userId: string; tokens: any }>;
+  ): Promise<{ userId: string; tokens: any; clientReturnUrl?: string }>;
   
   /**
    * Refresh a user's access token

@@ -1,5 +1,7 @@
+import { getEnv } from "../config/env.ts";
 import { Context, MiddlewareHandler, Next } from "../deps.ts";
-import { getApiKeys } from "../config/env.ts";
+import { NearAuthService } from "../infrastructure/security/near-auth/near-auth.service.ts";
+import { NearAuthData } from "../infrastructure/security/near-auth/near-auth.types.ts";
 import { ApiError } from "./error_middleware.ts";
 
 /**
@@ -8,69 +10,78 @@ import { ApiError } from "./error_middleware.ts";
  */
 export class AuthMiddleware {
   /**
-   * Validate API key middleware
+   * Validate NEAR signature middleware
    * @returns Middleware handler
    */
-  static validateApiKey(): MiddlewareHandler {
+  static validateNearSignature(): MiddlewareHandler {
     return async (c: Context, next: Next) => {
       try {
-        const apiKey = c.req.header("X-API-Key");
-        
-        if (!apiKey) {
-          throw ApiError.authentication("API key is required");
+        // Extract NEAR auth data from headers
+        const authHeader = c.req.header('Authorization');
+
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          throw ApiError.authentication("Missing or invalid Authorization header");
         }
-        
-        const apiKeys = getApiKeys();
-        
-        if (!apiKeys.has(apiKey)) {
-          throw ApiError.authentication("Invalid API key");
+
+        // Extract the token part (after 'Bearer ')
+        const token = authHeader.substring(7);
+
+        // Parse the JSON token
+        let authObject: NearAuthData;
+        try {
+          authObject = JSON.parse(token);
+        } catch (error) {
+          return c.json({
+            error: {
+              type: "validation_error",
+              message: "Invalid JSON in Authorization token",
+              status: 400
+            }
+          }, 400);
         }
-        
-        // Check origin if available
-        const origin = c.req.header("Origin");
-        if (origin) {
-          const allowedOrigins = apiKeys.get(apiKey) || [];
-          
-          if (allowedOrigins.length > 0 && !allowedOrigins.includes(origin)) {
-            throw ApiError.authentication("API key not valid for this origin");
-          }
+
+        // Check if all required fields are present
+        if (!authObject.account_id || !authObject.public_key || !authObject.signature ||
+          !authObject.message || !authObject.nonce) {
+          console.log("authObject", authObject);
+          return c.json({
+            error: {
+              type: "validation_error",
+              message: "Missing required NEAR authentication data in token",
+              status: 400
+            }
+          }, 400);
         }
-        
-        // Store API key in context for later use
-        c.set("apiKey", apiKey);
-        
+
+        // Set default values if not provided
+        const authData: NearAuthData = {
+          ...authObject,
+          recipient: authObject.recipient || 'crosspost.near', // Default recipient
+          callback_url: authObject.callback_url || c.req.url // Use current URL as callback if not provided
+        };
+
+        // Initialize NEAR auth service
+        const env = getEnv();
+        const nearAuthService = new NearAuthService(env);
+
+        // Validate signature
+        const result = await nearAuthService.validateNearAuth(authData);
+
+        if (!result.valid) {
+          throw ApiError.authentication(`NEAR authentication failed: ${result.error}`);
+        }
+
+        // Store NEAR account ID in context for later use
+        c.set("nearAccountId", result.accountId);
+
+        console.log("near auth validated");
+
         await next();
       } catch (error) {
         if (error instanceof ApiError) {
           throw error;
         }
-        throw ApiError.authentication("Authentication failed");
-      }
-    };
-  }
-  
-  /**
-   * Extract user ID middleware
-   * @returns Middleware handler
-   */
-  static extractUserId(): MiddlewareHandler {
-    return async (c: Context, next: Next) => {
-      try {
-        const userId = c.req.header("X-User-ID");
-        
-        if (!userId) {
-          throw ApiError.authentication("User ID is required");
-        }
-        
-        // Store user ID in context for later use
-        c.set("userId", userId);
-        
-        await next();
-      } catch (error) {
-        if (error instanceof ApiError) {
-          throw error;
-        }
-        throw ApiError.authentication("Failed to extract user ID");
+        throw ApiError.authentication("NEAR authentication failed");
       }
     };
   }

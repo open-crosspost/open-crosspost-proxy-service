@@ -7,14 +7,7 @@ export * from './env.ts';
 export const DEFAULT_CONFIG = {
   // Auth configuration
   AUTH: {
-    DEFAULT_SCOPES: [
-      'tweet.read',
-      'tweet.write',
-      'users.read',
-      'offline.access',
-      'like.read',
-      'like.write'
-    ],
+    DEFAULT_SCOPES: [],
     TOKEN_EXPIRY: 7200, // 2 hours in seconds
     REFRESH_BUFFER: 300, // 5 minutes in seconds
   },

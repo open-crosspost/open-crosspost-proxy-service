@@ -155,7 +155,7 @@ export class TwitterClient implements PlatformClient {
       accessToken,
       refreshToken,
       expiresAt: Date.now() + expiresIn * 1000,
-      scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
+      scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write'],
       tokenType: TokenType.OAUTH2,
     };
     
@@ -171,20 +171,30 @@ export class TwitterClient implements PlatformClient {
    * @returns The new OAuth tokens
    */
   async refreshToken(refreshToken: string): Promise<TwitterTokens> {
-    const client = new TwitterApi({
-      clientId: this.env.TWITTER_CLIENT_ID,
-      clientSecret: this.env.TWITTER_CLIENT_SECRET,
-    });
-    
-    const { accessToken, refreshToken: newRefreshToken, expiresIn } = await client.refreshOAuth2Token(refreshToken);
-    
-    return {
-      accessToken,
-      refreshToken: newRefreshToken,
-      expiresAt: Date.now() + expiresIn * 1000,
-      scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'],
-      tokenType: TokenType.OAUTH2,
-    };
+    try {
+      const client = new TwitterApi({
+        clientId: this.env.TWITTER_CLIENT_ID,
+        clientSecret: this.env.TWITTER_CLIENT_SECRET,
+      });
+      
+      const { accessToken, refreshToken: newRefreshToken, expiresIn } = await client.refreshOAuth2Token(refreshToken);
+      
+      return {
+        accessToken,
+        refreshToken: newRefreshToken || refreshToken, // Use old refresh token if new one isn't provided
+        expiresAt: Date.now() + expiresIn * 1000,
+        scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write'],
+        tokenType: TokenType.OAUTH2,
+      };
+    } catch (error: any) {
+      // Handle specific Twitter API error for invalid token
+      if (error.data?.error === 'invalid_request' || 
+          (error.status === 400 && error.code === 'invalid_grant')) {
+        throw new Error('User authentication expired. Please reconnect your Twitter account.');
+      }
+      
+      throw error;
+    }
   }
   
   /**
@@ -194,7 +204,32 @@ export class TwitterClient implements PlatformClient {
    */
   async revokeToken(userId: string): Promise<boolean> {
     try {
+      // Get the tokens from storage
+      const tokens = await this.tokenStorage.getTokens(userId);
+      
+      // Create a Twitter API client
+      const client = new TwitterApi({
+        clientId: this.env.TWITTER_CLIENT_ID,
+        clientSecret: this.env.TWITTER_CLIENT_SECRET,
+      });
+      
+      try {
+        // Revoke the OAuth 2.0 tokens
+        if (tokens.accessToken) {
+          await client.revokeOAuth2Token(tokens.accessToken, 'access_token');
+        }
+        
+        if (tokens.refreshToken) {
+          await client.revokeOAuth2Token(tokens.refreshToken, 'refresh_token');
+        }
+      } catch (error) {
+        // Log but continue - we still want to delete the tokens locally
+        console.error('Error revoking tokens with Twitter API:', error);
+      }
+      
+      // Delete the tokens from storage
       await this.tokenStorage.deleteTokens(userId);
+      
       return true;
     } catch (error) {
       console.error('Error revoking token:', error);

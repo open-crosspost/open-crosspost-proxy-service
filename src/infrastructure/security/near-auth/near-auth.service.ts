@@ -1,7 +1,8 @@
 import { Env } from '../../../config/env.ts';
-import { NearAuthData, NearAuthPayload, NearAuthResult } from './near-auth.types.ts';
+import { NearAuthData, NearAuthPayload, NearAuthResult, PAYLOAD_SCHEMA } from './near-auth.types.ts';
 import nacl from 'npm:tweetnacl';
 import { base58_to_binary } from 'npm:base58-js';
+import { BorshSchema } from 'npm:borsher';
 
 /**
  * NEAR Authentication Service
@@ -19,24 +20,30 @@ export class NearAuthService {
    */
   async validateNearAuth(authData: NearAuthData): Promise<NearAuthResult> {
     try {
-      if (!authData.accountId || !authData.publicKey || !authData.signature || !authData.message || !authData.nonce) {
+      if (!authData.account_id || !authData.public_key || !authData.signature || !authData.message || !authData.nonce) {
         return {
           valid: false,
           error: 'Missing required authentication data'
         };
       }
       
+      // Validate nonce
+      const nonce = this.validateNonce(authData.nonce);
+      
       // Create payload
       const payload: NearAuthPayload = {
+        tag: 2147484061, // This is the tag value used in the Python implementation
         message: authData.message,
-        nonce: this.stringToUint8Array(authData.nonce.padStart(32, '0')),
+        nonce: nonce,
         receiver: authData.recipient || 'twitter-proxy.near',
-        callback_url: authData.callbackUrl
+        callback_url: authData.callback_url
       };
       
+
+      console.log("auth data", authData);
       // Validate signature
       const isValid = await this.validateSignature(
-        authData.publicKey,
+        authData.public_key,
         authData.signature,
         payload
       );
@@ -50,7 +57,7 @@ export class NearAuthService {
       
       return {
         valid: true,
-        accountId: authData.accountId
+        accountId: authData.account_id
       };
     } catch (error: unknown) {
       console.error('Error validating NEAR authentication:', error);
@@ -71,13 +78,11 @@ export class NearAuthService {
    */
   private async validateSignature(publicKey: string, signature: string, payload: NearAuthPayload): Promise<boolean> {
     try {
-      // Serialize payload
-      const serializedPayload = this.serializePayload(payload);
+      // Serialize the payload using borsher
+      const borshPayload = BorshSchema.serialize(BorshSchema.Struct(PAYLOAD_SCHEMA), payload);
       
       // Hash the payload using Web Crypto API
-      const encoder = new TextEncoder();
-      const data = encoder.encode(serializedPayload.toString());
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', borshPayload);
       const payloadHash = new Uint8Array(hashBuffer);
       
       // Decode the signature
@@ -104,6 +109,37 @@ export class NearAuthService {
   }
   
   /**
+   * Validates a nonce and ensures it's a valid timestamp
+   * @param nonce Nonce string
+   * @returns Validated nonce as Uint8Array
+   */
+  private validateNonce(nonce: string): Uint8Array {
+    // Convert nonce to a proper format (padded to 32 bytes)
+    const paddedNonce = nonce.padStart(32, '0');
+    const nonceBytes = this.stringToUint8Array(paddedNonce);
+    
+    // Convert to timestamp and validate
+    const nonceInt = parseInt(nonce);
+    const now = Date.now();
+    
+    if (isNaN(nonceInt)) {
+      throw new Error('Invalid nonce format');
+    }
+    
+    if (nonceInt > now) {
+      throw new Error('Nonce is in the future');
+    }
+    
+    // If the timestamp is older than 10 years, it is considered invalid
+    // This forces apps to use unique nonces
+    if (now - nonceInt > 10 * 365 * 24 * 60 * 60 * 1000) {
+      throw new Error('Nonce is too old');
+    }
+    
+    return nonceBytes;
+  }
+  
+  /**
    * Convert base64 string to Uint8Array
    * @param base64 Base64 string
    * @returns Uint8Array
@@ -117,42 +153,6 @@ export class NearAuthService {
     return bytes;
   }
   
-  /**
-   * Serialize a payload for signing
-   * This is a simplified version - in production, you would use borsh serialization
-   * @param payload Payload to serialize
-   * @returns Serialized payload
-   */
-  private serializePayload(payload: NearAuthPayload): Uint8Array {
-    // In a real implementation, you would use borsh serialization
-    // For this example, we'll use a simplified approach
-    
-    // Convert message to bytes
-    const messageBytes = new TextEncoder().encode(payload.message);
-    
-    // Combine all parts
-    const parts = [
-      messageBytes,
-      payload.nonce,
-      new TextEncoder().encode(payload.receiver),
-      payload.callback_url ? new TextEncoder().encode(payload.callback_url) : new Uint8Array(0)
-    ];
-    
-    // Calculate total length
-    const totalLength = parts.reduce((acc, part) => acc + part.length, 0);
-    
-    // Create result array
-    const result = new Uint8Array(totalLength);
-    
-    // Copy parts to result
-    let offset = 0;
-    for (const part of parts) {
-      result.set(part, offset);
-      offset += part.length;
-    }
-    
-    return result;
-  }
   
   /**
    * Convert a string to Uint8Array

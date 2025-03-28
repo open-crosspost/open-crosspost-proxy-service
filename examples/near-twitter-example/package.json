@@ -4,7 +4,7 @@
   "description": "Example app demonstrating NEAR wallet authentication with Twitter OAuth",
   "main": "app.js",
   "scripts": {
-    "start": "serve ."
+    "start": "PORT=4000 serve ."
   },
   "dependencies": {
     "near-api-js": "^2.1.3"
