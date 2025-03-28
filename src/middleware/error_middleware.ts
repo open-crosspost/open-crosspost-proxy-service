@@ -140,8 +140,8 @@ export const errorMiddleware = (): MiddlewareHandler => {
               status: err.status,
               details: err.details,
             },
+            status: err.status
           },
-          err.status
         );
       }
 

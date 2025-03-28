@@ -1,9 +1,17 @@
-import { Context } from "../../deps.ts";
-import { PostService } from "../domain/services/post.service.ts";
-import { getEnv } from "../config/env.ts";
 import { z } from "zod";
-import { PostContent } from "../infrastructure/platform/abstract/platform-post.interface.ts";
-import { NearAuthService } from "../infrastructure/security/near-auth/near-auth.service.ts";
+import { Context } from "../../deps.ts";
+import { getEnv } from "../config/env.ts";
+import { PostService } from "../domain/services/post.service.ts";
+import {
+  CreatePostRequest,
+  DeletePostRequest,
+  LikePostRequest,
+  QuotePostRequest,
+  ReplyToPostRequest,
+  RepostRequest,
+  UnlikePostRequest
+} from "../types/post.types.ts";
+import { verifyPlatformAccess } from "../utils/near-auth.utils.ts";
 
 /**
  * Post Controller
@@ -11,12 +19,12 @@ import { NearAuthService } from "../infrastructure/security/near-auth/near-auth.
  */
 export class PostController {
   private postService: PostService;
-  
+
   constructor() {
     const env = getEnv();
     this.postService = new PostService(env);
   }
-  
+
   /**
    * Create a new post
    * @param c The Hono context
@@ -26,139 +34,80 @@ export class PostController {
     try {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get("signerId") as string;
-      
+
       // Parse request body
       const body = await c.req.json();
-      
-      // Initialize NEAR auth service
-      const env = getEnv();
-      const nearAuthService = new NearAuthService(env);
-      
-      // Check if we're dealing with multiple targets or a single target
-      if (Array.isArray(body.targets)) {
-        // Multiple targets
-        const results: Array<{platform: string, userId: string, result: any}> = [];
-        const errors: Array<{platform?: string, userId?: string, error: string}> = [];
-        
-        for (const target of body.targets) {
+
+      // Validate and normalize the request
+      let normalizedRequest: CreatePostRequest;
+
+      // Check if we have a properly formatted request with targets array
+      if (body.targets && Array.isArray(body.targets) && body.content) {
+        normalizedRequest = {
+          targets: body.targets,
+          content: Array.isArray(body.content) ? body.content : [{ text: body.content }]
+        };
+      }
+      // Check if we have a single target with platform and userId directly in the request
+      else if (body.platform && body.userId && body.content) {
+        normalizedRequest = {
+          targets: [{ platform: body.platform, userId: body.userId }],
+          content: Array.isArray(body.content) ? body.content : [{ text: body.content }]
+        };
+      }
+      // Invalid request format
+      else {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Invalid request format. Must include targets and content."
+          }
+        }, 400);
+      }
+      // Process all targets
+      const results: Array<{ platform: string, userId: string, result: any }> = [];
+      const errors: Array<{ platform?: string, userId?: string, error: string }> = [];
+
+      for (const target of normalizedRequest.targets) {
+        try {
+          const { platform, userId } = target;
+
           try {
-            const { platform, userId } = target;
-            
-            if (!platform || !userId) {
-              errors.push({
-                error: "Missing platform or userId in target"
-              });
-              continue;
-            }
-            
-            // Check if the NEAR account has a token for this platform and userId
-            const token = await nearAuthService.getToken(signerId, platform, userId);
-            
-            if (!token) {
-              errors.push({
-                platform,
-                userId,
-                error: `No connected ${platform} account found for user ID ${userId}`
-              });
-              continue;
-            }
-            
-            // Process the content
-            let processedContent: PostContent | PostContent[];
-            
-            if (Array.isArray(body.content)) {
-              // It's a thread
-              processedContent = body.content.map((item: any) => ({
-                text: item.text || "",
-                media: item.media
-              }));
-            } else if (typeof body.content === "string") {
-              // It's a simple string post
-              processedContent = { text: body.content };
-            } else {
-              // It's an object
-              processedContent = {
-                text: body.content.text || "",
-                media: body.content.media
-              };
-            }
-            
-            // Create the post
-            const result = await this.postService.createPost(platform, userId, processedContent);
-            
-            results.push({
-              platform,
-              userId,
-              result
-            });
+            // Verify platform access
+            await verifyPlatformAccess(signerId, platform, userId);
           } catch (error) {
             errors.push({
-              platform: target.platform,
-              userId: target.userId,
-              error: error instanceof Error ? error.message : "An unexpected error occurred"
+              platform,
+              userId,
+              error: error instanceof Error ? error.message : `No connected ${platform} account found for user ID ${userId}`
             });
+            continue;
           }
+
+          // Create the post
+          const result = await this.postService.createPost(platform, userId, normalizedRequest.content);
+
+          results.push({
+            platform,
+            userId,
+            result
+          });
+        } catch (error) {
+          errors.push({
+            platform: target.platform,
+            userId: target.userId,
+            error: error instanceof Error ? error.message : "An unexpected error occurred"
+          });
         }
-        
-        // Return the combined results
-        return c.json({ 
-          data: { 
-            results,
-            errors: errors.length > 0 ? errors : undefined
-          } 
-        });
-      } else {
-        // Single target
-        const { platform, userId, content } = body;
-        
-        if (!platform || !userId) {
-          return c.json({ 
-            error: {
-              type: "validation_error",
-              message: "Missing platform or userId in request"
-            }
-          }, 400);
-        }
-        
-        // Check if the NEAR account has a token for this platform and userId
-        const token = await nearAuthService.getToken(signerId, platform, userId);
-        
-        if (!token) {
-          return c.json({
-            error: {
-              type: "authentication_error",
-              message: `No connected ${platform} account found for user ID ${userId}`,
-              status: 401
-            }
-          }, 401);
-        }
-        
-        // Process the content
-        let processedContent: PostContent | PostContent[];
-        
-        if (Array.isArray(content)) {
-          // It's a thread
-          processedContent = content.map((item: any) => ({
-            text: item.text || "",
-            media: item.media
-          }));
-        } else if (typeof content === "string") {
-          // It's a simple string post
-          processedContent = { text: content };
-        } else {
-          // It's an object
-          processedContent = {
-            text: content.text || "",
-            media: content.media
-          };
-        }
-        
-        // Create the post
-        const result = await this.postService.createPost(platform, userId, processedContent);
-        
-        // Return the result
-        return c.json({ data: result });
       }
+
+      // Return the combined results
+      return c.json({
+        data: {
+          results,
+          errors: errors.length > 0 ? errors : undefined
+        }
+      });
     } catch (error) {
       console.error("Error creating post:", error);
       return c.json({
@@ -170,7 +119,7 @@ export class PostController {
       }, 500);
     }
   }
-  
+
   /**
    * Repost/retweet an existing post
    * @param c The Hono context
@@ -180,20 +129,20 @@ export class PostController {
     try {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get("signerId") as string;
-      
+
       // Parse request body
-      const body = await c.req.json();
-      
+      const body = await c.req.json() as RepostRequest;
+
       // Validate request body
       const schema = z.object({
         platform: z.string(),
         userId: z.string(),
         postId: z.string()
       });
-      
+
       const result = schema.safeParse(body);
       if (!result.success) {
-        return c.json({ 
+        return c.json({
           error: {
             type: "validation_error",
             message: "Invalid request body",
@@ -201,27 +150,13 @@ export class PostController {
           }
         }, 400);
       }
-      
-      // Initialize NEAR auth service
-      const env = getEnv();
-      const nearAuthService = new NearAuthService(env);
-      
-      // Check if the NEAR account has a token for this platform and userId
-      const token = await nearAuthService.getToken(signerId, result.data.platform, result.data.userId);
-      
-      if (!token) {
-        return c.json({
-          error: {
-            type: "authentication_error",
-            message: `No connected ${result.data.platform} account found for user ID ${result.data.userId}`,
-            status: 401
-          }
-        }, 401);
-      }
-      
+
+      // Verify platform access
+      await verifyPlatformAccess(signerId, body.platform, body.userId);
+
       // Repost the post
-      const repostResult = await this.postService.repost(result.data.platform, result.data.userId, result.data.postId);
-      
+      const repostResult = await this.postService.repost(body.platform, body.userId, body.postId);
+
       // Return the result
       return c.json({ data: repostResult });
     } catch (error) {
@@ -235,7 +170,7 @@ export class PostController {
       }, 500);
     }
   }
-  
+
   /**
    * Quote an existing post
    * @param c The Hono context
@@ -245,93 +180,63 @@ export class PostController {
     try {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get("signerId") as string;
-      
+
       // Parse request body
       const body = await c.req.json();
-      
-      // Initialize NEAR auth service
-      const env = getEnv();
-      const nearAuthService = new NearAuthService(env);
-      
-      // Validate request body
-      if (Array.isArray(body)) {
-        // It's a thread of quote tweets
-        if (body.length === 0 || !body[0].postId || !body[0].platform || !body[0].userId) {
-          return c.json({ 
-            error: {
-              type: "validation_error",
-              message: "Thread must contain at least one tweet with platform, userId, and postId"
-            }
-          }, 400);
-        }
-        
-        const { platform, userId, postId } = body[0];
-        
-        // Check if the NEAR account has a token for this platform and userId
-        const token = await nearAuthService.getToken(signerId, platform, userId);
-        
-        if (!token) {
-          return c.json({
-            error: {
-              type: "authentication_error",
-              message: `No connected ${platform} account found for user ID ${userId}`,
-              status: 401
-            }
-          }, 401);
-        }
-        
-        const content = body.map((tweet: any) => ({
-          text: tweet.text,
-          media: tweet.media
-        }));
-        
-        // Quote the post with a thread
-        const result = await this.postService.quotePost(platform, userId, postId, content);
-        
-        // Return the result
-        return c.json({ data: result });
-      } else {
-        // It's a single quote tweet
-        const schema = z.object({
-          platform: z.string(),
-          userId: z.string(),
-          postId: z.string(),
-          text: z.string().optional(),
-          media: z.array(z.any()).optional()
-        });
-        
-        const result = schema.safeParse(body);
-        if (!result.success) {
-          return c.json({ 
-            error: {
-              type: "validation_error",
-              message: "Invalid request body",
-              details: result.error
-            }
-          }, 400);
-        }
-        
-        // Check if the NEAR account has a token for this platform and userId
-        const token = await nearAuthService.getToken(signerId, result.data.platform, result.data.userId);
-        
-        if (!token) {
-          return c.json({
-            error: {
-              type: "authentication_error",
-              message: `No connected ${result.data.platform} account found for user ID ${result.data.userId}`,
-              status: 401
-            }
-          }, 401);
-        }
-        
-        const { platform, userId, postId, ...content } = result.data;
-        
-        // Quote the post
-        const quoteResult = await this.postService.quotePost(platform, userId, postId, content);
-        
-        // Return the result
-        return c.json({ data: quoteResult });
+
+
+      // Validate and normalize the request
+      let normalizedRequest: QuotePostRequest;
+
+      // Check if we have a properly formatted request
+      if (body.platform && body.userId && body.postId) {
+        normalizedRequest = {
+          platform: body.platform,
+          userId: body.userId,
+          postId: body.postId,
+          content: Array.isArray(body.content) ? body.content : [{
+            text: body.text || "",
+            media: body.media
+          }]
+        };
       }
+      // Check if we have an array of quote posts (thread)
+      else if (Array.isArray(body) && body.length > 0 && body[0].platform && body[0].userId && body[0].postId) {
+        const { platform, userId, postId } = body[0];
+
+        normalizedRequest = {
+          platform,
+          userId,
+          postId,
+          content: body.map(item => ({
+            text: item.text || "",
+            media: item.media
+          }))
+        };
+      }
+      // Invalid request format
+      else {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Invalid request format. Must include platform, userId, postId, and content."
+          }
+        }, 400);
+      }
+
+      // Verify platform access
+      await verifyPlatformAccess(signerId, normalizedRequest.platform, normalizedRequest.userId);
+
+      // Quote the post
+      const result = await this.postService.quotePost(
+        normalizedRequest.platform,
+        normalizedRequest.userId,
+        normalizedRequest.postId,
+        normalizedRequest.content
+      );
+
+      // Return the result
+      return c.json({ data: result });
     } catch (error) {
       console.error("Error quoting post:", error);
       return c.json({
@@ -343,7 +248,7 @@ export class PostController {
       }, 500);
     }
   }
-  
+
   /**
    * Delete a post
    * @param c The Hono context
@@ -353,20 +258,20 @@ export class PostController {
     try {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get("signerId") as string;
-      
+
       // Parse request body
-      const body = await c.req.json();
-      
+      const body = await c.req.json() as DeletePostRequest;
+
       // Validate request body
       const schema = z.object({
         platform: z.string(),
         userId: z.string(),
         postId: z.string()
       });
-      
+
       const result = schema.safeParse(body);
       if (!result.success) {
-        return c.json({ 
+        return c.json({
           error: {
             type: "validation_error",
             message: "Invalid request body",
@@ -374,27 +279,13 @@ export class PostController {
           }
         }, 400);
       }
-      
-      // Initialize NEAR auth service
-      const env = getEnv();
-      const nearAuthService = new NearAuthService(env);
-      
-      // Check if the NEAR account has a token for this platform and userId
-      const token = await nearAuthService.getToken(signerId, result.data.platform, result.data.userId);
-      
-      if (!token) {
-        return c.json({
-          error: {
-            type: "authentication_error",
-            message: `No connected ${result.data.platform} account found for user ID ${result.data.userId}`,
-            status: 401
-          }
-        }, 401);
-      }
-      
+
+      // Verify platform access
+      await verifyPlatformAccess(signerId, body.platform, body.userId);
+
       // Delete the post
-      const deleteResult = await this.postService.deletePost(result.data.platform, result.data.userId, result.data.postId);
-      
+      const deleteResult = await this.postService.deletePost(body.platform, body.userId, body.postId);
+
       // Return the result
       return c.json({ data: deleteResult });
     } catch (error) {
@@ -408,7 +299,7 @@ export class PostController {
       }, 500);
     }
   }
-  
+
   /**
    * Reply to an existing post
    * @param c The Hono context
@@ -418,93 +309,63 @@ export class PostController {
     try {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get("signerId") as string;
-      
+
       // Parse request body
       const body = await c.req.json();
-      
-      // Initialize NEAR auth service
-      const env = getEnv();
-      const nearAuthService = new NearAuthService(env);
-      
-      // Validate request body
-      if (Array.isArray(body)) {
-        // It's a thread of replies
-        if (body.length === 0 || !body[0].postId || !body[0].platform || !body[0].userId) {
-          return c.json({ 
-            error: {
-              type: "validation_error",
-              message: "Thread must contain at least one tweet with platform, userId, and postId"
-            }
-          }, 400);
-        }
-        
-        const { platform, userId, postId } = body[0];
-        
-        // Check if the NEAR account has a token for this platform and userId
-        const token = await nearAuthService.getToken(signerId, platform, userId);
-        
-        if (!token) {
-          return c.json({
-            error: {
-              type: "authentication_error",
-              message: `No connected ${platform} account found for user ID ${userId}`,
-              status: 401
-            }
-          }, 401);
-        }
-        
-        const content = body.map((tweet: any) => ({
-          text: tweet.text,
-          media: tweet.media
-        }));
-        
-        // Reply to the post with a thread
-        const result = await this.postService.replyToPost(platform, userId, postId, content);
-        
-        // Return the result
-        return c.json({ data: result });
-      } else {
-        // It's a single reply
-        const schema = z.object({
-          platform: z.string(),
-          userId: z.string(),
-          postId: z.string(),
-          text: z.string().optional(),
-          media: z.array(z.any()).optional()
-        });
-        
-        const result = schema.safeParse(body);
-        if (!result.success) {
-          return c.json({ 
-            error: {
-              type: "validation_error",
-              message: "Invalid request body",
-              details: result.error
-            }
-          }, 400);
-        }
-        
-        // Check if the NEAR account has a token for this platform and userId
-        const token = await nearAuthService.getToken(signerId, result.data.platform, result.data.userId);
-        
-        if (!token) {
-          return c.json({
-            error: {
-              type: "authentication_error",
-              message: `No connected ${result.data.platform} account found for user ID ${result.data.userId}`,
-              status: 401
-            }
-          }, 401);
-        }
-        
-        const { platform, userId, postId, ...content } = result.data;
-        
-        // Reply to the post
-        const replyResult = await this.postService.replyToPost(platform, userId, postId, content);
-        
-        // Return the result
-        return c.json({ data: replyResult });
+
+
+      // Validate and normalize the request
+      let normalizedRequest: ReplyToPostRequest;
+
+      // Check if we have a properly formatted request
+      if (body.platform && body.userId && body.postId) {
+        normalizedRequest = {
+          platform: body.platform,
+          userId: body.userId,
+          postId: body.postId,
+          content: Array.isArray(body.content) ? body.content : [{
+            text: body.text || "",
+            media: body.media
+          }]
+        };
       }
+      // Check if we have an array of reply posts (thread)
+      else if (Array.isArray(body) && body.length > 0 && body[0].platform && body[0].userId && body[0].postId) {
+        const { platform, userId, postId } = body[0];
+
+        normalizedRequest = {
+          platform,
+          userId,
+          postId,
+          content: body.map(item => ({
+            text: item.text || "",
+            media: item.media
+          }))
+        };
+      }
+      // Invalid request format
+      else {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Invalid request format. Must include platform, userId, postId, and content."
+          }
+        }, 400);
+      }
+
+      // Verify platform access
+      await verifyPlatformAccess(signerId, normalizedRequest.platform, normalizedRequest.userId);
+
+      // Reply to the post
+      const result = await this.postService.replyToPost(
+        normalizedRequest.platform,
+        normalizedRequest.userId,
+        normalizedRequest.postId,
+        normalizedRequest.content
+      );
+
+      // Return the result
+      return c.json({ data: result });
     } catch (error) {
       console.error("Error replying to post:", error);
       return c.json({
@@ -516,7 +377,7 @@ export class PostController {
       }, 500);
     }
   }
-  
+
   /**
    * Like a post
    * @param c The Hono context
@@ -526,20 +387,20 @@ export class PostController {
     try {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get("signerId") as string;
-      
+
       // Parse request body
-      const body = await c.req.json();
-      
+      const body = await c.req.json() as LikePostRequest;
+
       // Validate request body
       const schema = z.object({
         platform: z.string(),
         userId: z.string(),
         postId: z.string()
       });
-      
+
       const result = schema.safeParse(body);
       if (!result.success) {
-        return c.json({ 
+        return c.json({
           error: {
             type: "validation_error",
             message: "Invalid request body",
@@ -547,27 +408,13 @@ export class PostController {
           }
         }, 400);
       }
-      
-      // Initialize NEAR auth service
-      const env = getEnv();
-      const nearAuthService = new NearAuthService(env);
-      
-      // Check if the NEAR account has a token for this platform and userId
-      const token = await nearAuthService.getToken(signerId, result.data.platform, result.data.userId);
-      
-      if (!token) {
-        return c.json({
-          error: {
-            type: "authentication_error",
-            message: `No connected ${result.data.platform} account found for user ID ${result.data.userId}`,
-            status: 401
-          }
-        }, 401);
-      }
-      
+
+      // Verify platform access
+      await verifyPlatformAccess(signerId, body.platform, body.userId);
+
       // Like the post
-      const likeResult = await this.postService.likePost(result.data.platform, result.data.userId, result.data.postId);
-      
+      const likeResult = await this.postService.likePost(body.platform, body.userId, body.postId);
+
       // Return the result
       return c.json({ data: likeResult });
     } catch (error) {
@@ -581,7 +428,7 @@ export class PostController {
       }, 500);
     }
   }
-  
+
   /**
    * Unlike a post
    * @param c The Hono context
@@ -591,20 +438,20 @@ export class PostController {
     try {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get("signerId") as string;
-      
+
       // Parse request body
-      const body = await c.req.json();
-      
+      const body = await c.req.json() as UnlikePostRequest;
+
       // Validate request body
       const schema = z.object({
         platform: z.string(),
         userId: z.string(),
         postId: z.string()
       });
-      
+
       const result = schema.safeParse(body);
       if (!result.success) {
-        return c.json({ 
+        return c.json({
           error: {
             type: "validation_error",
             message: "Invalid request body",
@@ -612,27 +459,13 @@ export class PostController {
           }
         }, 400);
       }
-      
-      // Initialize NEAR auth service
-      const env = getEnv();
-      const nearAuthService = new NearAuthService(env);
-      
-      // Check if the NEAR account has a token for this platform and userId
-      const token = await nearAuthService.getToken(signerId, result.data.platform, result.data.userId);
-      
-      if (!token) {
-        return c.json({
-          error: {
-            type: "authentication_error",
-            message: `No connected ${result.data.platform} account found for user ID ${result.data.userId}`,
-            status: 401
-          }
-        }, 401);
-      }
-      
+
+      // Verify platform access
+      await verifyPlatformAccess(signerId, body.platform, body.userId);
+
       // Unlike the post
-      const unlikeResult = await this.postService.unlikePost(result.data.platform, result.data.userId, result.data.postId);
-      
+      const unlikeResult = await this.postService.unlikePost(body.platform, body.userId, body.postId);
+
       // Return the result
       return c.json({ data: unlikeResult });
     } catch (error) {

@@ -1,8 +1,9 @@
 /**
  * Types exports
  */
-export * from './request.types';
-export * from './response.types';
+export * from './request.types.ts';
+export * from './response.types.ts';
+export * from './post.types.ts';
 
 /**
  * Common types used throughout the application

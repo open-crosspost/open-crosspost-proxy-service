@@ -41,7 +41,6 @@ export class TwitterMedia implements PlatformMedia {
           accessToken: env.TWITTER_ACCESS_TOKEN,
           accessSecret: env.TWITTER_ACCESS_SECRET,
         });
-        console.log("OAuth 1.0a client initialized successfully");
       } catch (error) {
         console.error("Failed to initialize OAuth 1.0a client:", error);
         this.oauth1Client = null;
