@@ -1,6 +1,6 @@
-import { TwitterClient } from '../../infrastructure/platform/twitter/twitter-client';
-import { Env } from '../../config/env';
-import { createApiResponse, createErrorResponse } from '../../types/response.types';
+import { TwitterClient } from '../../infrastructure/platform/twitter/twitter-client.ts';
+import { Env } from '../../config/env.ts';
+import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 
 /**
  * Rate Limit Service

@@ -57,8 +57,9 @@ bun run dev
 This will start the Cloudflare Worker locally, typically on port 8787. You should see output similar to:
 
 ```
-[wrangler] Starting local server...
-[wrangler] Listening at http://localhost:8787
+Starting server on port 8000...
+Environment: development
+Listening on http://0.0.0.0:8000/
 ```
 
 ### 4. Run the Example App
@@ -75,10 +76,10 @@ This will start a local server for the example app, typically on port 5000.
 
 ### 5. Connect the Example App to the Local API
 
-The example app is configured to connect to the local API at `http://localhost:8787`. If your local API is running on a different port, update the `API_BASE_URL` constant in `examples/near-twitter-example/app.js`:
+The example app is configured to connect to the local API at `http://localhost:8000`. If your local API is running on a different port, update the `API_BASE_URL` constant in `examples/near-twitter-example/app.js`:
 
 ```javascript
-const API_BASE_URL = 'http://localhost:8787'; // Update this if needed
+const API_BASE_URL = 'http://localhost:8000'; // Update this if needed
 ```
 
 ### 6. Testing the Integration

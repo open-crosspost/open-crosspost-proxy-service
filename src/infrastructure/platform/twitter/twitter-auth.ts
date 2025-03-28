@@ -1,8 +1,8 @@
-import { PlatformAuth } from '../abstract/platform-auth.interface';
-import { TwitterClient } from './twitter-client';
-import { TokenStorage, TokenType, TwitterTokens } from '../../storage/token-storage';
-import { Env } from '../../../config/env';
-import { DEFAULT_CONFIG } from '../../../config';
+import { DEFAULT_CONFIG } from './../../../config/index.ts';
+import { PlatformAuth } from '../abstract/platform-auth.interface.ts';
+import { TwitterClient } from './twitter-client.ts';
+import { TokenStorage, TokenType, TwitterTokens } from '../../storage/token-storage.ts';
+import { Env } from '../../../config/env.ts';
 
 /**
  * Twitter Auth
@@ -16,7 +16,7 @@ export class TwitterAuth implements PlatformAuth {
   constructor(env: Env) {
     this.env = env;
     this.twitterClient = new TwitterClient(env);
-    this.tokenStorage = new TokenStorage(env);
+    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY);
   }
   
   /**

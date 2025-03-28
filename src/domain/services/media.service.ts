@@ -1,14 +1,14 @@
 import { 
   MediaContent 
-} from '../../infrastructure/platform/abstract/platform-post.interface';
+} from '../../infrastructure/platform/abstract/platform-post.interface.ts';
 import { 
   PlatformMedia, 
   MediaUploadResult, 
   MediaStatusResult 
-} from '../../infrastructure/platform/abstract/platform-media.interface';
-import { TwitterMedia } from '../../infrastructure/platform/twitter/twitter-media';
-import { Env } from '../../config/env';
-import { createApiResponse, createErrorResponse } from '../../types/response.types';
+} from '../../infrastructure/platform/abstract/platform-media.interface.ts';
+import { TwitterMedia } from '../../infrastructure/platform/twitter/twitter-media.ts';
+import { Env } from '../../config/env.ts';
+import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 
 /**
  * Media Service

@@ -1,0 +1,47 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-net --allow-env --allow-read --allow-write --unstable-kv main.ts",
+    "start": "deno run --allow-net --allow-env --allow-read --allow-write --unstable-kv main.ts",
+    "test": "deno test --allow-net --allow-env --allow-read --allow-write --unstable-kv",
+    "lint": "deno lint",
+    "fmt": "deno fmt",
+    "cache": "deno cache --reload deps.ts"
+  },
+  "nodeModulesDir": "auto",
+  "imports": {
+    "hono": "jsr:@hono/hono",
+    "zod": "npm:zod",
+    "twitter-api-v2": "npm:twitter-api-v2",
+    "@twitter-api-v2/plugin-rate-limit": "npm:@twitter-api-v2/plugin-rate-limit",
+    "@twitter-api-v2/plugin-token-refresher": "npm:@twitter-api-v2/plugin-token-refresher",
+    "@twitter-api-v2/plugin-cache-redis": "npm:@twitter-api-v2/plugin-cache-redis",
+    "@upstash/redis": "npm:@upstash/redis",
+    "jose": "npm:jose",
+    "openapi3-ts": "npm:openapi3-ts",
+    "std/uuid": "https://deno.land/std@0.220.1/uuid/mod.ts",
+    "std/crypto": "https://deno.land/std@0.220.1/crypto/mod.ts",
+    "std/http": "https://deno.land/std@0.220.1/http/mod.ts",
+    "std/assert": "https://deno.land/std@0.220.1/assert/mod.ts",
+    "bs58": "npm:bs58"
+  },
+  "fmt": {
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "semiColons": true,
+    "singleQuote": true
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": false,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true
+  }
+}

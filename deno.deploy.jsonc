@@ -1,0 +1,36 @@
+{
+  "deployments": {
+    "production": {
+      "entry": "main.ts",
+      "include": [
+        "src/**/*",
+        "deps.ts",
+        "main.ts"
+      ],
+      "exclude": [
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "tests/**/*"
+      ],
+      "env": {
+        "ENVIRONMENT": "production"
+      }
+    },
+    "staging": {
+      "entry": "main.ts",
+      "include": [
+        "src/**/*",
+        "deps.ts",
+        "main.ts"
+      ],
+      "exclude": [
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "tests/**/*"
+      ],
+      "env": {
+        "ENVIRONMENT": "staging"
+      }
+    }
+  }
+}

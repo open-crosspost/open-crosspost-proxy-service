@@ -1,9 +1,9 @@
-import { PlatformAuth } from '../../infrastructure/platform/abstract/platform-auth.interface';
-import { TwitterAuth } from '../../infrastructure/platform/twitter/twitter-auth';
-import { TokenStorage, TwitterTokens } from '../../infrastructure/storage/token-storage';
-import { Env } from '../../config/env';
-import { createApiResponse, createErrorResponse } from '../../types/response.types';
-import { DEFAULT_CONFIG } from '../../config';
+import { PlatformAuth } from '../../infrastructure/platform/abstract/platform-auth.interface.ts';
+import { TwitterAuth } from '../../infrastructure/platform/twitter/twitter-auth.ts';
+import { Env } from '../../config/env.ts';
+import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
+import { DEFAULT_CONFIG } from '../../config/index.ts';
+import { TokenStorage, TwitterTokens } from '../../infrastructure/storage/token-storage.ts';
 
 /**
  * Auth Service
@@ -12,11 +12,10 @@ import { DEFAULT_CONFIG } from '../../config';
 export class AuthService {
   private platformAuth: PlatformAuth;
   private tokenStorage: TokenStorage;
-  
   constructor(env: Env) {
     // For now, we only support Twitter
     this.platformAuth = new TwitterAuth(env);
-    this.tokenStorage = new TokenStorage(env);
+    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY);
   }
   
   /**

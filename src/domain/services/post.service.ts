@@ -3,11 +3,11 @@ import {
   PostResult, 
   DeleteResult, 
   LikeResult 
-} from '../../infrastructure/platform/abstract/platform-post.interface';
-import { PlatformPost } from '../../infrastructure/platform/abstract/platform-post.interface';
-import { TwitterPost } from '../../infrastructure/platform/twitter/twitter-post';
-import { Env } from '../../config/env';
-import { createApiResponse, createErrorResponse } from '../../types/response.types';
+} from '../../infrastructure/platform/abstract/platform-post.interface.ts';
+import { PlatformPost } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
+import { TwitterPost } from '../../infrastructure/platform/twitter/twitter-post.ts';
+import { Env } from '../../config/env.ts';
+import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 
 /**
  * Post Service

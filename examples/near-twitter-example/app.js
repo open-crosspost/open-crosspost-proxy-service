@@ -2,7 +2,8 @@
 
 // Constants
 const TWITTER_AUTH_STORAGE_KEY = 'twitter-auth-data';
-const API_BASE_URL = 'http://localhost:8787'; // Replace with your actual API URL
+const API_BASE_URL = 'http://localhost:8000'; // Replace with your actual API URL
+const API_KEY = 'test-api-key'; // Replace with your actual API key
 
 // Initialize NEAR
 near.config({ networkId: 'testnet' });
@@ -132,6 +133,7 @@ async function connectTwitter() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-API-Key': API_KEY,
             },
             body: JSON.stringify({
                 redirectUri: window.location.href,
@@ -190,6 +192,7 @@ async function handleTwitterCallback(code, state) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-API-Key': API_KEY,
             },
             body: JSON.stringify({
                 code,
@@ -263,10 +266,11 @@ async function postTweet() {
             updateStatus('Posting tweet...', 'info');
             
             // Create the request to post a tweet
-            const response = await fetch(`${API_BASE_URL}/api/post`, {
+            const response = await fetch(`${API_BASE_URL}/api/post/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-API-Key': API_KEY,
                     'X-User-ID': twitterAuthData.userId,
                     'X-Near-Account-Id': signResult.accountId,
                     'X-Near-Public-Key': signResult.publicKey,

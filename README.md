@@ -1,116 +1,140 @@
-# Twitter API Proxy
+# Twitter API Proxy (Deno Version)
 
-A secure Cloudflare Workers proxy for the Twitter API that allows authorized frontends to perform Twitter actions on behalf of users who have granted permission.
+A secure Deno-based proxy for the Twitter API that allows authorized frontends to perform Twitter actions on behalf of users who have granted permission. The system securely stores OAuth tokens, handles refreshes, enforces rate limits, and supports all major Twitter API functions including media uploads.
 
-## Features
+## Migration to Deno
 
-- Secure OAuth 2.0 authentication with PKCE
-- Token encryption and secure storage
-- Automatic token refresh
-- Rate limiting and circuit breaking
-- Support for all major Twitter API functions
-- Media upload handling
-- Redis-based request caching (optional)
+This project has been migrated from Cloudflare Workers to Deno for improved compatibility with the twitter-api-v2 library and its plugins. The migration includes:
 
-## API Endpoints
+- Replacing Cloudflare KV with Deno KV for token storage
+- Replacing itty-router with Hono for HTTP routing
+- Updating the project structure to follow Deno conventions
+- Implementing proper error handling and middleware for Deno
 
-### Authentication Endpoints
+## Project Structure
 
-- `POST /auth/init`: Initiates Twitter OAuth flow, returns authorization URL
-- `GET /auth/callback`: Handles OAuth callback from Twitter
-- `DELETE /auth/revoke`: Revokes access and removes stored tokens
+```
+/
+  deno.json               # Deno configuration
+  deps.ts                 # Central dependencies file
+  main.ts                 # Main entry point
+  /src
+    /api                  # API controllers and validation
+    /config               # Configuration
+    /domain               # Business logic
+    /infrastructure       # External services and storage
+    /middleware           # HTTP middleware
+    /types                # TypeScript types
+```
 
-### Twitter API Endpoints
-
-#### Enhanced Tweet API
-
-All endpoints have been enhanced to support threaded content and direct media uploads:
-
-- `POST /api/tweet`: Post a tweet or thread with media
-- `POST /api/quote`: Quote tweet (single or thread) with media
-- `POST /api/reply`: Reply to a tweet (single or thread) with media
-- `POST /api/retweet`: Retweet an existing tweet
-- `DELETE /api/tweet/:id`: Delete a tweet
-- `POST /api/like/:id`: Like a tweet
-- `DELETE /api/like/:id`: Unlike a tweet
-
-See the [examples directory](./examples/README.md) for detailed documentation and usage examples of the enhanced API.
-
-### Media Endpoints
-
-- `POST /api/media/upload`: Upload media for tweets
-- `GET /api/media/status/:id`: Check status of media upload
-
-## Setup
+## Getting Started
 
 ### Prerequisites
 
-- Node.js (LTS version)
-- Cloudflare account with Workers subscription
-- Twitter Developer account with API credentials
+- [Deno](https://deno.land/) (latest version)
+- Twitter API credentials
 
-### Installation
+### Environment Variables
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/twitter-proxy.git
-   cd twitter-proxy
-   ```
+Create a `.env` file with the following variables:
 
-2. Install dependencies:
-   ```bash
-   bun install
-   ```
+```
+TWITTER_CLIENT_ID=your_client_id
+TWITTER_CLIENT_SECRET=your_client_secret
+TWITTER_API_KEY=your_api_key
+TWITTER_API_SECRET=your_api_secret
+TWITTER_ACCESS_TOKEN=your_access_token
+TWITTER_ACCESS_SECRET=your_access_secret
+ENCRYPTION_KEY=your_encryption_key
+ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+API_KEYS={"your_api_key":["http://localhost:3000"]}
+ENVIRONMENT=development
+```
 
-3. Configure Wrangler:
-   - Update the `wrangler.toml` file with your Cloudflare account ID
-   - Create KV namespaces and D1 databases in the Cloudflare dashboard
-   - Update the KV namespace and D1 database IDs in `wrangler.toml`
-
-4. Set up environment variables:
-   - Create a `.dev.vars` file with the following variables:
-     ```
-     TWITTER_CLIENT_ID=your_twitter_client_id
-     TWITTER_CLIENT_SECRET=your_twitter_client_secret
-     ENCRYPTION_KEY=your_encryption_key
-     ALLOWED_ORIGINS=https://yourdomain.com,https://anotherdomain.com
-     API_KEYS={"key1":["https://yourdomain.com"],"key2":["https://anotherdomain.com"]}
-     ```
-
-### Development
-
-Start the local development server:
+### Running Locally
 
 ```bash
-bun run dev
+# Start the development server
+deno task dev
+
+# Format code
+deno task fmt
+
+# Lint code
+deno task lint
+
+# Run tests
+deno task test
 ```
 
 ### Deployment
 
-Deploy to Cloudflare Workers:
+The application can be deployed to Deno Deploy:
 
 ```bash
-# Deploy to staging
-bun run deploy:staging
-
-# Deploy to production
-bun run deploy:prod
+# Deploy to Deno Deploy
+deno deploy
 ```
 
-## Security Considerations
+## API Endpoints
 
-- All tokens are encrypted before storage in KV
-- API keys are required for all endpoints
-- Strict CORS policy is enforced
-- Token refresh is handled automatically
-- Rate limiting is implemented for both Twitter API and client requests
-- Optional Redis-based caching for improved performance and reduced API calls
+### Authentication
 
-## Performance Optimizations
+- `POST /auth/init` - Initialize OAuth flow
+- `POST /auth/callback` - Handle OAuth callback
+- `POST /auth/refresh` - Refresh OAuth token
+- `DELETE /auth/revoke` - Revoke OAuth token
+- `GET /auth/status` - Check token status
 
-- Rate limit tracking to avoid Twitter API limits
-- Redis-based request caching to reduce duplicate API calls
-- Automatic cache invalidation based on rate limit reset times
+### Posts
+
+- `POST /api/post` - Create a post
+- `POST /api/repost` - Repost a post
+- `POST /api/quote` - Quote a post
+- `DELETE /api/post/:id` - Delete a post
+- `POST /api/reply` - Reply to a post
+- `POST /api/like/:id` - Like a post
+- `DELETE /api/like/:id` - Unlike a post
+
+### Media
+
+- `POST /api/media/upload` - Upload media
+- `GET /api/media/status/:id` - Check media status
+- `POST /api/media/:id/metadata` - Update media metadata
+
+### Rate Limits
+
+- `GET /api/rate-limit/:endpoint?` - Get rate limit status for an endpoint
+- `GET /api/rate-limit` - Get all rate limits
+
+## Authentication
+
+The API uses API keys for client authentication and user IDs for user context. Include the following headers in your requests:
+
+- `X-API-Key`: Your API key
+- `X-User-ID`: The user ID for which to perform actions
+
+## Error Handling
+
+The API returns structured error responses with the following format:
+
+```json
+{
+  "error": {
+    "type": "error_type",
+    "message": "Error message",
+    "status": 400,
+    "details": {}
+  }
+}
+```
+
+## Security
+
+- OAuth tokens are encrypted before storage in Deno KV
+- API keys are validated against allowed origins
+- CORS is configured to only allow requests from allowed origins
+- Input validation is performed on all requests
 
 ## License
 

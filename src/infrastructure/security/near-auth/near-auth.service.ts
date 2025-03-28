@@ -1,7 +1,7 @@
-import { Env } from '../../../config/env';
-import { NearAuthData, NearAuthPayload, NearAuthResult } from './near-auth.types';
-import * as nacl from 'tweetnacl';
-import * as base58js from 'base58-js';
+import { Env } from '../../../config/env.ts';
+import { NearAuthData, NearAuthPayload, NearAuthResult } from './near-auth.types.ts';
+import nacl from 'npm:tweetnacl';
+import { base58_to_binary } from 'npm:base58-js';
 
 /**
  * NEAR Authentication Service
@@ -88,8 +88,8 @@ export class NearAuthService {
         ? publicKey.substring(this.ED25519_PREFIX.length)
         : publicKey;
       
-      // Use base58js to decode the public key
-      const publicKeyBytes = base58js.base58_to_binary(publicKeyString);
+      // Use base58_to_binary to decode the public key
+      const publicKeyBytes = base58_to_binary(publicKeyString);
       
       // Verify the signature
       return nacl.sign.detached.verify(
@@ -172,6 +172,9 @@ export class NearAuthService {
    */
   async storeToken(accountId: string, platform: string, userId: string, token: any): Promise<void> {
     try {
+      if (!this.env.TOKENS) {
+        throw new Error('TOKENS binding not available');
+      }
       const key = `${platform}:${accountId}:${userId}`;
       await this.env.TOKENS.put(key, JSON.stringify(token));
     } catch (error) {
@@ -189,6 +192,9 @@ export class NearAuthService {
    */
   async getToken(accountId: string, platform: string, userId: string): Promise<any | null> {
     try {
+      if (!this.env.TOKENS) {
+        throw new Error('TOKENS binding not available');
+      }
       const key = `${platform}:${accountId}:${userId}`;
       const token = await this.env.TOKENS.get(key);
       
@@ -209,6 +215,9 @@ export class NearAuthService {
    */
   async deleteToken(accountId: string, platform: string, userId: string): Promise<void> {
     try {
+      if (!this.env.TOKENS) {
+        throw new Error('TOKENS binding not available');
+      }
       const key = `${platform}:${accountId}:${userId}`;
       await this.env.TOKENS.delete(key);
     } catch (error) {

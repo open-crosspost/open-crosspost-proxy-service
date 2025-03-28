@@ -72,7 +72,7 @@ Then visit:
 An example of how to use Deno's built-in KV store for token storage:
 
 ```bash
-deno run --allow-net --allow-env --allow-read --allow-write --unstable-kv deno-kv-token-storage.ts
+deno run --allow-net --allow-env --allow-read --allow-write --unstable-kv token-storage.ts
 ```
 
 Note: The `--unstable-kv` flag is required as Deno KV is currently an unstable API.

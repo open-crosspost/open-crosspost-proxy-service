@@ -1,15 +1,15 @@
-import { TwitterApi, SendTweetV2Params } from 'twitter-api-v2';
-import { 
-  PlatformPost, 
-  PostContent, 
-  PostResult, 
-  DeleteResult, 
+import { SendTweetV2Params } from 'twitter-api-v2';
+import { Env } from '../../../config/env.ts';
+import {
+  DeleteResult,
   LikeResult,
-  MediaContent
-} from '../abstract/platform-post.interface';
-import { TwitterClient } from './twitter-client';
-import { TwitterMedia } from './twitter-media';
-import { Env } from '../../../config/env';
+  MediaContent,
+  PlatformPost,
+  PostContent,
+  PostResult
+} from '../abstract/platform-post.interface.ts';
+import { TwitterClient } from './twitter-client.ts';
+import { TwitterMedia } from './twitter-media.ts';
 
 /**
  * Twitter Post
@@ -19,13 +19,13 @@ export class TwitterPost implements PlatformPost {
   private env: Env;
   private twitterClient: TwitterClient;
   private twitterMedia: TwitterMedia;
-  
+
   constructor(env: Env) {
     this.env = env;
     this.twitterClient = new TwitterClient(env);
     this.twitterMedia = new TwitterMedia(env);
   }
-  
+
   /**
    * Create a new post
    * @param userId The user ID creating the post
@@ -35,25 +35,25 @@ export class TwitterPost implements PlatformPost {
   async createPost(userId: string, content: PostContent): Promise<PostResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
-      
+
       // Handle single post or thread
       if (Array.isArray(content)) {
         // It's a thread
         return this.createThread(userId, content);
       }
-      
+
       // Prepare tweet data
       const tweetData: SendTweetV2Params = { text: content.text || '' };
-      
+
       // Handle media if present
       if (content.media && content.media.length > 0) {
         const mediaIds = await this.uploadMediaFiles(userId, content.media);
         this.addMediaToTweet(tweetData, mediaIds);
       }
-      
+
       // Post the tweet
       const result = await client.v2.tweet(tweetData);
-      
+
       return {
         id: result.data.id,
         text: result.data.text,
@@ -65,7 +65,7 @@ export class TwitterPost implements PlatformPost {
       throw new Error('Failed to create post');
     }
   }
-  
+
   /**
    * Create a thread of posts
    * @param userId The user ID creating the thread
@@ -75,26 +75,26 @@ export class TwitterPost implements PlatformPost {
   private async createThread(userId: string, contentArray: PostContent[]): Promise<PostResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
-      
+
       // Process each tweet in the thread
       const formattedTweets: SendTweetV2Params[] = [];
-      
+
       for (const content of contentArray) {
         // Prepare tweet data
         const tweetData: SendTweetV2Params = { text: content.text || '' };
-        
+
         // Handle media if present
         if (content.media && content.media.length > 0) {
           const mediaIds = await this.uploadMediaFiles(userId, content.media);
           this.addMediaToTweet(tweetData, mediaIds);
         }
-        
+
         formattedTweets.push(tweetData);
       }
-      
+
       // Post the thread
       const result = await client.v2.tweetThread(formattedTweets);
-      
+
       // Return the first tweet's info
       return {
         id: result[0].data.id,
@@ -107,7 +107,7 @@ export class TwitterPost implements PlatformPost {
       throw new Error('Failed to create thread');
     }
   }
-  
+
   /**
    * Repost/retweet an existing post
    * @param userId The user ID performing the repost
@@ -117,10 +117,10 @@ export class TwitterPost implements PlatformPost {
   async repost(userId: string, postId: string): Promise<PostResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
-      
+
       // Retweet the tweet
       const result = await client.v2.retweet(userId, postId);
-      
+
       return {
         id: result.data.retweeted ? postId : '',
         createdAt: new Date().toISOString(),
@@ -131,7 +131,7 @@ export class TwitterPost implements PlatformPost {
       throw new Error('Failed to repost');
     }
   }
-  
+
   /**
    * Quote an existing post
    * @param userId The user ID quoting the post
@@ -142,26 +142,26 @@ export class TwitterPost implements PlatformPost {
   async quotePost(userId: string, postId: string, content: PostContent): Promise<PostResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
-      
+
       // Handle thread of quote tweets
       if (Array.isArray(content)) {
         return this.createQuoteThread(userId, postId, content);
       }
-      
+
       // Prepare tweet data with the quoted tweet URL
       const tweetData: SendTweetV2Params = {
         text: `${content.text || ''} https://twitter.com/i/web/status/${postId}`
       };
-      
+
       // Handle media if present
       if (content.media && content.media.length > 0) {
         const mediaIds = await this.uploadMediaFiles(userId, content.media);
         this.addMediaToTweet(tweetData, mediaIds);
       }
-      
+
       // Post the quote tweet
       const result = await client.v2.tweet(tweetData);
-      
+
       return {
         id: result.data.id,
         text: result.data.text,
@@ -174,7 +174,7 @@ export class TwitterPost implements PlatformPost {
       throw new Error('Failed to quote post');
     }
   }
-  
+
   /**
    * Create a thread of quote tweets
    * @param userId The user ID creating the thread
@@ -185,41 +185,41 @@ export class TwitterPost implements PlatformPost {
   private async createQuoteThread(userId: string, postId: string, contentArray: PostContent[]): Promise<PostResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
-      
+
       // Process each tweet in the thread
       const formattedTweets: SendTweetV2Params[] = [];
-      
+
       // First tweet quotes the original
       const firstContent = contentArray[0];
       const firstTweetData: SendTweetV2Params = {
         text: `${firstContent.text || ''} https://twitter.com/i/web/status/${postId}`
       };
-      
+
       // Handle media if present
       if (firstContent.media && firstContent.media.length > 0) {
         const mediaIds = await this.uploadMediaFiles(userId, firstContent.media);
         this.addMediaToTweet(firstTweetData, mediaIds);
       }
-      
+
       formattedTweets.push(firstTweetData);
-      
+
       // Add the rest of the thread
       for (let i = 1; i < contentArray.length; i++) {
         const content = contentArray[i];
         const tweetData: SendTweetV2Params = { text: content.text || '' };
-        
+
         // Handle media if present
         if (content.media && content.media.length > 0) {
           const mediaIds = await this.uploadMediaFiles(userId, content.media);
           this.addMediaToTweet(tweetData, mediaIds);
         }
-        
+
         formattedTweets.push(tweetData);
       }
-      
+
       // Post the thread
       const result = await client.v2.tweetThread(formattedTweets);
-      
+
       // Return the first tweet's info
       return {
         id: result[0].data.id,
@@ -233,7 +233,7 @@ export class TwitterPost implements PlatformPost {
       throw new Error('Failed to create quote thread');
     }
   }
-  
+
   /**
    * Delete a post
    * @param userId The user ID deleting the post
@@ -243,10 +243,10 @@ export class TwitterPost implements PlatformPost {
   async deletePost(userId: string, postId: string): Promise<DeleteResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
-      
+
       // Delete the tweet
       const result = await client.v2.deleteTweet(postId);
-      
+
       return {
         success: result.data.deleted,
         id: postId,
@@ -256,7 +256,7 @@ export class TwitterPost implements PlatformPost {
       throw new Error('Failed to delete post');
     }
   }
-  
+
   /**
    * Reply to an existing post
    * @param userId The user ID replying to the post
@@ -267,27 +267,27 @@ export class TwitterPost implements PlatformPost {
   async replyToPost(userId: string, postId: string, content: PostContent): Promise<PostResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
-      
+
       // Handle thread of replies
       if (Array.isArray(content)) {
         return this.createReplyThread(userId, postId, content);
       }
-      
+
       // Prepare tweet data
       const tweetData: SendTweetV2Params = {
         text: content.text || '',
         reply: { in_reply_to_tweet_id: postId }
       };
-      
+
       // Handle media if present
       if (content.media && content.media.length > 0) {
         const mediaIds = await this.uploadMediaFiles(userId, content.media);
         this.addMediaToTweet(tweetData, mediaIds);
       }
-      
+
       // Post the reply
       const result = await client.v2.tweet(tweetData);
-      
+
       return {
         id: result.data.id,
         text: result.data.text,
@@ -300,7 +300,7 @@ export class TwitterPost implements PlatformPost {
       throw new Error('Failed to reply to post');
     }
   }
-  
+
   /**
    * Create a thread of replies
    * @param userId The user ID creating the thread
@@ -311,42 +311,42 @@ export class TwitterPost implements PlatformPost {
   private async createReplyThread(userId: string, postId: string, contentArray: PostContent[]): Promise<PostResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
-      
+
       // Process each tweet in the thread
       const formattedTweets: SendTweetV2Params[] = [];
-      
+
       // First tweet replies to the original
       const firstContent = contentArray[0];
       const firstTweetData: SendTweetV2Params = {
         text: firstContent.text || '',
         reply: { in_reply_to_tweet_id: postId }
       };
-      
+
       // Handle media if present
       if (firstContent.media && firstContent.media.length > 0) {
         const mediaIds = await this.uploadMediaFiles(userId, firstContent.media);
         this.addMediaToTweet(firstTweetData, mediaIds);
       }
-      
+
       formattedTweets.push(firstTweetData);
-      
+
       // Add the rest of the thread
       for (let i = 1; i < contentArray.length; i++) {
         const content = contentArray[i];
         const tweetData: SendTweetV2Params = { text: content.text || '' };
-        
+
         // Handle media if present
         if (content.media && content.media.length > 0) {
           const mediaIds = await this.uploadMediaFiles(userId, content.media);
           this.addMediaToTweet(tweetData, mediaIds);
         }
-        
+
         formattedTweets.push(tweetData);
       }
-      
+
       // Post the thread
       const result = await client.v2.tweetThread(formattedTweets);
-      
+
       // Return the first tweet's info
       return {
         id: result[0].data.id,
@@ -360,7 +360,7 @@ export class TwitterPost implements PlatformPost {
       throw new Error('Failed to create reply thread');
     }
   }
-  
+
   /**
    * Like a post
    * @param userId The user ID liking the post
@@ -370,10 +370,10 @@ export class TwitterPost implements PlatformPost {
   async likePost(userId: string, postId: string): Promise<LikeResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
-      
+
       // Like the tweet
       const result = await client.v2.like(userId, postId);
-      
+
       return {
         success: result.data.liked,
         id: postId,
@@ -383,7 +383,7 @@ export class TwitterPost implements PlatformPost {
       throw new Error('Failed to like post');
     }
   }
-  
+
   /**
    * Unlike a post
    * @param userId The user ID unliking the post
@@ -393,10 +393,10 @@ export class TwitterPost implements PlatformPost {
   async unlikePost(userId: string, postId: string): Promise<LikeResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
-      
+
       // Unlike the tweet
       const result = await client.v2.unlike(userId, postId);
-      
+
       return {
         success: !result.data.liked,
         id: postId,
@@ -406,7 +406,7 @@ export class TwitterPost implements PlatformPost {
       throw new Error('Failed to unlike post');
     }
   }
-  
+
   /**
    * Upload media files and return media IDs
    * @param userId The user ID uploading the media
@@ -415,14 +415,14 @@ export class TwitterPost implements PlatformPost {
    */
   private async uploadMediaFiles(userId: string, mediaFiles: MediaContent[]): Promise<string[]> {
     if (!mediaFiles || mediaFiles.length === 0) return [];
-    
+
     const mediaIds: string[] = [];
-    
+
     for (const mediaFile of mediaFiles) {
       try {
         // Upload the media using the TwitterMedia service
         const result = await this.twitterMedia.uploadMedia(userId, mediaFile);
-        
+
         if (result.mediaId) {
           mediaIds.push(result.mediaId);
         }
@@ -431,10 +431,10 @@ export class TwitterPost implements PlatformPost {
         // Continue with other files even if one fails
       }
     }
-    
+
     return mediaIds;
   }
-  
+
   /**
    * Helper method to add media IDs to a tweet
    * @param tweetData The tweet data to add media to
@@ -442,10 +442,10 @@ export class TwitterPost implements PlatformPost {
    */
   private addMediaToTweet(tweetData: SendTweetV2Params, mediaIds: string[]): void {
     if (!mediaIds || mediaIds.length === 0) return;
-    
+
     // Twitter API expects a tuple with 1-4 elements
     const ids = mediaIds.slice(0, 4);
-    
+
     // Cast to the specific tuple types that Twitter API expects
     if (ids.length === 1) {
       tweetData.media = { media_ids: [ids[0]] as [string] };

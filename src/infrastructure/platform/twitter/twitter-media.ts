@@ -1,8 +1,9 @@
 import { TwitterApi } from 'twitter-api-v2';
-import { PlatformMedia, MediaUploadResult, MediaStatusResult } from '../abstract/platform-media.interface';
-import { MediaContent } from '../abstract/platform-post.interface';
-import { TwitterClient } from './twitter-client';
-import { Env } from '../../../config/env';
+import { PlatformMedia, MediaUploadResult, MediaStatusResult } from '../abstract/platform-media.interface.ts';
+import { MediaContent } from '../abstract/platform-post.interface.ts';
+import { TwitterClient } from './twitter-client.ts';
+import { Env } from '../../../config/env.ts';
+import { Buffer } from 'node:buffer';
 
 // Media upload limitations
 const MEDIA_LIMITS = {

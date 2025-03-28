@@ -2,7 +2,7 @@
  * Platform Media Interface
  * Defines the common interface for platform-specific media operations
  */
-import { MediaContent } from './platform-post.interface';
+import { MediaContent } from './platform-post.interface.ts';
 
 export interface MediaUploadResult {
   mediaId: string;

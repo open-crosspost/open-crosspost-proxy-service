@@ -1,7 +1,7 @@
 /**
  * Configuration exports
  */
-export * from './env';
+export * from './env.ts';
 
 // Default configuration values
 export const DEFAULT_CONFIG = {

@@ -1,5 +1,13 @@
-import { Env } from '../config/env';
-import { NearAuthData } from '../infrastructure/security/near-auth/near-auth.types';
+import { Env } from '../config/env.ts';
+import { NearAuthData } from '../infrastructure/security/near-auth/near-auth.types.ts';
+
+/**
+ * Deno ExecutionContext interface
+ */
+export interface ExecutionContext {
+  waitUntil(promise: Promise<any>): void;
+  passThroughOnException(): void;
+}
 
 /**
  * API Key interface

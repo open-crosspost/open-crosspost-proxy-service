@@ -1,5 +1,5 @@
 // Example of using Deno KV for token storage
-// Run with: deno run --allow-net --allow-env --allow-read --allow-write deno-kv-token-storage.ts
+// Run with: deno run --allow-net --allow-env --allow-read --allow-write token-storage.ts
 
 // Define token types (similar to your existing code)
 export enum TokenType {
@@ -20,7 +20,7 @@ export interface TwitterTokens {
  * Token Storage using Deno KV
  * This is a simplified version of your existing TokenStorage class
  */
-export class DenoKVTokenStorage {
+export class TokenStorage {
   private kv: Deno.Kv;
   private encryptionKey: string;
   
@@ -104,7 +104,7 @@ export class DenoKVTokenStorage {
 // Example usage
 async function main() {
   // Create a token storage instance
-  const tokenStorage = new DenoKVTokenStorage("dummy-encryption-key");
+  const tokenStorage = new TokenStorage("dummy-encryption-key");
   await tokenStorage.initialize();
   
   // Example user ID
