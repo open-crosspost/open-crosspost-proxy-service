@@ -1,5 +1,5 @@
 import { Env } from '../../../config/env.ts';
-import { NearAuthData, NearAuthPayload, NearAuthResult, PAYLOAD_SCHEMA } from './near-auth.types.ts';
+import { NearAuthData, NearAuthPayload, NearAuthResult, PAYLOAD_SCHEMA, nearAuthDataSchema } from './near-auth.types.ts';
 import nacl from 'npm:tweetnacl';
 import { base58_to_binary } from 'npm:base58-js';
 import { BorshSchema } from 'npm:borsher';
@@ -20,15 +20,21 @@ export class NearAuthService {
    */
   async validateNearAuth(authData: NearAuthData): Promise<NearAuthResult> {
     try {
-      if (!authData.account_id || !authData.public_key || !authData.signature || !authData.message || !authData.nonce) { // TODO: replace with Zod
+      // Validate with Zod schema
+      const validationResult = nearAuthDataSchema.safeParse(authData);
+      
+      if (!validationResult.success) {
         return {
           valid: false,
-          error: 'Missing required authentication data'
+          error: `Missing required authentication data: ${JSON.stringify(validationResult.error.format())}`
         };
       }
       
+      // Use validated data
+      const validatedData = validationResult.data;
+      
       // Validate nonce
-      const nonce = this.validateNonce(authData.nonce);
+      const nonce = this.validateNonce(validatedData.nonce);
       
       // Create payload
       const payload: NearAuthPayload = {

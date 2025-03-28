@@ -1,7 +1,7 @@
 import { getEnv } from "../config/env.ts";
 import { Context, MiddlewareHandler, Next } from "../../deps.ts";
 import { NearAuthService } from "../infrastructure/security/near-auth/near-auth.service.ts";
-import { NearAuthData } from "../infrastructure/security/near-auth/near-auth.types.ts";
+import { NearAuthData, nearAuthDataSchema } from "../infrastructure/security/near-auth/near-auth.types.ts";
 import { ApiError } from "./error_middleware.ts";
 
 /**
@@ -40,24 +40,24 @@ export class AuthMiddleware {
           }, 400);
         }
 
-        // Check if all required fields are present
-        if (!authObject.account_id || !authObject.public_key || !authObject.signature ||
-          !authObject.message || !authObject.nonce) { // TODO: replace with Zod
-          console.log("authObject", authObject);
+        // Validate with Zod schema
+        const validationResult = nearAuthDataSchema.safeParse(authObject);
+        
+        if (!validationResult.success) {
           return c.json({
             error: {
               type: "validation_error",
               message: "Missing required NEAR authentication data in token",
+              details: validationResult.error.format(),
               status: 400
             }
           }, 400);
         }
 
-        // Set default values if not provided
-        const authData: NearAuthData = {
-          ...authObject,
-          recipient: authObject.recipient || 'crosspost.near', // Default recipient
-          callback_url: authObject.callback_url || c.req.url // Use current URL as callback if not provided
+        // Use validated data with defaults applied
+        const authData = {
+          ...validationResult.data,
+          callback_url: validationResult.data.callback_url || c.req.url // Use current URL as callback if not provided
         };
 
         // Initialize NEAR auth service
