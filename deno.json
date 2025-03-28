@@ -7,7 +7,6 @@
     "fmt": "deno fmt",
     "cache": "deno cache --reload deps.ts"
   },
-  "nodeModulesDir": "auto",
   "imports": {
     "hono": "jsr:@hono/hono",
     "zod": "npm:zod",
