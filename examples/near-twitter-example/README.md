@@ -65,12 +65,12 @@ bun start
 
 The backend validates NEAR signatures using the following process:
 
-1. Extract authentication data from headers:
-   - `X-Near-Account-Id`: The NEAR account ID
-   - `X-Near-Public-Key`: The public key
-   - `X-Near-Signature`: The signature
-   - `X-Near-Message`: The signed message
-   - `X-Near-Nonce`: The nonce used for signing
+1. Extract authentication data from authorization bearer token.
+   - The NEAR account ID
+   - The public key
+   - The signature
+   - The signed message
+   - The nonce used for signing
 
 2. Validate the signature against the message and public key
 

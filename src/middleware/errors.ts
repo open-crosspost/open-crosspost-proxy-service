@@ -21,7 +21,6 @@ export enum ErrorType {
  */
 export enum ErrorCode {
   // Authentication errors
-  MISSING_NEAR_AUTH_HEADERS = 'MISSING_NEAR_AUTH_HEADERS',
   INVALID_NEAR_AUTH = 'INVALID_NEAR_AUTH',
   NEAR_AUTH_VALIDATION_ERROR = 'NEAR_AUTH_VALIDATION_ERROR',
   MISSING_NEAR_AUTH = 'MISSING_NEAR_AUTH',
@@ -87,12 +86,6 @@ export class ApiError extends Error {
  * Defines standard error objects for different error scenarios
  */
 export const Errors = {
-  // Authentication errors
-  missingNearAuthHeaders: {
-    type: ErrorType.AUTHENTICATION,
-    message: 'NEAR authentication headers are required',
-    code: ErrorCode.MISSING_NEAR_AUTH_HEADERS,
-  },
   invalidNearAuth: {
     type: ErrorType.AUTHENTICATION,
     message: 'Invalid NEAR authentication',

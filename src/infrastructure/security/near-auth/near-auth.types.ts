@@ -112,15 +112,3 @@ export interface NearAuthResult {
    */
   error?: string;
 }
-
-/**
- * NEAR Authentication Headers
- * Headers used for NEAR authentication
- */
-export const NEAR_AUTH_HEADERS = {
-  ACCOUNT_ID: 'X-Near-Account-Id',
-  PUBLIC_KEY: 'X-Near-Public-Key',
-  SIGNATURE: 'X-Near-Signature',
-  MESSAGE: 'X-Near-Message',
-  NONCE: 'X-Near-Nonce',
-};

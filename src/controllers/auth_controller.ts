@@ -320,30 +320,10 @@ export class AuthController {
       const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
 
       // Construct the callback URL (this is the proxy service's callback URL)
-      let callbackUrl = `${baseUrl}/api/twitter/callback`;
+      const callbackUrl = `${baseUrl}/api/twitter/callback`;
 
       // Add returnUrl and nearAccountId as query parameters
       const { returnUrl } = result.data;
-      const callbackParams = new URLSearchParams();
-
-      if (returnUrl) {
-        callbackParams.set('returnUrl', returnUrl);
-        console.log("Setting returnUrl in callback params:", returnUrl);
-      } else {
-        console.log("No returnUrl provided in request body");
-
-        // Try to get the origin from the request headers
-        const requestOrigin = c.req.header('origin') || c.req.header('referer');
-        if (requestOrigin) {
-          callbackParams.set('returnUrl', requestOrigin);
-          console.log("Using origin as returnUrl:", requestOrigin);
-        }
-      }
-
-      callbackParams.set('nearAccountId', authObject.account_id);
-
-      callbackUrl = `${callbackUrl}?${callbackParams.toString()}`;
-      console.log("Final callback URL:", callbackUrl);
 
       // Get the origin from the request headers
       const origin = c.req.header('origin') || c.req.header('referer');
