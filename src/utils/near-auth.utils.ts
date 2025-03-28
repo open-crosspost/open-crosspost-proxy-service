@@ -114,27 +114,3 @@ export async function verifyPlatformAccess(
 
   return token;
 }
-
-/**
- * Process content for a post
- * @param content Raw content from request
- * @returns Processed content ready for posting
- */
-export function processPostContent(content: any): any {
-  if (Array.isArray(content)) {
-    // It's a thread
-    return content.map((item: any) => ({
-      text: item.text || "",
-      media: item.media
-    }));
-  } else if (typeof content === "string") {
-    // It's a simple string post
-    return { text: content };
-  } else {
-    // It's an object
-    return {
-      text: content.text || "",
-      media: content.media
-    };
-  }
-}
