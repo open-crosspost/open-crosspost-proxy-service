@@ -2,7 +2,7 @@ import { Env } from '../../../config/env.ts';
 import { NearAuthData, NearAuthPayload, NearAuthResult, PAYLOAD_SCHEMA, nearAuthDataSchema } from './near-auth.types.ts';
 import nacl from 'npm:tweetnacl';
 import { base58_to_binary } from 'npm:base58-js';
-import { BorshSchema } from 'npm:borsher';
+import { BorshSchema } from 'borsher';
 
 /**
  * NEAR Authentication Service

@@ -22,15 +22,18 @@ export class AuthService {
    * Initialize the authentication process
    * @param redirectUri The redirect URI for the OAuth callback
    * @param scopes The requested OAuth scopes
+   * @param successUrl The URL to redirect to on successful authentication
+   * @param errorUrl The URL to redirect to on authentication failure
    * @returns The authentication URL and state
    */
   async initializeAuth(
     redirectUri: string,
     scopes: string[] = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
-    clientReturnUrl?: string
+    successUrl?: string,
+    errorUrl?: string
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
-      return await this.platformAuth.initializeAuth(redirectUri, scopes, clientReturnUrl);
+      return await this.platformAuth.initializeAuth(redirectUri, scopes, successUrl, errorUrl);
     } catch (error) {
       console.error('Error initializing auth:', error);
       throw error;
@@ -38,23 +41,31 @@ export class AuthService {
   }
   
   /**
+   * Get the auth state data from storage
+   * @param state The state parameter from the callback
+   * @returns The auth state data including successUrl and errorUrl
+   */
+  async getAuthState(state: string): Promise<{ successUrl: string; errorUrl: string } | null> {
+    try {
+      return await this.platformAuth.getAuthState(state);
+    } catch (error) {
+      console.error('Error getting auth state:', error);
+      return null;
+    }
+  }
+
+  /**
    * Handle the OAuth callback
    * @param code The authorization code from the OAuth callback
    * @param state The state parameter from the callback
-   * @param savedState The state parameter saved during initialization
-   * @param redirectUri The redirect URI used in the initial request
-   * @param codeVerifier The PKCE code verifier
    * @returns The user ID and tokens
    */
   async handleCallback(
     code: string,
     state: string,
-    savedState: string,
-    redirectUri: string,
-    codeVerifier?: string
-  ): Promise<{ userId: string; tokens: TwitterTokens; clientReturnUrl?: string }> {
+  ): Promise<{ userId: string; tokens: TwitterTokens; successUrl: string }> {
     try {
-      return await this.platformAuth.handleCallback(code, state, savedState, redirectUri, codeVerifier);
+      return await this.platformAuth.handleCallback(code, state);
     } catch (error) {
       console.error('Error handling callback:', error);
       throw error;

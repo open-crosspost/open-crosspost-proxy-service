@@ -29,7 +29,8 @@ export class AuthController {
 
       // Validate request body
       const schema = z.object({
-        returnUrl: z.string().url().optional(),
+        successUrl: z.string().url().optional(),
+        errorUrl: z.string().url().optional(),
         scopes: z.array(z.string()).optional()
       });
 
@@ -51,10 +52,18 @@ export class AuthController {
       // Construct the callback URL (this is the proxy service's callback URL)
       const callbackUrl = `${baseUrl}/api/twitter/callback`;
 
-      const { returnUrl, scopes = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES } = result.data;
+      // Get the origin from the request headers to use as fallback
+      const origin = c.req.header('origin') || c.req.header('referer') || requestUrl.origin;
+      
+      const { successUrl, errorUrl, scopes = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES } = result.data;
 
       // Initialize auth with the proxy service's callback URL and the client's return URL
-      const authData = await this.authService.initializeAuth(callbackUrl, scopes, returnUrl);
+      const authData = await this.authService.initializeAuth(
+        callbackUrl, 
+        scopes, 
+        successUrl || origin,
+        errorUrl || successUrl || origin
+      );
 
       // Return the auth URL and state
       return c.json({ data: authData });
@@ -87,6 +96,20 @@ export class AuthController {
 
       // Check for errors
       if (error) {
+        try {
+          const callbackResult = await this.authService.getAuthState(state || '');
+          if (callbackResult && callbackResult.errorUrl) {
+            const errorRedirectUrl = new URL(callbackResult.errorUrl);
+            errorRedirectUrl.searchParams.set('error', error);
+            if (error_description) {
+              errorRedirectUrl.searchParams.set('error_description', error_description);
+            }
+            return c.redirect(errorRedirectUrl.toString());
+          }
+        } catch (stateError) {
+          console.error("Error retrieving auth state:", stateError);
+        }
+        
         return c.json({
           error: {
             type: "authentication_error",
@@ -108,26 +131,17 @@ export class AuthController {
 
       const callbackResult = await this.authService.handleCallback(
         code,
-        state,
-        state, // savedState (not used in new implementation)
-        "", // redirectUri (not used in new implementation)
-        "" // codeVerifier (not used in new implementation)
+        state
       );
 
-      // Use the clientReturnUrl from the callback result if available, otherwise use the returnUrl from the query parameters
-      const finalReturnUrl = callbackResult.clientReturnUrl
+      const { successUrl } = callbackResult;
 
-      // If returnUrl is provided, redirect with auth data
-      if (finalReturnUrl) {
-        console.log("Redirecting to:", finalReturnUrl);
-        const redirectUrl = new URL(finalReturnUrl);
-        redirectUrl.searchParams.set('userId', callbackResult.userId);
-        redirectUrl.searchParams.set('success', 'true');
-        return c.redirect(redirectUrl.toString());
-      }
+      const redirectUrl = new URL(successUrl);
 
-      // Return the user ID and tokens as JSON if no returnUrl
-      return c.json({ data: callbackResult });
+      redirectUrl.searchParams.set('userId', callbackResult.userId);
+      redirectUrl.searchParams.set('success', 'true');
+
+      return c.redirect(redirectUrl.toString());
     } catch (error) {
       console.error("Error handling callback:", error);
       return c.json({
@@ -260,7 +274,7 @@ export class AuthController {
 
       // Validate with Zod schema
       const zodValidationResult = nearAuthDataSchema.safeParse(authObject);
-      
+
       if (!zodValidationResult.success) {
         return c.json({
           error: {
@@ -277,25 +291,6 @@ export class AuthController {
         ...zodValidationResult.data,
         callback_url: zodValidationResult.data.callback_url || c.req.url // Use current URL as callback if not provided
       };
-
-      // Parse request body
-      const body = await c.req.json().catch(() => ({}));
-
-      // Validate request body
-      const schema = z.object({
-        returnUrl: z.string().url().optional()
-      });
-
-      const result = schema.safeParse(body);
-      if (!result.success) {
-        return c.json({
-          error: {
-            type: "validation_error",
-            message: "Invalid request body",
-            details: result.error
-          }
-        }, 400);
-      }
 
       // Initialize NEAR auth service
       const env = getEnv();
@@ -321,19 +316,21 @@ export class AuthController {
       // Construct the callback URL (this is the proxy service's callback URL)
       const callbackUrl = `${baseUrl}/api/twitter/callback`;
 
-      // Add returnUrl and nearAccountId as query parameters
-      const { returnUrl } = result.data;
+      // Get successUrl and errorUrl from query parameters
+      const successUrl = requestUrl.searchParams.get('successUrl');
+      const errorUrl = requestUrl.searchParams.get('errorUrl');
 
-      // Get the origin from the request headers
-      const origin = c.req.header('origin') || c.req.header('referer');
+      // Get the origin from the request headers as fallback
+      const origin = c.req.header('origin') || c.req.header('referer') || requestUrl.origin;
 
       // Initialize auth with the proxy service's callback URL and the client's return URL
-      // We need to pass the returnUrl to the auth service so it can be stored in KV
+      // We need to pass the successUrl to the auth service so it can be stored in KV
       // and retrieved during the callback
       const twitterAuthData = await this.authService.initializeAuth(
         callbackUrl,
         DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
-        returnUrl || (origin ? origin : requestUrl.origin)
+        successUrl || origin,
+        errorUrl || successUrl || origin
       );
 
       // Return the auth URL and state

@@ -67,27 +67,6 @@ app.route("/auth", auth);
 
 // Temporary route mapping for /api/twitter/callback to /auth/callback
 api.get("/twitter/callback", (c) => {
-  console.log("Received callback request at /api/twitter/callback");
-  console.log("URL:", c.req.url);
-  
-  // Log all headers
-  const headers: Record<string, string> = {};
-  c.req.raw.headers.forEach((value, key) => {
-    headers[key] = value;
-  });
-  console.log("Headers:", headers);
-  
-  // Get the origin header to use as a fallback return URL if no returnUrl is provided
-  const origin = headers['origin'] || headers['referer'];
-  
-  // Check if returnUrl is missing from the query parameters
-  const url = new URL(c.req.url);
-  if (!url.searchParams.has('returnUrl') && origin) {
-    // Add the origin as the returnUrl
-    url.searchParams.set('returnUrl', origin);
-    console.log("Added returnUrl from origin:", origin);
-  }
-  
   return authController.handleCallback(c);
 });
 
