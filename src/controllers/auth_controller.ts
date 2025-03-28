@@ -1,6 +1,6 @@
+import { Context } from "../../deps.ts";
 import { getEnv } from "../config/env.ts";
 import { DEFAULT_CONFIG } from "../config/index.ts";
-import { Context, z } from "../../deps.ts";
 import { AuthService } from "../domain/services/auth.service.ts";
 import { NearAuthService } from "../infrastructure/security/near-auth/near-auth.service.ts";
 import { NearAuthData, nearAuthDataSchema } from "../infrastructure/security/near-auth/near-auth.types.ts";
@@ -18,31 +18,77 @@ export class AuthController {
   }
 
   /**
-   * Initialize the authentication process
+   * Initialize authentication with NEAR signature
    * @param c The Hono context
    * @returns HTTP response with auth URL and state
    */
   async initializeAuth(c: Context): Promise<Response> {
     try {
-      // Parse request body
-      const body = await c.req.json().catch(() => ({}));
+      // Extract NEAR auth data from Authorization header
+      const authHeader = c.req.header('Authorization');
 
-      // Validate request body
-      const schema = z.object({
-        successUrl: z.string().url().optional(),
-        errorUrl: z.string().url().optional(),
-        scopes: z.array(z.string()).optional()
-      });
-
-      const result = schema.safeParse(body);
-      if (!result.success) {
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return c.json({
           error: {
             type: "validation_error",
-            message: "Invalid request body",
-            details: result.error
+            message: "Missing or invalid Authorization header",
+            status: 400
           }
         }, 400);
+      }
+
+      // Extract the token part (after 'Bearer ')
+      const token = authHeader.substring(7);
+
+      // Parse the JSON token
+      let authObject: NearAuthData;
+      try {
+        authObject = JSON.parse(token);
+      } catch (error) {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Invalid JSON in Authorization token",
+            status: 400
+          }
+        }, 400);
+      }
+
+      // Validate with Zod schema
+      const zodValidationResult = nearAuthDataSchema.safeParse(authObject);
+
+      if (!zodValidationResult.success) {
+        return c.json({
+          error: {
+            type: "validation_error",
+            message: "Missing required NEAR authentication data in token",
+            details: zodValidationResult.error.format(),
+            status: 400
+          }
+        }, 400);
+      }
+
+      // Use validated data with defaults applied
+      const authData = {
+        ...zodValidationResult.data,
+        callback_url: zodValidationResult.data.callback_url || c.req.url // Use current URL as callback if not provided
+      };
+
+      // Initialize NEAR auth service
+      const env = getEnv();
+      const nearAuthService = new NearAuthService(env);
+
+      // Validate signature
+      const signatureValidationResult = await nearAuthService.validateNearAuth(authData);
+
+      if (!signatureValidationResult.valid) {
+        return c.json({
+          error: {
+            type: "authentication_error",
+            message: `NEAR authentication failed: ${signatureValidationResult.error}`,
+            status: 401
+          }
+        }, 401);
       }
 
       // Get the base URL of the current request
@@ -52,23 +98,27 @@ export class AuthController {
       // Construct the callback URL (this is the proxy service's callback URL)
       const callbackUrl = `${baseUrl}/api/twitter/callback`;
 
-      // Get the origin from the request headers to use as fallback
+      // Get successUrl and errorUrl from query parameters
+      const successUrl = requestUrl.searchParams.get('successUrl');
+      const errorUrl = requestUrl.searchParams.get('errorUrl');
+
+      // Get the origin from the request headers as fallback
       const origin = c.req.header('origin') || c.req.header('referer') || requestUrl.origin;
-      
-      const { successUrl, errorUrl, scopes = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES } = result.data;
 
       // Initialize auth with the proxy service's callback URL and the client's return URL
-      const authData = await this.authService.initializeAuth(
-        callbackUrl, 
-        scopes, 
+      // We need to pass the successUrl to the auth service so it can be stored in KV
+      // and retrieved during the callback
+      const twitterAuthData = await this.authService.initializeAuth(
+        callbackUrl,
+        DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
         successUrl || origin,
         errorUrl || successUrl || origin
       );
 
       // Return the auth URL and state
-      return c.json({ data: authData });
+      return c.json({ data: twitterAuthData });
     } catch (error) {
-      console.error("Error initializing auth:", error);
+      console.error("Error initializing auth with NEAR:", error);
       return c.json({
         error: {
           type: "internal_error",
@@ -109,7 +159,7 @@ export class AuthController {
         } catch (stateError) {
           console.error("Error retrieving auth state:", stateError);
         }
-        
+
         return c.json({
           error: {
             type: "authentication_error",
@@ -225,118 +275,6 @@ export class AuthController {
       return c.json({ data: { hasTokens } });
     } catch (error) {
       console.error("Error checking tokens:", error);
-      return c.json({
-        error: {
-          type: "internal_error",
-          message: error instanceof Error ? error.message : "An unexpected error occurred",
-          status: 500
-        }
-      }, 500);
-    }
-  }
-
-  /**
-   * Initialize authentication with NEAR signature
-   * @param c The Hono context
-   * @returns HTTP response with auth URL and state
-   */
-  async initializeAuthWithNear(c: Context): Promise<Response> {
-    try {
-      // Extract NEAR auth data from Authorization header
-      const authHeader = c.req.header('Authorization');
-
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return c.json({
-          error: {
-            type: "validation_error",
-            message: "Missing or invalid Authorization header",
-            status: 400
-          }
-        }, 400);
-      }
-
-      // Extract the token part (after 'Bearer ')
-      const token = authHeader.substring(7);
-
-      // Parse the JSON token
-      let authObject: NearAuthData;
-      try {
-        authObject = JSON.parse(token);
-      } catch (error) {
-        return c.json({
-          error: {
-            type: "validation_error",
-            message: "Invalid JSON in Authorization token",
-            status: 400
-          }
-        }, 400);
-      }
-
-      // Validate with Zod schema
-      const zodValidationResult = nearAuthDataSchema.safeParse(authObject);
-
-      if (!zodValidationResult.success) {
-        return c.json({
-          error: {
-            type: "validation_error",
-            message: "Missing required NEAR authentication data in token",
-            details: zodValidationResult.error.format(),
-            status: 400
-          }
-        }, 400);
-      }
-
-      // Use validated data with defaults applied
-      const authData = {
-        ...zodValidationResult.data,
-        callback_url: zodValidationResult.data.callback_url || c.req.url // Use current URL as callback if not provided
-      };
-
-      // Initialize NEAR auth service
-      const env = getEnv();
-      const nearAuthService = new NearAuthService(env);
-
-      // Validate signature
-      const signatureValidationResult = await nearAuthService.validateNearAuth(authData);
-
-      if (!signatureValidationResult.valid) {
-        return c.json({
-          error: {
-            type: "authentication_error",
-            message: `NEAR authentication failed: ${signatureValidationResult.error}`,
-            status: 401
-          }
-        }, 401);
-      }
-
-      // Get the base URL of the current request
-      const requestUrl = new URL(c.req.url);
-      const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
-
-      // Construct the callback URL (this is the proxy service's callback URL)
-      const callbackUrl = `${baseUrl}/api/twitter/callback`;
-
-      // Get successUrl and errorUrl from query parameters
-      const successUrl = requestUrl.searchParams.get('successUrl');
-      const errorUrl = requestUrl.searchParams.get('errorUrl');
-
-      // Get the origin from the request headers as fallback
-      const origin = c.req.header('origin') || c.req.header('referer') || requestUrl.origin;
-
-      // Initialize auth with the proxy service's callback URL and the client's return URL
-      // We need to pass the successUrl to the auth service so it can be stored in KV
-      // and retrieved during the callback
-      const twitterAuthData = await this.authService.initializeAuth(
-        callbackUrl,
-        DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
-        successUrl || origin,
-        errorUrl || successUrl || origin
-      );
-
-      // Return the auth URL and state
-      return c.json({ data: twitterAuthData });
-    } catch (error) {
-      console.error("Error initializing auth with NEAR:", error);
       return c.json({
         error: {
           type: "internal_error",

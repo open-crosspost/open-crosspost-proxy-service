@@ -160,7 +160,7 @@ async function connectTwitter() {
             };
             
             // Initialize Twitter OAuth flow with NEAR signature
-            const response = await fetch(`${API_BASE_URL}/auth/init-with-near`, {
+            const response = await fetch(`${API_BASE_URL}/auth/init`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

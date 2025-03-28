@@ -32,7 +32,6 @@ const api = new Hono();
 // Auth routes
 const auth = new Hono();
 auth.post("/init", (c) => authController.initializeAuth(c));
-auth.post("/init-with-near", (c) => authController.initializeAuthWithNear(c));
 auth.get("/callback", (c) => authController.handleCallback(c));
 auth.post("/refresh", (c) => authController.refreshToken(c));
 auth.delete("/revoke", (c) => authController.revokeToken(c));
