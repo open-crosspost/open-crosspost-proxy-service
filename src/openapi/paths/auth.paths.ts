@@ -452,4 +452,109 @@ export const authPaths = {
       ],
     },
   },
+  '/auth/authorize/near': {
+    post: {
+      tags: ['auth'],
+      summary: 'Authorize NEAR Account',
+      description:
+        'Authorizes a NEAR account to interact with the proxy by verifying its signature. This must be done before attempting to link any platform accounts.',
+      operationId: 'authorizeNear',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              $ref: '#/components/schemas/AuthorizeNearRequest',
+            },
+          },
+        },
+      },
+      responses: {
+        '200': {
+          description: 'NEAR account authorized successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/AuthorizeNearResponse',
+              },
+            },
+          },
+        },
+        '400': {
+          description: 'Invalid request body or signature validation failed.',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+        '500': {
+          description: 'Internal server error (e.g., failed to store authorization).',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+      },
+      // No specific security applied here as the signature validation is part of the request body/logic
+    },
+  },
+  '/auth/unauthorize/near': {
+    delete: {
+      tags: ['auth'],
+      summary: 'Unauthorize NEAR Account',
+      description:
+        'Removes the authorization for a NEAR account, preventing it from initiating new platform authentications. Requires signature validation from the account being unauthorized.',
+      operationId: 'unauthorizeNear',
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              // Uses the same request body schema as authorization
+              $ref: '#/components/schemas/AuthorizeNearRequest',
+            },
+          },
+        },
+      },
+      responses: {
+        '200': {
+          description: 'NEAR account unauthorized successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UnauthorizeNearResponse',
+              },
+            },
+          },
+        },
+        '400': {
+          description: 'Invalid request body or signature validation failed.',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+        '500': {
+          description: 'Internal server error (e.g., failed to remove authorization).',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+      },
+      // No specific security applied here as the signature validation is part of the request body/logic
+    },
+  },
 };

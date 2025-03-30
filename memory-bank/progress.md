@@ -50,8 +50,9 @@ authentication system, API endpoints, and middleware have been implemented.
 - ✅ All middleware components (AuthMiddleware, CorsMiddleware, ErrorMiddleware,
   RateLimitMiddleware)
 - ✅ Validation schemas with Zod for all request types
-- ✅ OpenAPI documentation with paths and schemas for all endpoints
+- ✅ OpenAPI documentation with paths and schemas for all endpoints (including NEAR auth/unauth)
 - ✅ Connected accounts listing for NEAR wallets
+- ✅ NEAR account authorization flow (`/authorize/near`, `/unauthorize/near`, and pre-check for login)
 
 ## What's In Progress
 
@@ -164,9 +165,9 @@ authentication system, API endpoints, and middleware have been implemented.
 - ✅ Domain services (Completed)
 - ✅ API controllers (Completed)
 - ✅ Middleware (Completed)
-- ✅ OpenAPI specification (Completed)
+- ✅ OpenAPI specification (Completed, updated for NEAR auth/unauth)
 - ✅ Input validation with Zod (Completed)
-- ✅ NEAR wallet signature authentication (Completed)
+- ✅ NEAR wallet signature authentication (Completed, with pre-authorization check)
 - ✅ Token storage with Deno KV (Completed)
 - ✅ Platform-specific authentication routes (Completed)
 - ✅ Factory pattern for platform-specific implementations (Completed)

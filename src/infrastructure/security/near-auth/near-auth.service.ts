@@ -378,4 +378,110 @@ export class NearAuthService {
       throw new Error('Failed to update connected accounts index');
     }
   }
+
+  /**
+   * Authorize a NEAR account by validating its signature and storing authorization status.
+   * @param authData NEAR authentication data containing signature details.
+   * @returns Result indicating success or failure, including the signer ID if successful.
+   */
+  async authorizeNearAccount(
+    authData: NearAuthData,
+  ): Promise<{ success: boolean; signerId?: string; error?: string }> {
+    const validationResult = await this.validateNearAuth(authData);
+
+    if (!validationResult.valid || !validationResult.signerId) {
+      return { success: false, error: validationResult.error || 'Validation failed' };
+    }
+
+    try {
+      await this.initializeKv();
+      if (!this.kv) {
+        throw new Error('KV store not initialized');
+      }
+
+      const key = ['near_auth', validationResult.signerId];
+      const value = { authorized: true, timestamp: new Date().toISOString() };
+      await this.kv.set(key, value);
+
+      console.log(`NEAR account ${validationResult.signerId} authorized successfully.`);
+      return { success: true, signerId: validationResult.signerId };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to store authorization';
+      console.error(
+        `Error authorizing NEAR account ${validationResult.signerId}:`,
+        errorMessage,
+        error,
+      );
+      return { success: false, error: errorMessage };
+    }
+  }
+
+  /**
+   * Check if a NEAR account is authorized.
+   * @param signerId NEAR account ID.
+   * @returns True if the account is authorized, false otherwise.
+   */
+  async isNearAccountAuthorized(signerId: string): Promise<boolean> {
+    try {
+      await this.initializeKv();
+      if (!this.kv) {
+        console.error('KV store not initialized while checking authorization.');
+        return false; // Cannot confirm authorization if KV is unavailable
+      }
+
+      const key = ['near_auth', signerId];
+      const result = await this.kv.get<{ authorized: boolean }>(key);
+
+      return result.value?.authorized === true;
+    } catch (error) {
+      console.error(`Error checking authorization for NEAR account ${signerId}:`, error);
+      return false; // Assume not authorized if there's an error
+    }
+  }
+
+  /**
+   * Unauthorize a NEAR account by validating its signature and removing the authorization status.
+   * @param authData NEAR authentication data containing signature details.
+   * @returns Result indicating success or failure, including the signer ID if successful.
+   */
+  async unauthorizeNearAccount(
+    authData: NearAuthData,
+  ): Promise<{ success: boolean; signerId?: string; error?: string }> {
+    const validationResult = await this.validateNearAuth(authData);
+
+    if (!validationResult.valid || !validationResult.signerId) {
+      return { success: false, error: validationResult.error || 'Validation failed' };
+    }
+
+    try {
+      await this.initializeKv();
+      if (!this.kv) {
+        throw new Error('KV store not initialized');
+      }
+
+      const key = ['near_auth', validationResult.signerId];
+      // Check if the key exists before attempting deletion
+      const existing = await this.kv.get(key);
+      if (existing.value === null) {
+        console.log(`NEAR account ${validationResult.signerId} was already not authorized.`);
+        // Consider it a success if the goal state (unauthorized) is already met
+        return { success: true, signerId: validationResult.signerId };
+      }
+
+      await this.kv.delete(key);
+
+      console.log(`NEAR account ${validationResult.signerId} unauthorized successfully.`);
+      return { success: true, signerId: validationResult.signerId };
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Failed to remove authorization';
+      console.error(
+        `Error unauthorizing NEAR account ${validationResult.signerId}:`,
+        errorMessage,
+        error,
+      );
+      return { success: false, error: errorMessage };
+    }
+  }
 }

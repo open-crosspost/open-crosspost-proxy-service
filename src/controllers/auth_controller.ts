@@ -3,6 +3,7 @@ import { Env, getEnv } from '../config/env.ts';
 import { DEFAULT_CONFIG } from '../config/index.ts';
 import { AuthService } from '../domain/services/auth.service.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
+import { NearAuthData } from '../infrastructure/security/near-auth/near-auth.types.ts';
 import { extractAndValidateNearAuth } from '../utils/near-auth.utils.ts';
 import { unlinkAccountFromNear } from '../utils/account-linking.utils.ts';
 
@@ -31,6 +32,20 @@ export class AuthController {
     try {
       // Extract and validate NEAR auth data
       const { signerId } = await extractAndValidateNearAuth(c);
+
+      // Check if the NEAR account is authorized
+      const isAuthorized = await this.nearAuthService.isNearAccountAuthorized(signerId);
+      if (!isAuthorized) {
+        console.warn(`Unauthorized NEAR account attempt: ${signerId}`);
+        return c.json({
+          error: {
+            type: 'authorization_required',
+            message:
+              `NEAR account ${signerId} is not authorized. Please authorize via POST /auth/authorize/near first.`,
+            status: 403, // Forbidden
+          },
+        }, 403);
+      }
 
       // Get the base URL of the current request
       const requestUrl = new URL(c.req.url);
@@ -322,6 +337,91 @@ export class AuthController {
           status: 500,
         },
       }, 500);
+    }
+  }
+
+  /**
+   * Authorize a NEAR account for interaction with the proxy.
+   * @param c The Hono context
+   * @returns HTTP response indicating success or failure of authorization.
+   */
+  async authorizeNear(c: Context): Promise<Response> {
+    try {
+      // Extract NEAR auth data from the request body
+      const authData: NearAuthData = await c.req.json();
+
+      // Attempt to authorize the NEAR account
+      const result = await this.nearAuthService.authorizeNearAccount(authData);
+
+      if (result.success) {
+        return c.json({ data: { success: true, signerId: result.signerId } });
+      } else {
+        const status = result.error?.includes('Invalid signature') ||
+            result.error?.includes('Validation failed')
+          ? 400
+          : 500;
+        return c.json({
+          error: {
+            type: status === 400 ? 'authorization_error' : 'internal_error',
+            message: result.error || 'Failed to authorize NEAR account',
+            status: status,
+          },
+        }, status);
+      }
+    } catch (error) {
+      console.error('Error authorizing NEAR account:', error);
+      // Handle JSON parsing errors or other unexpected issues
+      const isValidationError = error instanceof SyntaxError; // Basic check for JSON parsing error
+      return c.json({
+        error: {
+          type: isValidationError ? 'validation_error' : 'internal_error',
+          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+          status: isValidationError ? 400 : 500,
+        },
+      }, isValidationError ? 400 : 500);
+    }
+  }
+
+  /**
+   * Unauthorize a NEAR account, removing its ability to interact with the proxy.
+   * @param c The Hono context
+   * @returns HTTP response indicating success or failure of unauthorization.
+   */
+  async unauthorizeNear(c: Context): Promise<Response> {
+    try {
+      // Extract NEAR auth data from the request body
+      const authData: NearAuthData = await c.req.json();
+
+      // Attempt to unauthorize the NEAR account
+      const result = await this.nearAuthService.unauthorizeNearAccount(authData);
+
+      if (result.success) {
+        // Consider also removing linked accounts? For now, just remove auth status.
+        return c.json({ data: { success: true, signerId: result.signerId } });
+      } else {
+        // Determine appropriate status code
+        const status = result.error?.includes('Invalid signature') ||
+            result.error?.includes('Validation failed')
+          ? 400
+          : 500;
+        return c.json({
+          error: {
+            type: status === 400 ? 'authorization_error' : 'internal_error',
+            message: result.error || 'Failed to unauthorize NEAR account',
+            status: status,
+          },
+        }, status);
+      }
+    } catch (error) {
+      console.error('Error unauthorizing NEAR account:', error);
+      const isValidationError = error instanceof SyntaxError;
+      return c.json({
+        error: {
+          type: isValidationError ? 'validation_error' : 'internal_error',
+          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+          status: isValidationError ? 400 : 500,
+        },
+      }, isValidationError ? 400 : 500);
     }
   }
 }

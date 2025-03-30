@@ -143,12 +143,6 @@ Currently supported platforms: `twitter`
 All post endpoints accept `platform` and `userId` parameters to specify which platform and account
 to use.
 
-### Media
-
-- `POST /api/media/upload` - Upload media
-- `GET /api/media/status/:id` - Check media status
-- `POST /api/media/:id/metadata` - Update media metadata
-
 ### Rate Limits
 
 - `GET /api/rate-limit/:endpoint?` - Get rate limit status for an endpoint

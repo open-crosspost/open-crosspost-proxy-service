@@ -66,6 +66,10 @@ auth.get(
   AuthMiddleware.validateNearSignature(),
   (c) => authController.listConnectedAccounts(c),
 );
+// Authorize a NEAR account
+auth.post('/authorize/near', (c) => authController.authorizeNear(c));
+// Unauthorize a NEAR account
+auth.delete('/unauthorize/near', (c) => authController.unauthorizeNear(c));
 
 // Post routes
 const post = new Hono();

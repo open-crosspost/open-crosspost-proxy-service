@@ -67,17 +67,24 @@ interface to clients.
 ```mermaid
 sequenceDiagram
     participant Client
+    participant Client
     participant Proxy
     participant Platform
     
-    Client->>Proxy: Request Auth URL (platform-specific)
-    Proxy->>Client: Return Auth URL
-    Client->>Platform: Redirect to Auth URL
-    Platform->>Proxy: Callback to platform-specific endpoint
+    Client->>Proxy: Request Auth URL (platform-specific, with NEAR signature)
+    Proxy->>Proxy: Validate NEAR Signature
+    Proxy->>KV: Check NEAR Account Authorization Status
+    alt NEAR Account Authorized
+        Proxy->>Client: Return Auth URL
+        Client->>Platform: Redirect to Auth URL
+        Platform->>Proxy: Callback to platform-specific endpoint
+    else NEAR Account Not Authorized
+        Proxy->>Client: Return 403 Error (Authorization Required)
+    end
     Proxy->>Platform: Exchange Code for Tokens
     Platform->>Proxy: Return Tokens
     Proxy->>KV: Store Tokens
-    Proxy->>Client: Return Success
+    Proxy->>Client: Return Success (Redirect to Client Success URL)
 ```
 
 The platform-specific routes follow this pattern:
@@ -112,9 +119,13 @@ sequenceDiagram
     NEAR Wallet->>Client: Return Signed Message
     Client->>Proxy: Send Signature + Request
     Proxy->>Proxy: Validate Signature
-    Proxy->>Proxy: Check Account Authorization
-    Proxy->>Platform: Execute Action with Stored Token
-    Platform->>Proxy: Return Result
+    Proxy->>Proxy: Check Account Authorization (KV Check)
+    alt Authorized
+      Proxy->>Platform: Execute Action with Stored Token
+      Platform->>Proxy: Return Result
+    else Not Authorized
+      Proxy->>Client: Return 403 Error
+    end
     Proxy->>Client: Return Result
 ```
 
@@ -450,22 +461,49 @@ classDiagram
 
 ## Data Flow Patterns
 
-### Authentication Flow
+### NEAR Account Authorization/Unauthorization Flow
 
 ```mermaid
 flowchart TD
-    Start[Start Auth] --> InitAuth[Initialize Auth]
-    InitAuth --> SelectPlatform[Select Platform]
+    subgraph Authorize
+        ReqAuth[POST /auth/authorize/near Request] --> ParseAuth[Parse NEAR Auth Data]
+        ParseAuth --> ValidateSigAuth[Validate Signature]
+        ValidateSigAuth --> StoreAuth[Store Authorization in KV]
+        StoreAuth --> SuccessAuth[Return Success (200)]
+        ValidateSigAuth -- Invalid --> ErrorAuth[Return Error (400/500)]
+        StoreAuth -- Error --> ErrorAuth
+    end
+
+    subgraph Unauthorize
+        ReqUnauth[DELETE /auth/unauthorize/near Request] --> ParseUnauth[Parse NEAR Auth Data]
+        ParseUnauth --> ValidateSigUnauth[Validate Signature]
+        ValidateSigUnauth --> DeleteAuth[Delete Authorization from KV]
+        DeleteAuth --> SuccessUnauth[Return Success (200)]
+        ValidateSigUnauth -- Invalid --> ErrorUnauth[Return Error (400/500)]
+        DeleteAuth -- Error --> ErrorUnauth
+    end
+```
+
+### Platform Authentication Flow (Initiation)
+
+```mermaid
+flowchart TD
+    Start[POST /auth/{platform}/login Request] --> ValidateNearSig[Validate NEAR Signature]
+    ValidateNearSig --> CheckNearAuth{NEAR Account Authorized?}
+    CheckNearAuth -- Yes --> SelectPlatform[Select Platform]
+    CheckNearAuth -- No --> Return403[Return 403 Error]
+
     SelectPlatform --> GenerateState[Generate State]
-    GenerateState --> StoreState[Store State in KV]
+    GenerateState --> StoreState[Store State in KV (with Success/Error URLs)]
     StoreState --> BuildURL[Build Platform-Specific Auth URL]
-    BuildURL --> ReturnURL[Return URL to Client]
-    
-    Callback[Platform-Specific Callback] --> ValidateState[Validate State]
+    BuildURL --> ReturnURL[Return Auth URL to Client]
+
+    Callback[GET /auth/{platform}/callback] --> ValidateState[Validate State from KV]
     ValidateState --> ExchangeCode[Exchange Code for Tokens]
     ExchangeCode --> StoreTokens[Store Tokens in KV]
-    StoreTokens --> LinkAccount[Link to NEAR Account]
-    LinkAccount --> ReturnSuccess[Return Success to Client]
+    StoreTokens --> LinkAccount[Link Platform Account to NEAR Account]
+    LinkAccount --> RetrieveSuccessURL[Retrieve Success URL from State]
+    RetrieveSuccessURL --> RedirectClient[Redirect Client to Success URL]
 ```
 
 ### Post Creation Flow
