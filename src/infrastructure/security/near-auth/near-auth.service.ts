@@ -382,33 +382,28 @@ export class NearAuthService {
   /**
    * Authorize a NEAR account by validating its signature and storing authorization status.
    * @param authData NEAR authentication data containing signature details.
-   * @returns Result indicating success or failure, including the signer ID if successful.
+   * @param signerId The NEAR account ID to authorize.
+   * @returns Result indicating success or failure.
    */
   async authorizeNearAccount(
-    authData: NearAuthData,
-  ): Promise<{ success: boolean; signerId?: string; error?: string }> {
-    const validationResult = await this.validateNearAuth(authData);
-
-    if (!validationResult.valid || !validationResult.signerId) {
-      return { success: false, error: validationResult.error || 'Validation failed' };
-    }
-
+    signerId: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       await this.initializeKv();
       if (!this.kv) {
         throw new Error('KV store not initialized');
       }
 
-      const key = ['near_auth', validationResult.signerId];
+      const key = ['near_auth', signerId];
       const value = { authorized: true, timestamp: new Date().toISOString() };
       await this.kv.set(key, value);
 
-      console.log(`NEAR account ${validationResult.signerId} authorized successfully.`);
-      return { success: true, signerId: validationResult.signerId };
+      console.log(`NEAR account ${signerId} authorized successfully.`);
+      return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to store authorization';
       console.error(
-        `Error authorizing NEAR account ${validationResult.signerId}:`,
+        `Error authorizing NEAR account ${signerId}:`,
         errorMessage,
         error,
       );
@@ -442,42 +437,37 @@ export class NearAuthService {
   /**
    * Unauthorize a NEAR account by validating its signature and removing the authorization status.
    * @param authData NEAR authentication data containing signature details.
-   * @returns Result indicating success or failure, including the signer ID if successful.
+   * @param signerId The NEAR account ID to unauthorize.
+   * @returns Result indicating success or failure.
    */
   async unauthorizeNearAccount(
-    authData: NearAuthData,
-  ): Promise<{ success: boolean; signerId?: string; error?: string }> {
-    const validationResult = await this.validateNearAuth(authData);
-
-    if (!validationResult.valid || !validationResult.signerId) {
-      return { success: false, error: validationResult.error || 'Validation failed' };
-    }
-
+    signerId: string,
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       await this.initializeKv();
       if (!this.kv) {
         throw new Error('KV store not initialized');
       }
 
-      const key = ['near_auth', validationResult.signerId];
+      const key = ['near_auth', signerId];
       // Check if the key exists before attempting deletion
       const existing = await this.kv.get(key);
       if (existing.value === null) {
-        console.log(`NEAR account ${validationResult.signerId} was already not authorized.`);
+        console.log(`NEAR account ${signerId} was already not authorized.`);
         // Consider it a success if the goal state (unauthorized) is already met
-        return { success: true, signerId: validationResult.signerId };
+        return { success: true };
       }
 
       await this.kv.delete(key);
 
-      console.log(`NEAR account ${validationResult.signerId} unauthorized successfully.`);
-      return { success: true, signerId: validationResult.signerId };
+      console.log(`NEAR account ${signerId} unauthorized successfully.`);
+      return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
         : 'Failed to remove authorization';
       console.error(
-        `Error unauthorizing NEAR account ${validationResult.signerId}:`,
+        `Error unauthorizing NEAR account ${signerId}:`,
         errorMessage,
         error,
       );

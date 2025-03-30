@@ -347,38 +347,32 @@ export class AuthController {
    */
   async authorizeNear(c: Context): Promise<Response> {
     try {
-      // Extract NEAR auth data from the request body
-      const authData: NearAuthData = await c.req.json();
+      // Extract and validate NEAR auth data from the header
+      const { signerId } = await extractAndValidateNearAuth(c);
 
       // Attempt to authorize the NEAR account
-      const result = await this.nearAuthService.authorizeNearAccount(authData);
+      const result = await this.nearAuthService.authorizeNearAccount(signerId);
 
       if (result.success) {
-        return c.json({ data: { success: true, signerId: result.signerId } });
+        return c.json({ data: { success: true, signerId: signerId } });
       } else {
-        const status = result.error?.includes('Invalid signature') ||
-            result.error?.includes('Validation failed')
-          ? 400
-          : 500;
         return c.json({
           error: {
-            type: status === 400 ? 'authorization_error' : 'internal_error',
+            type: 'internal_error',
             message: result.error || 'Failed to authorize NEAR account',
-            status: status,
+            status: 500,
           },
-        }, status);
+        }, 500);
       }
     } catch (error) {
-      console.error('Error authorizing NEAR account:', error);
-      // Handle JSON parsing errors or other unexpected issues
-      const isValidationError = error instanceof SyntaxError; // Basic check for JSON parsing error
+      console.error('Unexpected error authorizing NEAR account:', error);
       return c.json({
         error: {
-          type: isValidationError ? 'validation_error' : 'internal_error',
+          type: 'internal_error',
           message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: isValidationError ? 400 : 500,
+          status: 500,
         },
-      }, isValidationError ? 400 : 500);
+      }, 500);
     }
   }
 
@@ -389,39 +383,33 @@ export class AuthController {
    */
   async unauthorizeNear(c: Context): Promise<Response> {
     try {
-      // Extract NEAR auth data from the request body
-      const authData: NearAuthData = await c.req.json();
+      // Extract and validate NEAR auth data from the header
+      const { signerId } = await extractAndValidateNearAuth(c);
 
       // Attempt to unauthorize the NEAR account
-      const result = await this.nearAuthService.unauthorizeNearAccount(authData);
+      const result = await this.nearAuthService.unauthorizeNearAccount(signerId);
 
       if (result.success) {
         // Consider also removing linked accounts? For now, just remove auth status.
-        return c.json({ data: { success: true, signerId: result.signerId } });
+        return c.json({ data: { success: true, signerId: signerId } });
       } else {
-        // Determine appropriate status code
-        const status = result.error?.includes('Invalid signature') ||
-            result.error?.includes('Validation failed')
-          ? 400
-          : 500;
         return c.json({
           error: {
-            type: status === 400 ? 'authorization_error' : 'internal_error',
+            type: 'internal_error',
             message: result.error || 'Failed to unauthorize NEAR account',
-            status: status,
+            status: 500,
           },
-        }, status);
+        }, 500);
       }
     } catch (error) {
-      console.error('Error unauthorizing NEAR account:', error);
-      const isValidationError = error instanceof SyntaxError;
+      console.error('Unexpected error unauthorizing NEAR account:', error);
       return c.json({
         error: {
-          type: isValidationError ? 'validation_error' : 'internal_error',
+          type: 'internal_error',
           message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: isValidationError ? 400 : 500,
+          status: 500,
         },
-      }, isValidationError ? 400 : 500);
+      }, 500);
     }
   }
 }

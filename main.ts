@@ -67,9 +67,17 @@ auth.get(
   (c) => authController.listConnectedAccounts(c),
 );
 // Authorize a NEAR account
-auth.post('/authorize/near', (c) => authController.authorizeNear(c));
+auth.post(
+  '/authorize/near',
+  AuthMiddleware.validateNearSignature(),
+  (c) => authController.authorizeNear(c),
+);
 // Unauthorize a NEAR account
-auth.delete('/unauthorize/near', (c) => authController.unauthorizeNear(c));
+auth.delete(
+  '/unauthorize/near',
+  AuthMiddleware.validateNearSignature(),
+  (c) => authController.unauthorizeNear(c),
+);
 
 // Post routes
 const post = new Hono();

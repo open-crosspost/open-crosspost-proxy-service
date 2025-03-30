@@ -466,21 +466,21 @@ classDiagram
 ```mermaid
 flowchart TD
     subgraph Authorize
-        ReqAuth[POST /auth/authorize/near Request] --> ParseAuth[Parse NEAR Auth Data]
-        ParseAuth --> ValidateSigAuth[Validate Signature]
+        ReqAuth[POST /auth/authorize/near Request] --> ExtractAuth[Extract NEAR Auth from Header]
+        ExtractAuth --> ValidateSigAuth[Validate Signature]
         ValidateSigAuth --> StoreAuth[Store Authorization in KV]
         StoreAuth --> SuccessAuth[Return Success (200)]
-        ValidateSigAuth -- Invalid --> ErrorAuth[Return Error (400/500)]
-        StoreAuth -- Error --> ErrorAuth
+        ValidateSigAuth -- Invalid --> ErrorAuth[Return Error (401)]
+        StoreAuth -- Error --> ErrorAuth[Return Error (500)]
     end
 
     subgraph Unauthorize
-        ReqUnauth[DELETE /auth/unauthorize/near Request] --> ParseUnauth[Parse NEAR Auth Data]
-        ParseUnauth --> ValidateSigUnauth[Validate Signature]
+        ReqUnauth[DELETE /auth/unauthorize/near Request] --> ExtractUnauth[Extract NEAR Auth from Header]
+        ExtractUnauth --> ValidateSigUnauth[Validate Signature]
         ValidateSigUnauth --> DeleteAuth[Delete Authorization from KV]
         DeleteAuth --> SuccessUnauth[Return Success (200)]
-        ValidateSigUnauth -- Invalid --> ErrorUnauth[Return Error (400/500)]
-        DeleteAuth -- Error --> ErrorUnauth
+        ValidateSigUnauth -- Invalid --> ErrorUnauth[Return Error (401)]
+        DeleteAuth -- Error --> ErrorUnauth[Return Error (500)]
     end
 ```
 

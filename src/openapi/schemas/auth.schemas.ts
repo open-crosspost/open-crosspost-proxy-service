@@ -55,43 +55,6 @@ export const authSchemas = {
     },
   },
 
-  AuthorizeNearRequest: {
-    type: 'object',
-    required: ['account_id', 'public_key', 'signature', 'message', 'nonce'],
-    properties: {
-      account_id: {
-        type: 'string',
-        description: 'The NEAR account ID being authorized.',
-        example: 'user.near',
-      },
-      public_key: {
-        type: 'string',
-        description: "The user's public key (e.g., 'ed25519:...')",
-        example: 'ed25519:...',
-      },
-      signature: {
-        type: 'string',
-        description: 'The base64-encoded signature of the payload.',
-        example: '...',
-      },
-      message: {
-        type: 'string',
-        description: 'The message that was signed.',
-        example: 'Authorize NEAR Account',
-      },
-      nonce: {
-        type: 'string',
-        description: 'A unique nonce (timestamp as string) to prevent replay attacks.',
-        example: '1678886400000',
-      },
-      recipient: {
-        type: 'string',
-        description: 'The intended recipient of the message (optional, defaults to service ID).',
-        example: 'crosspost.near',
-      },
-    },
-  },
-
   // Response Schemas
   InitializeAuthResponse: {
     type: 'object',

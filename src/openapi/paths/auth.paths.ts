@@ -457,18 +457,8 @@ export const authPaths = {
       tags: ['auth'],
       summary: 'Authorize NEAR Account',
       description:
-        'Authorizes a NEAR account to interact with the proxy by verifying its signature. This must be done before attempting to link any platform accounts.',
+        'Authorizes a NEAR account to interact with the proxy by verifying its signature provided in the Authorization header. This must be done before attempting to link any platform accounts.',
       operationId: 'authorizeNear',
-      requestBody: {
-        required: true,
-        content: {
-          'application/json': {
-            schema: {
-              $ref: '#/components/schemas/AuthorizeNearRequest',
-            },
-          },
-        },
-      },
       responses: {
         '200': {
           description: 'NEAR account authorized successfully.',
@@ -501,7 +491,11 @@ export const authPaths = {
           },
         },
       },
-      // No specific security applied here as the signature validation is part of the request body/logic
+      security: [
+        {
+          nearSignature: [], // Requires NEAR signature validation via header
+        },
+      ],
     },
   },
   '/auth/unauthorize/near': {
@@ -509,19 +503,8 @@ export const authPaths = {
       tags: ['auth'],
       summary: 'Unauthorize NEAR Account',
       description:
-        'Removes the authorization for a NEAR account, preventing it from initiating new platform authentications. Requires signature validation from the account being unauthorized.',
+        'Removes the authorization for a NEAR account, preventing it from initiating new platform authentications. Requires signature validation via the Authorization header from the account being unauthorized.',
       operationId: 'unauthorizeNear',
-      requestBody: {
-        required: true,
-        content: {
-          'application/json': {
-            schema: {
-              // Uses the same request body schema as authorization
-              $ref: '#/components/schemas/AuthorizeNearRequest',
-            },
-          },
-        },
-      },
       responses: {
         '200': {
           description: 'NEAR account unauthorized successfully.',
@@ -554,7 +537,11 @@ export const authPaths = {
           },
         },
       },
-      // No specific security applied here as the signature validation is part of the request body/logic
+      security: [
+        {
+          nearSignature: [], // Requires NEAR signature validation via header
+        },
+      ],
     },
   },
 };

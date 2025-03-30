@@ -33,7 +33,10 @@ infrastructure, authentication system, API endpoints, and middleware have been i
 - **Enhanced token storage security with versioned encryption**
 - **Added token access logging with PII redaction**
 - **Implemented secure environment configuration validation**
-- **Added NEAR account authorization flow**: Implemented `POST /auth/authorize/near` and `DELETE /auth/unauthorize/near` endpoints to manage NEAR account authorization status in KV before allowing platform connections. Updated platform login initialization (`/auth/{platform}/login`) to enforce this check.
+- **Added NEAR account authorization flow**: Implemented `POST /auth/authorize/near` and
+  `DELETE /auth/unauthorize/near` endpoints (using standard NEAR signature header validation) to
+  manage NEAR account authorization status in KV. Updated platform login initialization
+  (`/auth/{platform}/login`) to enforce this check.
 
 ## Active Decisions
 
@@ -62,7 +65,7 @@ infrastructure, authentication system, API endpoints, and middleware have been i
    - ✅ Added support for multiple accounts per NEAR wallet
    - ✅ Restructured authentication routes to be platform-specific
    - ✅ Implemented factory pattern for platform-specific auth implementations
-   - ✅ Implemented NEAR account authorization pre-check for platform logins
+   - ✅ Implemented NEAR account authorization pre-check for platform logins (using KV)
    - ⬜ Enhance security with proper key rotation
 
 4. **API Implementation**:
@@ -75,7 +78,7 @@ infrastructure, authentication system, API endpoints, and middleware have been i
    - ⬜ Enhance rate limit management with backoff strategies
 
 5. **Testing and Documentation**:
-   - ✅ Created OpenAPI documentation (including NEAR auth/unauth endpoints)
+   - ✅ Created OpenAPI documentation (updated NEAR auth/unauth endpoints for header auth)
    - ✅ Implemented request validation with Zod
    - ⬜ Create comprehensive test suite
    - ✅ Set up CI/CD pipeline for Deno
