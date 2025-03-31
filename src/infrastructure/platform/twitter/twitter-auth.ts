@@ -1,14 +1,14 @@
 import { TwitterApi } from 'twitter-api-v2';
 import { Env } from '../../../config/env.ts';
-import { KvStore } from '../../../utils/kv-store.utils.ts';
 import { linkAccountToNear } from '../../../utils/account-linking.utils.ts';
-import { TokenStorage, TokenType, TwitterTokens } from '../../storage/auth-token-storage.ts';
+import { KvStore } from '../../../utils/kv-store.utils.ts';
+import { TokenType, TwitterTokens } from '../../storage/auth-token-storage.ts';
 import { BasePlatformAuth } from '../abstract/base-platform-auth.ts';
 import { PlatformAuth } from '../abstract/platform-auth.interface.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
-import { PlatformError } from '../abstract/platform-error.ts';
 import { TwitterClient } from './twitter-client.ts';
 import { TwitterProfile } from './twitter-profile.ts';
+import { Platform } from '../../../types/platform.types.ts';
 
 // Define the auth state structure
 interface AuthState {
@@ -30,7 +30,7 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
   private twitterProfile: TwitterProfile;
 
   constructor(env: Env) {
-    super(env, 'twitter');
+    super(env, Platform.TWITTER);
     this.twitterClient = new TwitterClient(env);
     this.twitterProfile = new TwitterProfile(env);
   }
@@ -165,7 +165,8 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
       const userId = userObject.id;
 
       // Fetch and store the user profile
-      await this.twitterProfile.fetchUserProfile(userId);
+      // Pass isInitialAuth=true and the logged client to avoid token retrieval
+      await this.twitterProfile.fetchUserProfile(userId, true, loggedClient);
 
       // Create tokens object
       const tokens: TwitterTokens = {

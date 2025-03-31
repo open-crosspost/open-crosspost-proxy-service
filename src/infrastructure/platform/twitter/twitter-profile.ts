@@ -10,12 +10,10 @@ import { TwitterClient } from './twitter-client.ts';
  * Implements the PlatformProfile interface for Twitter
  */
 export class TwitterProfile implements PlatformProfile {
-  private env: Env;
   private twitterClient: TwitterClient;
   private profileStorage: UserProfileStorage;
 
   constructor(env: Env) {
-    this.env = env;
     this.twitterClient = new TwitterClient(env);
     this.profileStorage = new UserProfileStorage(env);
   }
@@ -46,12 +44,26 @@ export class TwitterProfile implements PlatformProfile {
   /**
    * Fetch a user's profile from the Twitter API
    * @param userId The user ID to fetch the profile for
+   * @param isInitialAuth Whether this is being called during initial authentication
+   * @param providedClient Optional Twitter client to use (for initial auth)
    * @returns The user profile or null if not found
    */
-  async fetchUserProfile(userId: string): Promise<UserProfile | null> {
+  async fetchUserProfile(
+    userId: string, 
+    isInitialAuth = false,
+    providedClient?: TwitterApi
+  ): Promise<UserProfile | null> {
     try {
-      // Get a Twitter client for the user
-      const client = await this.twitterClient.getClientForUser(userId);
+      // Use provided client or get a new one
+      let client: TwitterApi;
+      
+      if (isInitialAuth && providedClient) {
+        // During initial auth, use the provided client
+        client = providedClient;
+      } else {
+        // Otherwise, get a client for the user (which requires tokens)
+        client = await this.twitterClient.getClientForUser(userId);
+      }
 
       // Fetch the user data from the Twitter API with expanded fields
       const { data: user } = await client.v2.user(userId, {
