@@ -1,97 +1,148 @@
-import { TwitterClient } from '../../infrastructure/platform/twitter/twitter-client.ts';
 import { Env } from '../../config/env.ts';
 import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
+import { Platform, PlatformName } from '../../types/platform.types.ts';
+import { PlatformRateLimit, RateLimitStatus } from '../../infrastructure/platform/abstract/platform-rate-limit.interface.ts';
+import { TwitterRateLimit } from '../../infrastructure/platform/twitter/twitter-rate-limit.ts';
 
 /**
  * Rate Limit Service
  * Domain service for rate limit-related operations
  */
 export class RateLimitService {
-  private twitterClient: TwitterClient;
+  private platformRateLimits: Map<PlatformName, PlatformRateLimit>;
+  private env: Env;
 
   constructor(env: Env) {
-    // For now, we only support Twitter
-    this.twitterClient = new TwitterClient(env);
+    this.env = env;
+    this.platformRateLimits = new Map();
+
+    // Initialize with Twitter
+    this.platformRateLimits.set(Platform.TWITTER, new TwitterRateLimit(env));
+
+    // Add other platforms as they become available
+    // this.platformRateLimits.set(Platform.LINKEDIN, new LinkedInRateLimit(env));
+  }
+
+  /**
+   * Get the appropriate platform implementation
+   * @param platform The platform name
+   * @returns The platform implementation
+   */
+  private getPlatformRateLimit(platform: PlatformName): PlatformRateLimit {
+    const platformRateLimit = this.platformRateLimits.get(platform);
+
+    if (!platformRateLimit) {
+      throw new Error(`Unsupported platform: ${platform}`);
+    }
+
+    return platformRateLimit;
   }
 
   /**
    * Get the rate limit status for a specific endpoint
+   * @param platform The platform to check
    * @param endpoint The endpoint to check rate limits for
-   * @param version The API version (v1 or v2)
+   * @param version The API version (if applicable)
    * @returns The rate limit status
    */
-  async getRateLimitStatus(endpoint: string, version: 'v1' | 'v2' = 'v2'): Promise<any> {
+  async getRateLimitStatus(
+    platform: PlatformName,
+    endpoint: string,
+    version?: string
+  ): Promise<RateLimitStatus | null> {
     try {
-      return await this.twitterClient.getRateLimitStatus(endpoint, version);
+      const platformRateLimit = this.getPlatformRateLimit(platform);
+      return await platformRateLimit.getRateLimitStatus(endpoint, version);
     } catch (error) {
-      console.error('Error getting rate limit status:', error);
-      throw error;
+      console.error(`Error getting rate limit status for ${platform}:`, error);
+      return null;
     }
   }
 
   /**
    * Check if a rate limit has been hit
+   * @param platform The platform to check
    * @param rateLimitStatus The rate limit status object
    * @returns True if the rate limit has been hit
    */
-  isRateLimited(rateLimitStatus: any): boolean {
+  isRateLimited(platform: PlatformName, rateLimitStatus: RateLimitStatus | null): boolean {
     if (!rateLimitStatus) return false;
-    return this.twitterClient.isRateLimited(rateLimitStatus);
+    try {
+      const platformRateLimit = this.getPlatformRateLimit(platform);
+      return platformRateLimit.isRateLimited(rateLimitStatus);
+    } catch (error) {
+      console.error(`Error checking if rate limited for ${platform}:`, error);
+      return false;
+    }
   }
 
   /**
    * Check if a rate limit status is obsolete (reset time has passed)
+   * @param platform The platform to check
    * @param rateLimitStatus The rate limit status object
    * @returns True if the rate limit status is obsolete
    */
-  isRateLimitObsolete(rateLimitStatus: any): boolean {
+  isRateLimitObsolete(platform: PlatformName, rateLimitStatus: RateLimitStatus | null): boolean {
     if (!rateLimitStatus) return true;
-    return this.twitterClient.isRateLimitObsolete(rateLimitStatus);
+    try {
+      const platformRateLimit = this.getPlatformRateLimit(platform);
+      return platformRateLimit.isRateLimitObsolete(rateLimitStatus);
+    } catch (error) {
+      console.error(`Error checking if rate limit obsolete for ${platform}:`, error);
+      return true;
+    }
   }
 
   /**
-   * Get all rate limit statuses
-   * @returns All rate limit statuses
+   * Check if an action is allowed for a specific platform
+   * @param platform The platform to check
+   * @param action The action to check (default: 'post')
+   * @returns True if the action is allowed, false if rate limited
    */
-  async getAllRateLimits(): Promise<any> {
+  async canPerformAction(platform: PlatformName, action: string = 'post'): Promise<boolean> {
     try {
-      // Common endpoints to check
-      const endpoints = {
-        v2: [
-          '/2/tweets',
-          '/2/users/me',
-          '/2/users/:id/tweets',
-          '/2/users/:id/likes',
-          '/2/users/:id/retweets',
-        ],
-        v1: [
-          'statuses/update',
-          'statuses/retweet/:id',
-          'favorites/create',
-          'favorites/destroy',
-          'media/upload',
-        ],
-      };
-
-      const rateLimits: any = {
-        v2: {},
-        v1: {},
-      };
-
-      // Get rate limits for v2 endpoints
-      for (const endpoint of endpoints.v2) {
-        rateLimits.v2[endpoint] = await this.getRateLimitStatus(endpoint, 'v2');
+      const platformRateLimit = this.getPlatformRateLimit(platform);
+      
+      // Get the endpoint for the specified action
+      const endpointInfo = platformRateLimit.getEndpointForAction(action);
+      
+      if (!endpointInfo) {
+        // If we don't have endpoint info for this action, assume it's ok
+        console.warn(`No rate limit endpoint defined for ${platform}/${action}`);
+        return true;
       }
-
-      // Get rate limits for v1 endpoints
-      for (const endpoint of endpoints.v1) {
-        rateLimits.v1[endpoint] = await this.getRateLimitStatus(endpoint, 'v1');
+      
+      // Check rate limits for the endpoint
+      const rateLimitStatus = await platformRateLimit.getRateLimitStatus(
+        endpointInfo.endpoint, 
+        endpointInfo.version
+      );
+      
+      if (platformRateLimit.isRateLimited(rateLimitStatus)) {
+        console.warn(`Rate limit reached for ${platform}/${action}`);
+        return false;
       }
-
-      return rateLimits;
+      
+      return true;
     } catch (error) {
-      console.error('Error getting all rate limits:', error);
-      throw error;
+      console.error(`Error checking rate limits for ${platform}/${action}:`, error);
+      // If we can't check rate limits, assume it's ok to proceed
+      return true;
+    }
+  }
+
+  /**
+   * Get all rate limit statuses for a specific platform
+   * @param platform The platform to get rate limits for
+   * @returns All rate limit statuses for the platform
+   */
+  async getAllRateLimits(platform: PlatformName): Promise<Record<string, RateLimitStatus>> {
+    try {
+      const platformRateLimit = this.getPlatformRateLimit(platform);
+      return await platformRateLimit.getAllRateLimits();
+    } catch (error) {
+      console.error(`Error getting all rate limits for ${platform}:`, error);
+      return {};
     }
   }
 

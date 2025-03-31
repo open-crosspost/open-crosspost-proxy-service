@@ -3,12 +3,25 @@
  * Defines OpenAPI paths for rate limit-related endpoints
  */
 export const rateLimitPaths = {
-  '/rate-limits': {
+  '/rate-limits/{platform}': {
     get: {
       tags: ['rate-limits'],
       summary: 'Get all rate limits',
-      description: 'Get rate limit status for all endpoints',
+      description: 'Get rate limit status for all endpoints for a specific platform',
       operationId: 'getAllRateLimits',
+      parameters: [
+        {
+          name: 'platform',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'string',
+            enum: ['twitter'],
+          },
+          description: 'Platform name',
+          example: 'twitter',
+        },
+      ],
       responses: {
         '200': {
           description: 'Rate limit statuses retrieved successfully',
@@ -58,13 +71,24 @@ export const rateLimitPaths = {
       ],
     },
   },
-  '/rate-limits/{endpoint}': {
+  '/rate-limits/{platform}/{endpoint}': {
     get: {
       tags: ['rate-limits'],
       summary: 'Get rate limit status',
-      description: 'Get rate limit status for a specific endpoint',
+      description: 'Get rate limit status for a specific endpoint on a specific platform',
       operationId: 'getRateLimitStatus',
       parameters: [
+        {
+          name: 'platform',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'string',
+            enum: ['twitter'],
+          },
+          description: 'Platform name',
+          example: 'twitter',
+        },
         {
           name: 'endpoint',
           in: 'path',
@@ -146,12 +170,25 @@ export const rateLimitPaths = {
       ],
     },
   },
-  '/rate-limits/check': {
+  '/rate-limits/{platform}/check': {
     post: {
       tags: ['rate-limits'],
       summary: 'Check if rate limited',
-      description: 'Check if a rate limit has been hit',
+      description: 'Check if a rate limit has been hit for a specific platform',
       operationId: 'isRateLimited',
+      parameters: [
+        {
+          name: 'platform',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'string',
+            enum: ['twitter'],
+          },
+          description: 'Platform name',
+          example: 'twitter',
+        },
+      ],
       requestBody: {
         required: true,
         content: {
@@ -221,12 +258,25 @@ export const rateLimitPaths = {
       ],
     },
   },
-  '/rate-limits/obsolete': {
+  '/rate-limits/{platform}/obsolete': {
     post: {
       tags: ['rate-limits'],
       summary: 'Check if rate limit is obsolete',
-      description: 'Check if a rate limit status is obsolete (reset time has passed)',
+      description: 'Check if a rate limit status is obsolete (reset time has passed) for a specific platform',
       operationId: 'isRateLimitObsolete',
+      parameters: [
+        {
+          name: 'platform',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'string',
+            enum: ['twitter'],
+          },
+          description: 'Platform name',
+          example: 'twitter',
+        },
+      ],
       requestBody: {
         required: true,
         content: {

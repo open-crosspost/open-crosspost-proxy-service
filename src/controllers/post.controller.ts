@@ -1,6 +1,8 @@
 import { Context } from '../../deps.ts';
 import { getEnv } from '../config/env.ts';
 import { PostService } from '../domain/services/post.service.ts';
+import { RateLimitService } from '../domain/services/rate-limit.service.ts';
+import { PlatformName } from '../types/platform.types.ts';
 import {
   CreatePostRequest,
   DeletePostRequest,
@@ -10,8 +12,9 @@ import {
   RepostRequest,
   UnlikePostRequest,
 } from '../types/post.types.ts';
-import { PlatformName } from '../types/platform.types.ts';
+import { MediaCache } from '../utils/media-cache.utils.ts';
 import { verifyPlatformAccess } from '../utils/near-auth.utils.ts';
+import { addContentVariation, getPostDelay } from '../utils/spam-detection.utils.ts';
 
 /**
  * Post Controller
@@ -19,10 +22,12 @@ import { verifyPlatformAccess } from '../utils/near-auth.utils.ts';
  */
 export class PostController {
   private postService: PostService;
+  private rateLimitService: RateLimitService;
 
   constructor() {
     const env = getEnv();
     this.postService = new PostService(env);
+    this.rateLimitService = new RateLimitService(env);
   }
 
   /**
@@ -40,7 +45,13 @@ export class PostController {
       const results: Array<{ platform: PlatformName; userId: string; result: any }> = [];
       const errors: Array<{ platform?: PlatformName; userId?: string; error: string }> = [];
 
-      for (const target of request.targets) {
+      // Initialize media cache for this operation
+      const mediaCache = MediaCache.getInstance();
+      mediaCache.clearCache();
+
+      // Process targets sequentially
+      for (let i = 0; i < request.targets.length; i++) {
+        const target = request.targets[i];
         try {
           const { platform, userId } = target;
 
@@ -58,11 +69,25 @@ export class PostController {
             continue;
           }
 
+          // Check rate limits before posting using the platform-agnostic method
+          const canPost = await this.rateLimitService.canPerformAction(platform, 'post');
+          if (!canPost) {
+            errors.push({
+              platform,
+              userId,
+              error: `Rate limit reached for ${platform}. Please try again later.`,
+            });
+            continue;
+          }
+
+          // Add content variation to avoid duplicate content detection
+          const modifiedContent = addContentVariation(request.content, i);
+
           // Create the post
           const result = await this.postService.createPost(
             platform,
             userId,
-            request.content,
+            modifiedContent,
           );
 
           results.push({
@@ -70,6 +95,11 @@ export class PostController {
             userId,
             result,
           });
+
+          // Add a small delay between posts to avoid spam detection
+          if (i < request.targets.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, getPostDelay(platform)));
+          }
         } catch (error) {
           errors.push({
             platform: target.platform,
@@ -78,6 +108,9 @@ export class PostController {
           });
         }
       }
+
+      // Clear the media cache after all posts are processed
+      mediaCache.clearCache();
 
       // Return the combined results
       return c.json({
@@ -113,6 +146,18 @@ export class PostController {
       // Verify platform access
       await verifyPlatformAccess(signerId, body.platform, body.userId);
 
+      // Check rate limits before reposting
+      const canRepost = await this.rateLimitService.canPerformAction(body.platform, 'retweet');
+      if (!canRepost) {
+        return c.json({
+          error: {
+            type: 'rate_limit_exceeded',
+            message: `Rate limit reached for ${body.platform}. Please try again later.`,
+            status: 429,
+          },
+        }, 429);
+      }
+
       // Repost the post
       const repostResult = await this.postService.repost(body.platform, body.userId, body.postId);
 
@@ -144,6 +189,18 @@ export class PostController {
 
       // Verify platform access
       await verifyPlatformAccess(signerId, request.platform, request.userId);
+
+      // Check rate limits before quoting
+      const canQuote = await this.rateLimitService.canPerformAction(request.platform, 'post');
+      if (!canQuote) {
+        return c.json({
+          error: {
+            type: 'rate_limit_exceeded',
+            message: `Rate limit reached for ${request.platform}. Please try again later.`,
+            status: 429,
+          },
+        }, 429);
+      }
 
       // Quote the post
       const result = await this.postService.quotePost(
@@ -218,6 +275,18 @@ export class PostController {
       // Verify platform access
       await verifyPlatformAccess(signerId, request.platform, request.userId);
 
+      // Check rate limits before replying
+      const canReply = await this.rateLimitService.canPerformAction(request.platform, 'post');
+      if (!canReply) {
+        return c.json({
+          error: {
+            type: 'rate_limit_exceeded',
+            message: `Rate limit reached for ${request.platform}. Please try again later.`,
+            status: 429,
+          },
+        }, 429);
+      }
+
       // Reply to the post
       const result = await this.postService.replyToPost(
         request.platform,
@@ -255,6 +324,18 @@ export class PostController {
       // Verify platform access
       await verifyPlatformAccess(signerId, body.platform, body.userId);
 
+      // Check rate limits before liking
+      const canLike = await this.rateLimitService.canPerformAction(body.platform, 'like');
+      if (!canLike) {
+        return c.json({
+          error: {
+            type: 'rate_limit_exceeded',
+            message: `Rate limit reached for ${body.platform}. Please try again later.`,
+            status: 429,
+          },
+        }, 429);
+      }
+
       // Like the post
       const likeResult = await this.postService.likePost(body.platform, body.userId, body.postId);
 
@@ -286,6 +367,18 @@ export class PostController {
 
       // Verify platform access
       await verifyPlatformAccess(signerId, body.platform, body.userId);
+
+      // Check rate limits before unliking
+      const canUnlike = await this.rateLimitService.canPerformAction(body.platform, 'like');
+      if (!canUnlike) {
+        return c.json({
+          error: {
+            type: 'rate_limit_exceeded',
+            message: `Rate limit reached for ${body.platform}. Please try again later.`,
+            status: 429,
+          },
+        }, 429);
+      }
 
       // Unlike the post
       const unlikeResult = await this.postService.unlikePost(

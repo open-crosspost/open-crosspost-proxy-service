@@ -9,9 +9,13 @@ export const rateLimitSchemas = {
     required: ['rateLimitStatus'],
     properties: {
       rateLimitStatus: {
-        type: 'object',
+        $ref: '#/components/schemas/RateLimitStatus',
         description: 'Rate limit status object to check',
-        additionalProperties: true,
+      },
+      action: {
+        type: 'string',
+        description: 'Action to check rate limits for (e.g., post, like)',
+        example: 'post',
       },
     },
   },
@@ -21,9 +25,8 @@ export const rateLimitSchemas = {
     required: ['rateLimitStatus'],
     properties: {
       rateLimitStatus: {
-        type: 'object',
+        $ref: '#/components/schemas/RateLimitStatus',
         description: 'Rate limit status object to check for obsolescence',
-        additionalProperties: true,
       },
     },
   },
@@ -31,7 +34,7 @@ export const rateLimitSchemas = {
   // Response Schemas
   RateLimitStatus: {
     type: 'object',
-    required: ['limit', 'remaining', 'reset', 'endpoint', 'version'],
+    required: ['limit', 'remaining', 'reset', 'endpoint'],
     properties: {
       limit: {
         type: 'number',
@@ -48,11 +51,6 @@ export const rateLimitSchemas = {
       endpoint: {
         type: 'string',
         description: 'Endpoint path',
-      },
-      version: {
-        type: 'string',
-        enum: ['v1', 'v2'],
-        description: 'API version',
       },
     },
   },
@@ -76,23 +74,10 @@ export const rateLimitSchemas = {
     properties: {
       data: {
         type: 'object',
-        required: ['v1', 'v2'],
-        properties: {
-          v1: {
-            type: 'object',
-            additionalProperties: {
-              $ref: '#/components/schemas/RateLimitStatus',
-            },
-            description: 'Rate limit statuses for v1 endpoints',
-          },
-          v2: {
-            type: 'object',
-            additionalProperties: {
-              $ref: '#/components/schemas/RateLimitStatus',
-            },
-            description: 'Rate limit statuses for v2 endpoints',
-          },
+        additionalProperties: {
+          $ref: '#/components/schemas/RateLimitStatus',
         },
+        description: 'Rate limit statuses for various endpoints',
       },
       meta: {
         $ref: '#/components/schemas/ResponseMeta',

@@ -1,5 +1,6 @@
 import { SendTweetV2Params } from 'twitter-api-v2';
 import { Env } from '../../../config/env.ts';
+import { MediaCache } from '../../../utils/media-cache.utils.ts';
 import {
   DeleteResult,
   LikeResult,
@@ -425,13 +426,25 @@ export class TwitterPost implements PlatformPost {
     if (!mediaFiles || mediaFiles.length === 0) return [];
 
     const mediaIds: string[] = [];
+    const mediaCache = MediaCache.getInstance();
 
     for (const mediaFile of mediaFiles) {
       try {
+        // Check if we already have this media file cached
+        const cachedMediaId = await mediaCache.getCachedMediaId(mediaFile);
+        
+        if (cachedMediaId) {
+          console.log('Using cached media ID:', cachedMediaId);
+          mediaIds.push(cachedMediaId);
+          continue;
+        }
+        
         // Upload the media using the TwitterMedia service
         const result = await this.twitterMedia.uploadMedia(userId, mediaFile);
 
         if (result.mediaId) {
+          // Cache the media ID for potential reuse
+          await mediaCache.cacheMediaId(mediaFile, result.mediaId);
           mediaIds.push(result.mediaId);
         }
       } catch (error) {

@@ -1,6 +1,7 @@
 import { Context } from '../../deps.ts';
 import { RateLimitService } from '../domain/services/rate-limit.service.ts';
 import { getEnv } from '../config/env.ts';
+import { PlatformName } from '../types/platform.types.ts';
 
 /**
  * Rate Limit Controller
@@ -21,16 +22,16 @@ export class RateLimitController {
    */
   async getRateLimitStatus(c: Context): Promise<Response> {
     try {
-      // Extract user ID from context
-      const userId = c.get('userId') as string;
-
-      // Get the endpoint from the URL
+      // Get parameters from the request
+      const platform = c.req.param('platform') as PlatformName;
       const endpoint = c.req.param('endpoint');
+      const version = c.req.query('version');
 
       // Get the rate limit status
       const status = await this.rateLimitService.getRateLimitStatus(
-        userId,
-        endpoint as 'v1' | 'v2' | undefined,
+        platform,
+        endpoint,
+        version
       );
 
       // Return the result
@@ -54,8 +55,11 @@ export class RateLimitController {
    */
   async getAllRateLimits(c: Context): Promise<Response> {
     try {
-      // Get all rate limits
-      const limits = await this.rateLimitService.getAllRateLimits();
+      // Get platform from the request
+      const platform = c.req.param('platform') as PlatformName;
+      
+      // Get all rate limits for the platform
+      const limits = await this.rateLimitService.getAllRateLimits(platform);
 
       // Return the result
       return c.json({ data: limits });
