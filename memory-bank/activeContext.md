@@ -2,20 +2,21 @@
 
 ## Current Work Focus
 
-The project is undergoing a significant migration from Cloudflare Workers to Deno Deploy to improve
+The project has successfully migrated from Cloudflare Workers to Deno Deploy, improving
 compatibility with the twitter-api-v2 library. We've implemented a platform-agnostic architecture
 that makes it easier to adapt the service for other social media platforms beyond Twitter. The core
-infrastructure, authentication system, API endpoints, and middleware have been implemented.
+infrastructure, authentication system, API endpoints, and middleware have been implemented and are
+now running on Deno Deploy.
 
 ## Recent Changes
 
-- Migrated from Cloudflare Workers to Deno Deploy
+- **Completed migration from Cloudflare Workers to Deno Deploy**
 - Switched from itty-router to Hono for HTTP routing
 - Replaced Cloudflare KV with Deno KV for token storage
 - Updated dependencies to use Deno-compatible imports
 - Implemented NEAR wallet signature-based authentication
 - Created platform abstraction interfaces (PlatformClient, PlatformAuth, PlatformPost,
-  PlatformMedia)
+  PlatformMedia, PlatformProfile)
 - Developed Twitter-specific implementations of these interfaces
 - Implemented domain services that use the platform abstraction layer
 - Created all controllers (AuthController, MediaController, RateLimitController, PostController)
@@ -33,14 +34,18 @@ infrastructure, authentication system, API endpoints, and middleware have been i
 - **Enhanced token storage security with versioned encryption**
 - **Added token access logging with PII redaction**
 - **Implemented secure environment configuration validation**
-- **Added NEAR account authorization flow**: Implemented `POST /auth/authorize/near` and
-  `DELETE /auth/unauthorize/near` endpoints (using standard NEAR signature header validation) to
-  manage NEAR account authorization status in KV. Updated platform login initialization
-  (`/auth/{platform}/login`) to enforce this check.
+- **Added NEAR account authorization flow**: Implemented `POST /auth/authorize/near`,
+  `DELETE /auth/unauthorize/near`, and `GET /auth/authorize/near/status` endpoints (using standard
+  NEAR signature header validation) to manage and check NEAR account authorization status in KV.
+  Updated platform login initialization (`/auth/{platform}/login`) to enforce this check.
+- **Created PlatformProfile interface and implementation**: Separated profile-related functionality
+  from auth classes into dedicated profile interfaces and implementations.
+- **Made TokenStorage platform-specific**: Updated TokenStorage to require platform parameter for
+  all operations, ensuring proper separation of tokens by platform.
 
 ## Active Decisions
 
-1. **Deno Migration**:
+1. **Deno Migration**: ✅ COMPLETED
    - ✅ Created compatibility tests for twitter-api-v2 with Deno
    - ✅ Verified compatibility of Twitter API plugins with Deno
    - ✅ Tested Deno KV for token storage
@@ -49,13 +54,15 @@ infrastructure, authentication system, API endpoints, and middleware have been i
    - ✅ Converted existing Node.js code to Deno
    - ✅ Updated imports to use Deno's module system
    - ✅ Implemented Hono for HTTP routing (replacing itty-router)
-   - ✅ Update build and deployment process for Deno Deploy
+   - ✅ Updated build and deployment process for Deno Deploy
 
 2. **Platform Abstraction**:
    - ✅ Created interfaces for platform-agnostic operations
    - ✅ Implemented Twitter-specific adapters
    - ✅ Designed for easy extension to other platforms
    - ✅ Maintained all existing functionality in the new structure
+   - ✅ Created PlatformProfile interface for user profile operations
+   - ✅ Implemented TwitterProfile with profile-specific functionality
 
 3. **Authentication**:
    - ✅ Implemented OAuth 2.0 flow with PKCE
@@ -66,6 +73,7 @@ infrastructure, authentication system, API endpoints, and middleware have been i
    - ✅ Restructured authentication routes to be platform-specific
    - ✅ Implemented factory pattern for platform-specific auth implementations
    - ✅ Implemented NEAR account authorization pre-check for platform logins (using KV)
+   - ✅ Made token storage platform-specific for better separation
    - ⬜ Enhance security with proper key rotation
 
 4. **API Implementation**:
@@ -121,25 +129,27 @@ infrastructure, authentication system, API endpoints, and middleware have been i
 
 ## Current Challenges
 
-1. **Deno Compatibility**:
-   - Some npm packages have compatibility issues with Deno
-   - Node.js built-in modules need compatibility layer
-   - Performance impact when using npm packages
+1. **Deno Compatibility**: ✅ RESOLVED
+   - ✅ Successfully migrated all npm packages to Deno-compatible versions
+   - ✅ Implemented compatibility layers where needed
+   - ✅ Optimized performance for Deno environment
 
 2. **Storage Solutions**:
    - Deno KV is still in beta/unstable status
    - Limited storage capacity on free tier
-   - Need to implement proper encryption for sensitive data
+   - ✅ Implemented proper encryption for sensitive data
+   - ✅ Made token storage platform-specific for better organization
 
 3. **Testing Infrastructure**:
    - Need to set up comprehensive testing framework
    - Mock external dependencies for testing
    - Create test fixtures and helpers
 
-4. **Deployment Strategy**:
-   - ✅ Configure proper environment variables for Deno Deploy
+4. **Deployment Strategy**: ✅ COMPLETED
+   - ✅ Configured proper environment variables for Deno Deploy
    - ✅ Set up staging and production environments
-   - ✅ Implement rollback capability
+   - ✅ Implemented rollback capability
+   - ✅ Successfully deployed to Deno Deploy
 
 ## Current Directory Structure
 
@@ -170,11 +180,13 @@ infrastructure, authentication system, API endpoints, and middleware have been i
           platform-client.interface.ts
           platform-media.interface.ts
           platform-post.interface.ts
+          platform-profile.interface.ts # New profile interface
         /twitter          # Twitter-specific implementations
           twitter-auth.ts
           twitter-client.ts
           twitter-media.ts
           twitter-post.ts
+          twitter-profile.ts # New profile implementation
       /security
         /near-auth        # NEAR wallet authentication
           near-auth.service.ts
@@ -182,6 +194,7 @@ infrastructure, authentication system, API endpoints, and middleware have been i
         token-access-logger.ts # Token access logging
       /storage
         token-storage.ts  # Token storage service
+        user-profile-storage.ts # User profile storage
     /middleware
       auth_middleware.ts  # Authentication middleware
       cors_middleware.ts  # CORS handling
@@ -204,9 +217,12 @@ infrastructure, authentication system, API endpoints, and middleware have been i
         rate-limit.schemas.ts
     /types
       index.ts            # Type exports
+      post.types.ts       # Post type definitions
       request.types.ts    # Request type definitions
       response.types.ts   # Response type definitions
+      user-profile.types.ts # User profile type definitions
     /utils
+      account-linking.utils.ts # Account linking utilities
       near-auth.utils.ts  # NEAR authentication utilities
 ```
 

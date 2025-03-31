@@ -414,6 +414,9 @@ export const authPaths = {
                               type: 'string',
                               description: 'The username on the platform',
                             },
+                            profile: {
+                              $ref: '#/components/schemas/UserProfile',
+                            },
                           },
                         },
                       },
@@ -528,6 +531,177 @@ export const authPaths = {
         },
         '500': {
           description: 'Internal server error (e.g., failed to remove authorization).',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+      },
+      security: [
+        {
+          nearSignature: [], // Requires NEAR signature validation via header
+        },
+      ],
+    },
+  },
+  '/auth/{platform}/refresh-profile': {
+    post: {
+      tags: ['auth'],
+      summary: 'Refresh user profile',
+      description: "Refresh a user's profile data from the platform API",
+      operationId: 'refreshUserProfile',
+      parameters: [
+        {
+          name: 'platform',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'string',
+            enum: ['twitter'],
+          },
+          description: 'The social media platform to refresh the profile for',
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              required: ['userId'],
+              properties: {
+                userId: {
+                  type: 'string',
+                  description: 'The user ID on the platform',
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        '200': {
+          description: 'Profile refreshed successfully',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/RefreshProfileResponse',
+              },
+            },
+          },
+        },
+        '400': {
+          description: 'Invalid request',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+        '401': {
+          description: 'Unauthorized',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+        '403': {
+          description: 'Forbidden - Account not linked to this NEAR wallet',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+        '404': {
+          description: 'User profile not found',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+        '500': {
+          description: 'Internal server error',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+      },
+      security: [
+        {
+          nearSignature: [],
+        },
+      ],
+    },
+  },
+  '/auth/authorize/near/status': {
+    get: {
+      tags: ['auth'],
+      summary: 'Check NEAR Account Authorization Status',
+      description:
+        'Checks if the NEAR account (identified by the signature in the Authorization header) is authorized to interact with the proxy.',
+      operationId: 'checkNearAuthorizationStatus',
+      responses: {
+        '200': {
+          description: 'NEAR account authorization status retrieved successfully.',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['data'],
+                properties: {
+                  data: {
+                    type: 'object',
+                    required: ['signerId', 'isAuthorized'],
+                    properties: {
+                      signerId: {
+                        type: 'string',
+                        description: 'The NEAR account ID that was checked.',
+                        example: 'user.near',
+                      },
+                      isAuthorized: {
+                        type: 'boolean',
+                        description: 'Whether the NEAR account is authorized.',
+                      },
+                    },
+                  },
+                  meta: {
+                    $ref: '#/components/schemas/ResponseMeta',
+                  },
+                },
+              },
+            },
+          },
+        },
+        '401': {
+          description: 'Unauthorized - Invalid NEAR signature.',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+        '500': {
+          description: 'Internal server error.',
           content: {
             'application/json': {
               schema: {

@@ -32,33 +32,59 @@ const api = new Hono();
 // Main auth router
 const auth = new Hono();
 
-// Twitter-specific auth routes
-const twitterAuth = new Hono();
-twitterAuth.post(
-  '/login',
+// Generic platform routes
+auth.post(
+  '/:platform/login',
   AuthMiddleware.validateNearSignature(),
-  (c) => authController.initializeAuth(c, 'twitter'),
-);
-twitterAuth.get('/callback', (c) => authController.handleCallback(c, 'twitter'));
-twitterAuth.post(
-  '/refresh',
-  AuthMiddleware.validateNearSignature(),
-  (c) => authController.refreshToken(c, 'twitter'),
-);
-twitterAuth.delete(
-  '/revoke',
-  AuthMiddleware.validateNearSignature(),
-  (c) => authController.revokeToken(c, 'twitter'),
-);
-twitterAuth.get(
-  '/status',
-  AuthMiddleware.validateNearSignature(),
-  (c) => authController.hasValidTokens(c, 'twitter'),
+  (c) => {
+    const platform = c.req.param('platform');
+    return authController.initializeAuth(c, platform);
+  },
 );
 
-// Mount platform-specific routes to auth router
-auth.route('/twitter', twitterAuth);
-// more...
+auth.get(
+  '/:platform/callback',
+  (c) => {
+    const platform = c.req.param('platform');
+    return authController.handleCallback(c, platform);
+  },
+);
+
+auth.post(
+  '/:platform/refresh',
+  AuthMiddleware.validateNearSignature(),
+  (c) => {
+    const platform = c.req.param('platform');
+    return authController.refreshToken(c, platform);
+  },
+);
+
+auth.delete(
+  '/:platform/revoke',
+  AuthMiddleware.validateNearSignature(),
+  (c) => {
+    const platform = c.req.param('platform');
+    return authController.revokeToken(c, platform);
+  },
+);
+
+auth.get(
+  '/:platform/status',
+  AuthMiddleware.validateNearSignature(),
+  (c) => {
+    const platform = c.req.param('platform');
+    return authController.hasValidTokens(c, platform);
+  },
+);
+
+auth.post(
+  '/:platform/refresh-profile',
+  AuthMiddleware.validateNearSignature(),
+  (c) => {
+    const platform = c.req.param('platform');
+    return authController.refreshUserProfile(c, platform);
+  },
+);
 
 // Common auth routes that aren't platform-specific
 auth.get(
@@ -77,6 +103,12 @@ auth.delete(
   '/unauthorize/near',
   AuthMiddleware.validateNearSignature(),
   (c) => authController.unauthorizeNear(c),
+);
+// Check NEAR account authorization status
+auth.get(
+  '/authorize/near/status',
+  AuthMiddleware.validateNearSignature(),
+  (c) => authController.checkNearAuthorizationStatus(c),
 );
 
 // Post routes

@@ -240,4 +240,58 @@ export const authSchemas = {
       },
     },
   },
+
+  UserProfile: {
+    type: 'object',
+    required: ['userId', 'username', 'platform', 'lastUpdated'],
+    properties: {
+      userId: {
+        type: 'string',
+        description: 'The user ID on the platform',
+      },
+      username: {
+        type: 'string',
+        description: 'The username on the platform',
+      },
+      url: {
+        type: 'string',
+        description: 'The profile url on the platform',
+      },
+      profileImageUrl: {
+        type: 'string',
+        description: "URL to the user's profile image",
+      },
+      isPremium: {
+        type: 'boolean',
+        description: 'Whether the user has a premium account',
+      },
+      platform: {
+        type: 'string',
+        description: 'The social media platform',
+      },
+      lastUpdated: {
+        type: 'number',
+        description: 'Timestamp when the profile was last updated',
+      },
+    },
+  },
+
+  RefreshProfileResponse: {
+    type: 'object',
+    required: ['data'],
+    properties: {
+      data: {
+        type: 'object',
+        required: ['profile'],
+        properties: {
+          profile: {
+            $ref: '#/components/schemas/UserProfile',
+          },
+        },
+      },
+      meta: {
+        $ref: '#/components/schemas/ResponseMeta',
+      },
+    },
+  },
 };

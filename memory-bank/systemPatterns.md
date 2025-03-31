@@ -37,10 +37,35 @@ flowchart TD
     Client[Client] --> API[API Layer]
     API --> Domain[Domain Services]
     Domain --> Abstraction[Platform Abstraction]
-    Abstraction --> Twitter[Twitter Implementation]
-    Abstraction --> LinkedIn[LinkedIn Implementation]
-    Abstraction --> Other[Other Platforms...]
+    
+    subgraph "Platform Interfaces"
+        Abstraction --> Auth[PlatformAuth]
+        Abstraction --> Client[PlatformClient]
+        Abstraction --> Post[PlatformPost]
+        Abstraction --> Media[PlatformMedia]
+        Abstraction --> Profile[PlatformProfile]
+    end
+    
+    Auth --> TwitterAuth[Twitter Auth]
+    Client --> TwitterClient[Twitter Client]
+    Post --> TwitterPost[Twitter Post]
+    Media --> TwitterMedia[Twitter Media]
+    Profile --> TwitterProfile[Twitter Profile]
+    
+    Auth --> LinkedInAuth[LinkedIn Auth]
+    Client --> LinkedInClient[LinkedIn Client]
+    Post --> LinkedInPost[LinkedIn Post]
+    Media --> LinkedInMedia[LinkedIn Media]
+    Profile --> LinkedInProfile[LinkedIn Profile]
 ```
+
+Each platform interface has a specific responsibility:
+
+- **PlatformAuth**: Handles authentication flows
+- **PlatformClient**: Manages API client instances
+- **PlatformPost**: Handles post creation and management
+- **PlatformMedia**: Manages media uploads and attachments
+- **PlatformProfile**: Manages user profile operations
 
 ### 2. API Gateway Pattern
 
@@ -173,21 +198,32 @@ stateDiagram-v2
     HalfOpen --> Open: Failure
 ```
 
-### 6. Token Manager Pattern
+### 6. Platform-Specific Token Manager Pattern
 
-A dedicated Token Manager handles secure storage, retrieval, and refresh of OAuth tokens.
+A dedicated Token Manager handles secure storage, retrieval, and refresh of OAuth tokens with
+platform-specific separation.
 
 ```mermaid
 flowchart TD
     Request[API Request] --> TokenManager[Token Manager]
-    TokenManager --> KV[KV Storage]
-    TokenManager --> Valid{Token Valid?}
+    TokenManager --> ExtractPlatform[Extract Platform]
+    ExtractPlatform --> KV[KV Storage]
+    KV --> PlatformKey[Platform-Specific Key]
+    PlatformKey --> Valid{Token Valid?}
     Valid -->|Yes| UseToken[Use Token]
     Valid -->|No| Refresh[Refresh Token]
     Refresh --> Platform[Platform API]
-    Platform --> UpdateToken[Update Token in KV]
+    Platform --> UpdateToken[Update Token in KV with Platform Key]
     UpdateToken --> UseToken
 ```
+
+This pattern ensures:
+
+- Clear separation of tokens by platform
+- No cross-platform token conflicts
+- Improved security through isolation
+- Better organization of token storage
+- Support for multiple platforms per user
 
 ### 7. Multi-level Rate Limit Pattern
 
@@ -366,6 +402,13 @@ classDiagram
         +updateMediaMetadata()
     }
     
+    class PlatformProfile {
+        <<interface>>
+        +getUserProfile()
+        +fetchUserProfile()
+        +createUserProfile()
+    }
+    
     class TwitterClient {
         +initialize()
         +getClientForUser()
@@ -382,7 +425,6 @@ classDiagram
         +refreshToken()
         +revokeToken()
         +hasValidTokens()
-        +listConnectedAccounts()
     }
     
     class TwitterPost {
@@ -401,12 +443,18 @@ classDiagram
         +updateMediaMetadata()
     }
     
+    class TwitterProfile {
+        +getUserProfile()
+        +fetchUserProfile()
+        +createUserProfile()
+    }
+    
     class TokenStorage {
-        +getTokens()
-        +saveTokens()
-        +deleteTokens()
-        +hasTokens()
-        +listTokens()
+        +getTokens(userId, platform)
+        +saveTokens(userId, tokens, platform)
+        +deleteTokens(userId, platform)
+        +hasTokens(userId, platform)
+        +listTokens(platform)
     }
     
     class AuthMiddleware {
@@ -446,12 +494,15 @@ classDiagram
     PlatformPost <|-- TwitterPost
     PlatformMedia <|-- TwitterMedia
     PlatformClient <|-- TwitterClient
+    PlatformProfile <|-- TwitterProfile
     
     TwitterAuth --> TwitterClient
     TwitterPost --> TwitterClient
     TwitterMedia --> TwitterClient
+    TwitterProfile --> TwitterClient
     
     AuthService --> TokenStorage
+    AuthService --> PlatformProfile
     
     Router --> AuthMiddleware
     Router --> CorsMiddleware
@@ -481,6 +532,15 @@ flowchart TD
         DeleteAuth --> SuccessUnauth[Return Success (200)]
         ValidateSigUnauth -- Invalid --> ErrorUnauth[Return Error (401)]
         DeleteAuth -- Error --> ErrorUnauth[Return Error (500)]
+    end
+    
+    subgraph CheckStatus
+        ReqStatus[GET /auth/authorize/near/status Request] --> ExtractStatus[Extract NEAR Auth from Header]
+        ExtractStatus --> ValidateSigStatus[Validate Signature]
+        ValidateSigStatus --> CheckKV[Check Authorization in KV]
+        CheckKV --> ReturnStatus[Return Status (200)]
+        ValidateSigStatus -- Invalid --> ErrorStatus[Return Error (401)]
+        CheckKV -- Error --> ErrorStatus[Return Error (500)]
     end
 ```
 

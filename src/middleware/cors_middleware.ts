@@ -25,7 +25,7 @@ export const corsMiddleware = (): MiddlewareHandler => {
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
-    exposeHeaders: ['X-Rate-Limit-Limit', 'X-Rate-Limit-Remaining', 'X-Rate-Limit-Reset'],
+    exposeHeaders: [],
     maxAge: 600, // 10 minutes
     credentials: true,
   });

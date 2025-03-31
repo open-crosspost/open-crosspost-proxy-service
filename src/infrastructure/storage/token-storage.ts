@@ -51,10 +51,11 @@ export class TokenStorage {
   /**
    * Get tokens for a user
    * @param userId The user ID to get tokens for
+   * @param platform The platform name (e.g., 'twitter')
    * @returns The user's tokens
    * @throws Error if tokens are not found
    */
-  async getTokens(userId: string): Promise<TwitterTokens> {
+  async getTokens(userId: string, platform: string): Promise<TwitterTokens> {
     try {
       await this.initialize();
 
@@ -62,13 +63,13 @@ export class TokenStorage {
         throw new Error('KV store not initialized');
       }
 
-      // Get the encrypted tokens from KV
-      const key = ['tokens', userId];
+      // Use platform-specific key
+      const key = ['tokens', platform, userId];
       const result = await this.kv.get<string>(key);
 
       if (!result.value) {
         await this.logger.logAccess(TokenOperation.GET, userId, false, 'Tokens not found');
-        throw new Error('Tokens not found');
+        throw new Error(`Tokens not found for user ${userId} on platform ${platform}`);
       }
 
       // Decrypt the tokens
@@ -95,8 +96,9 @@ export class TokenStorage {
    * Save tokens for a user
    * @param userId The user ID to save tokens for
    * @param tokens The tokens to save
+   * @param platform The platform name (e.g., 'twitter')
    */
-  async saveTokens(userId: string, tokens: TwitterTokens): Promise<void> {
+  async saveTokens(userId: string, tokens: TwitterTokens, platform: string): Promise<void> {
     try {
       await this.initialize();
 
@@ -107,13 +109,13 @@ export class TokenStorage {
       // Encrypt the tokens
       const encryptedTokens = await this.encryptTokens(tokens);
 
-      // Save the encrypted tokens to KV
-      const key = ['tokens', userId];
+      // Save the encrypted tokens to KV using platform-specific key
+      const key = ['tokens', platform, userId];
       const result = await this.kv.set(key, encryptedTokens);
 
       if (!result.ok) {
         await this.logger.logAccess(TokenOperation.SAVE, userId, false, 'Failed to save tokens');
-        throw new Error(`Failed to save tokens for user ${userId}`);
+        throw new Error(`Failed to save tokens for user ${userId} on platform ${platform}`);
       }
 
       // Log successful save
@@ -134,8 +136,9 @@ export class TokenStorage {
   /**
    * Delete tokens for a user
    * @param userId The user ID to delete tokens for
+   * @param platform The platform name (e.g., 'twitter')
    */
-  async deleteTokens(userId: string): Promise<void> {
+  async deleteTokens(userId: string, platform: string): Promise<void> {
     try {
       await this.initialize();
 
@@ -143,8 +146,8 @@ export class TokenStorage {
         throw new Error('KV store not initialized');
       }
 
-      // Delete the tokens from KV
-      const key = ['tokens', userId];
+      // Delete the tokens from KV using platform-specific key
+      const key = ['tokens', platform, userId];
       await this.kv.delete(key);
 
       // Log successful deletion
@@ -165,9 +168,10 @@ export class TokenStorage {
   /**
    * Check if tokens exist for a user
    * @param userId The user ID to check
+   * @param platform The platform name (e.g., 'twitter')
    * @returns True if tokens exist
    */
-  async hasTokens(userId: string): Promise<boolean> {
+  async hasTokens(userId: string, platform: string): Promise<boolean> {
     try {
       await this.initialize();
 
@@ -175,8 +179,8 @@ export class TokenStorage {
         throw new Error('KV store not initialized');
       }
 
-      // Check if tokens exist in KV
-      const key = ['tokens', userId];
+      // Check if tokens exist in KV using platform-specific key
+      const key = ['tokens', platform, userId];
       const result = await this.kv.get(key);
       const exists = result.value !== null;
 

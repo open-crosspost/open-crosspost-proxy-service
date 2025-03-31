@@ -4,6 +4,7 @@
 export * from './request.types.ts';
 export * from './response.types.ts';
 export * from './post.types.ts';
+export * from './user-profile.types.ts';
 
 /**
  * Common types used throughout the application

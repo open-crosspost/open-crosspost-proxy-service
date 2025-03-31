@@ -1,9 +1,10 @@
 import { TwitterApi } from 'twitter-api-v2';
 import { Env } from '../../../config/env.ts';
+import { linkAccountToNear } from '../../../utils/account-linking.utils.ts';
 import { TokenStorage, TokenType, TwitterTokens } from '../../storage/token-storage.ts';
 import { PlatformAuth } from '../abstract/platform-auth.interface.ts';
 import { TwitterClient } from './twitter-client.ts';
-import { linkAccountToNear } from '../../../utils/account-linking.utils.ts';
+import { TwitterProfile } from './twitter-profile.ts';
 
 // Define the auth state structure
 interface AuthState {
@@ -23,13 +24,15 @@ interface AuthState {
 export class TwitterAuth implements PlatformAuth {
   private env: Env;
   private twitterClient: TwitterClient;
+  private twitterProfile: TwitterProfile;
   private tokenStorage: TokenStorage;
   private kv: Deno.Kv | null = null;
 
   constructor(env: Env) {
     this.env = env;
     this.twitterClient = new TwitterClient(env);
-    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY);
+    this.twitterProfile = new TwitterProfile(env);
+    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY, env);
   }
 
   /**
@@ -195,6 +198,9 @@ export class TwitterAuth implements PlatformAuth {
       const { data: userObject } = await loggedClient.v2.me();
       const userId = userObject.id;
 
+      // Fetch and store the user profile
+      await this.twitterProfile.fetchUserProfile(userId);
+
       // Create tokens object
       const tokens: TwitterTokens = {
         accessToken,
@@ -205,7 +211,7 @@ export class TwitterAuth implements PlatformAuth {
       };
 
       // Save the tokens
-      await this.tokenStorage.saveTokens(userId, tokens);
+      await this.tokenStorage.saveTokens(userId, tokens, 'twitter');
 
       // Link the Twitter account to the NEAR wallet
       await linkAccountToNear(authState.signerId, 'twitter', userId, tokens, this.env);
@@ -232,7 +238,7 @@ export class TwitterAuth implements PlatformAuth {
   async refreshToken(userId: string): Promise<TwitterTokens> {
     try {
       // Get the current tokens
-      const tokens = await this.tokenStorage.getTokens(userId);
+      const tokens = await this.tokenStorage.getTokens(userId, 'twitter');
 
       // Check if refresh token exists
       if (!tokens.refreshToken) {
@@ -260,7 +266,7 @@ export class TwitterAuth implements PlatformAuth {
         };
 
         // Save the new tokens
-        await this.tokenStorage.saveTokens(userId, newTokens);
+        await this.tokenStorage.saveTokens(userId, newTokens, 'twitter');
 
         return newTokens;
       } catch (error: any) {
@@ -269,7 +275,7 @@ export class TwitterAuth implements PlatformAuth {
           error.data?.error === 'invalid_request' ||
           (error.status === 400 && error.code === 'invalid_grant')
         ) {
-          await this.tokenStorage.deleteTokens(userId);
+          await this.tokenStorage.deleteTokens(userId, 'twitter');
           throw new Error('User authentication expired. Please reconnect your Twitter account.');
         }
 
@@ -289,7 +295,7 @@ export class TwitterAuth implements PlatformAuth {
   async revokeToken(userId: string): Promise<boolean> {
     try {
       // Get the tokens from storage
-      const tokens = await this.tokenStorage.getTokens(userId);
+      const tokens = await this.tokenStorage.getTokens(userId, 'twitter');
 
       // Create a Twitter API client
       const twitterClient = new TwitterApi({
@@ -312,7 +318,9 @@ export class TwitterAuth implements PlatformAuth {
       }
 
       // Delete the tokens from storage
-      await this.tokenStorage.deleteTokens(userId);
+      await this.tokenStorage.deleteTokens(userId, 'twitter');
+
+      // No need to explicitly delete the profile here as it's handled by the token storage
 
       return true;
     } catch (error) {

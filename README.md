@@ -83,6 +83,41 @@ deno bundle main.ts bundle.js
 deno run --allow-net --allow-env --allow-read main.ts
 ```
 
+## Deno KV Management
+
+This project includes a utility script for managing the Deno KV database during development:
+
+```bash
+# List all keys in the Deno KV database
+deno task list-kv
+
+# Clear all keys from the Deno KV database (with confirmation prompt)
+deno task clear-kv
+
+# Clear all keys without confirmation
+deno task clear-kv -- --yes
+
+# Only operate on keys with a specific prefix
+deno task clear-kv -- --prefix=tokens
+
+# Show help message
+deno task clear-kv -- --help
+```
+
+The script supports the following options:
+
+- `--list-only`: Only list keys without deleting them
+- `--prefix=PREFIX`: Only operate on keys with the specified prefix
+- `--yes`: Skip confirmation prompt
+- `--help`: Show help message
+
+Common prefixes in this project:
+- `tokens`: OAuth tokens
+- `profile`: User profiles
+- `near_auth`: NEAR authorization status
+- `token`: NEAR account tokens
+- `index`: Connected accounts index
+
 ### Deployment
 
 The application is deployed to Deno Deploy using GitHub Actions workflows:

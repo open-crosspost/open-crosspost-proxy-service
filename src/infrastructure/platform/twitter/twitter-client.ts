@@ -54,7 +54,7 @@ export class TwitterClient implements PlatformClient {
   async getClientForUser(userId: string): Promise<TwitterApi> {
     try {
       // Get the tokens from the token store
-      const tokens = await this.tokenStorage.getTokens(userId);
+      const tokens = await this.tokenStorage.getTokens(userId, 'twitter');
 
       // Create the auto refresher plugin for OAuth 2.0
       const autoRefresherPlugin = new TwitterApiAutoTokenRefresher({
@@ -74,7 +74,7 @@ export class TwitterClient implements PlatformClient {
           };
 
           // Save the new tokens
-          await this.tokenStorage.saveTokens(userId, newTokens);
+          await this.tokenStorage.saveTokens(userId, newTokens, 'twitter');
         },
         onTokenRefreshError: async (error) => {
           console.error('Token refresh error:', error);
@@ -84,7 +84,7 @@ export class TwitterClient implements PlatformClient {
             (error as any).data?.error === 'invalid_request' ||
             ((error as any).status === 400 && (error as any).code === 'invalid_grant')
           ) {
-            await this.tokenStorage.deleteTokens(userId);
+            await this.tokenStorage.deleteTokens(userId, 'twitter');
             throw new Error('User authentication expired. Please reconnect your Twitter account.');
           }
         },
@@ -164,7 +164,7 @@ export class TwitterClient implements PlatformClient {
     };
 
     // Save the tokens
-    await this.tokenStorage.saveTokens(user.id, tokens);
+    await this.tokenStorage.saveTokens(user.id, tokens, 'twitter');
 
     return tokens;
   }
@@ -212,7 +212,7 @@ export class TwitterClient implements PlatformClient {
   async revokeToken(userId: string): Promise<boolean> {
     try {
       // Get the tokens from storage
-      const tokens = await this.tokenStorage.getTokens(userId);
+      const tokens = await this.tokenStorage.getTokens(userId, 'twitter');
 
       // Create a Twitter API client
       const client = new TwitterApi({
@@ -235,7 +235,7 @@ export class TwitterClient implements PlatformClient {
       }
 
       // Delete the tokens from storage
-      await this.tokenStorage.deleteTokens(userId);
+      await this.tokenStorage.deleteTokens(userId, 'twitter');
 
       return true;
     } catch (error) {

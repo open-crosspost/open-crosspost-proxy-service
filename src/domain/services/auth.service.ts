@@ -1,5 +1,7 @@
 import { PlatformAuth } from '../../infrastructure/platform/abstract/platform-auth.interface.ts';
+import { PlatformProfile } from '../../infrastructure/platform/abstract/platform-profile.interface.ts';
 import { TwitterAuth } from '../../infrastructure/platform/twitter/twitter-auth.ts';
+import { TwitterProfile } from '../../infrastructure/platform/twitter/twitter-profile.ts';
 import { Env } from '../../config/env.ts';
 import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 import { DEFAULT_CONFIG } from '../../config/index.ts';
@@ -12,6 +14,7 @@ import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
  */
 export class AuthService {
   private platformAuthMap: Map<string, PlatformAuth>;
+  private platformProfileMap: Map<string, PlatformProfile>;
   private tokenStorage: TokenStorage;
   private env: Env;
 
@@ -24,6 +27,12 @@ export class AuthService {
     this.platformAuthMap.set('twitter', new TwitterAuth(env));
     // Add more platforms as they're implemented
     // this.platformAuthMap.set('linkedin', new LinkedInAuth(env));
+
+    // Initialize platform profiles
+    this.platformProfileMap = new Map();
+    this.platformProfileMap.set('twitter', new TwitterProfile(env));
+    // Add more platform profiles as they're implemented
+    // this.platformProfileMap.set('linkedin', new LinkedInProfile(env));
   }
 
   /**
@@ -32,12 +41,26 @@ export class AuthService {
    * @returns The platform-specific auth implementation
    * @throws Error if the platform is not supported
    */
-  private getPlatformAuth(platform: string): PlatformAuth {
+  getPlatformAuth(platform: string): PlatformAuth {
     const platformAuth = this.platformAuthMap.get(platform.toLowerCase());
     if (!platformAuth) {
       throw new Error(`Unsupported platform: ${platform}`);
     }
     return platformAuth;
+  }
+
+  /**
+   * Get the platform-specific profile implementation
+   * @param platform The platform name (e.g., 'twitter')
+   * @returns The platform-specific profile implementation
+   * @throws Error if the platform is not supported
+   */
+  getPlatformProfile(platform: string): PlatformProfile {
+    const platformProfile = this.platformProfileMap.get(platform.toLowerCase());
+    if (!platformProfile) {
+      throw new Error(`Unsupported platform: ${platform}`);
+    }
+    return platformProfile;
   }
 
   /**
@@ -147,7 +170,7 @@ export class AuthService {
    */
   async hasValidTokens(platform: string, userId: string): Promise<boolean> {
     try {
-      return await this.tokenStorage.hasTokens(userId);
+      return await this.tokenStorage.hasTokens(userId, platform);
     } catch (error) {
       console.error('Error checking tokens:', error);
       return false;
@@ -191,6 +214,23 @@ export class AuthService {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  /**
+   * Get a user's profile
+   * @param platform The platform name (e.g., 'twitter')
+   * @param userId The user ID to get the profile for
+   * @param forceRefresh Whether to force a refresh from the API
+   * @returns The user profile or null if not found
+   */
+  async getUserProfile(platform: string, userId: string, forceRefresh = false): Promise<any> {
+    try {
+      const platformProfile = this.getPlatformProfile(platform);
+      return await platformProfile.getUserProfile(userId, forceRefresh);
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      return null;
+    }
   }
 
   /**

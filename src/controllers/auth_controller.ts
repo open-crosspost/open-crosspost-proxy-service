@@ -151,6 +151,7 @@ export class AuthController {
       const redirectUrl = new URL(successUrl);
 
       redirectUrl.searchParams.set('userId', callbackResult.userId);
+      redirectUrl.searchParams.set('platform', platform);
       redirectUrl.searchParams.set('success', 'true');
 
       return c.redirect(redirectUrl.toString());
@@ -326,8 +327,21 @@ export class AuthController {
       // Get all connected accounts
       const accounts = await this.nearAuthService.listConnectedAccounts(signerId);
 
-      // Return the accounts
-      return c.json({ data: { accounts } });
+      // Fetch user profiles for each account
+      const accountsWithProfiles = await Promise.all(
+        accounts.map(async (account) => {
+          // Get the user profile (with automatic refresh if needed)
+          const profile = await this.authService.getUserProfile(account.platform, account.userId);
+
+          return {
+            ...account,
+            profile,
+          };
+        }),
+      );
+
+      // Return the accounts with profiles
+      return c.json({ data: { accounts: accountsWithProfiles } });
     } catch (error) {
       console.error('Error listing connected accounts:', error);
       return c.json({
@@ -403,6 +417,99 @@ export class AuthController {
       }
     } catch (error) {
       console.error('Unexpected error unauthorizing NEAR account:', error);
+      return c.json({
+        error: {
+          type: 'internal_error',
+          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+          status: 500,
+        },
+      }, 500);
+    }
+  }
+
+  /**
+   * Check if a NEAR account is authorized to interact with the proxy.
+   * @param c The Hono context
+   * @returns HTTP response indicating whether the account is authorized.
+   */
+  async checkNearAuthorizationStatus(c: Context): Promise<Response> {
+    try {
+      // Extract and validate NEAR auth data from the header
+      const { signerId } = await extractAndValidateNearAuth(c);
+
+      const isAuthorized = await this.nearAuthService.isNearAccountAuthorized(signerId);
+
+      return c.json({
+        data: {
+          signerId,
+          isAuthorized,
+        },
+      });
+    } catch (error) {
+      console.error('Unexpected error checking NEAR account authorization status:', error);
+      return c.json({
+        error: {
+          type: 'internal_error',
+          message: error instanceof Error ? error.message : 'An unexpected error occurred',
+          status: 500,
+        },
+      }, 500);
+    }
+  }
+
+  /**
+   * Refresh a user's profile from the platform API
+   * @param c The Hono context
+   * @param platform The platform name (e.g., 'twitter')
+   * @returns HTTP response with the refreshed profile
+   */
+  async refreshUserProfile(c: Context, platform: string): Promise<Response> {
+    try {
+      // Extract and validate NEAR auth data from the header
+      const { signerId } = await extractAndValidateNearAuth(c);
+
+      const body = await c.req.json();
+      const { userId } = body;
+
+      if (!userId) {
+        return c.json({
+          error: {
+            type: 'validation_error',
+            message: 'userId is required',
+            status: 400,
+          },
+        }, 400);
+      }
+
+      // Check if the tokens are linked to this NEAR account
+      const token = await this.nearAuthService.getToken(signerId, platform, userId);
+      if (!token) {
+        return c.json({
+          error: {
+            type: 'authorization_error',
+            message: 'Account not linked to this NEAR wallet',
+            status: 403,
+          },
+        }, 403);
+      }
+
+      // Force refresh the user profile
+      const profile = await this.authService.getUserProfile(platform, userId, true);
+
+      if (!profile) {
+        return c.json({
+          error: {
+            type: 'not_found',
+            message: 'User profile not found',
+            status: 404,
+          },
+        }, 404);
+      }
+
+      // Return the refreshed profile
+      return c.json({ data: { profile } });
+    } catch (error) {
+      console.error('Error refreshing user profile:', error);
       return c.json({
         error: {
           type: 'internal_error',
