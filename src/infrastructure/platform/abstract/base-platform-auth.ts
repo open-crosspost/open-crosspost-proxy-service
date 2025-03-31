@@ -1,6 +1,7 @@
 import { Env } from '../../../config/env.ts';
+import { PlatformName } from '../../../types/platform.types.ts';
 import { PrefixedKvStore } from '../../../utils/kv-store.utils.ts';
-import { TokenStorage } from '../../storage/token-storage.ts';
+import { TokenStorage } from '../../storage/auth-token-storage.ts';
 import { PlatformAuth } from './platform-auth.interface.ts';
 import { PlatformClient } from './platform-client.interface.ts';
 import { PlatformError, PlatformErrorType } from './platform-error.ts';
@@ -18,7 +19,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
    * @param env Environment configuration
    * @param platform Platform name (e.g., 'twitter')
    */
-  constructor(protected env: Env, protected platform: string) {
+  constructor(protected env: Env, protected platform: PlatformName) {
     this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY, env);
     this.kvStore = new PrefixedKvStore(['auth', platform]);
   }

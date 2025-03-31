@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { Context } from '../../deps.ts';
 import { getEnv } from '../config/env.ts';
 import { PostService } from '../domain/services/post.service.ts';
@@ -11,6 +10,7 @@ import {
   RepostRequest,
   UnlikePostRequest,
 } from '../types/post.types.ts';
+import { PlatformName } from '../types/platform.types.ts';
 import { verifyPlatformAccess } from '../utils/near-auth.utils.ts';
 
 /**
@@ -35,38 +35,12 @@ export class PostController {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get('signerId') as string;
 
-      // Parse request body
-      const body = await c.req.json();
+      const request = await c.req.json() as CreatePostRequest;
 
-      // Validate and normalize the request
-      let normalizedRequest: CreatePostRequest;
+      const results: Array<{ platform: PlatformName; userId: string; result: any }> = [];
+      const errors: Array<{ platform?: PlatformName; userId?: string; error: string }> = [];
 
-      // Check if we have a properly formatted request with targets array
-      if (body.targets && Array.isArray(body.targets) && body.content) {
-        normalizedRequest = {
-          targets: body.targets,
-          content: Array.isArray(body.content) ? body.content : [{ text: body.content }],
-        };
-      } // Check if we have a single target with platform and userId directly in the request
-      else if (body.platform && body.userId && body.content) {
-        normalizedRequest = {
-          targets: [{ platform: body.platform, userId: body.userId }],
-          content: Array.isArray(body.content) ? body.content : [{ text: body.content }],
-        };
-      } // Invalid request format
-      else {
-        return c.json({
-          error: {
-            type: 'validation_error',
-            message: 'Invalid request format. Must include targets and content.',
-          },
-        }, 400);
-      }
-      // Process all targets
-      const results: Array<{ platform: string; userId: string; result: any }> = [];
-      const errors: Array<{ platform?: string; userId?: string; error: string }> = [];
-
-      for (const target of normalizedRequest.targets) {
+      for (const target of request.targets) {
         try {
           const { platform, userId } = target;
 
@@ -88,7 +62,7 @@ export class PostController {
           const result = await this.postService.createPost(
             platform,
             userId,
-            normalizedRequest.content,
+            request.content,
           );
 
           results.push({
@@ -134,26 +108,7 @@ export class PostController {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get('signerId') as string;
 
-      // Parse request body
       const body = await c.req.json() as RepostRequest;
-
-      // Validate request body
-      const schema = z.object({
-        platform: z.string(),
-        userId: z.string(),
-        postId: z.string(),
-      });
-
-      const result = schema.safeParse(body);
-      if (!result.success) {
-        return c.json({
-          error: {
-            type: 'validation_error',
-            message: 'Invalid request body',
-            details: result.error,
-          },
-        }, 400);
-      }
 
       // Verify platform access
       await verifyPlatformAccess(signerId, body.platform, body.userId);
@@ -185,58 +140,17 @@ export class PostController {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get('signerId') as string;
 
-      // Parse request body
-      const body = await c.req.json();
-
-      // Validate and normalize the request
-      let normalizedRequest: QuotePostRequest;
-
-      // Check if we have a properly formatted request
-      if (body.platform && body.userId && body.postId) {
-        normalizedRequest = {
-          platform: body.platform,
-          userId: body.userId,
-          postId: body.postId,
-          content: Array.isArray(body.content) ? body.content : [{
-            text: body.text || '',
-            media: body.media,
-          }],
-        };
-      } // Check if we have an array of quote posts (thread)
-      else if (
-        Array.isArray(body) && body.length > 0 && body[0].platform && body[0].userId &&
-        body[0].postId
-      ) {
-        const { platform, userId, postId } = body[0];
-
-        normalizedRequest = {
-          platform,
-          userId,
-          postId,
-          content: body.map((item) => ({
-            text: item.text || '',
-            media: item.media,
-          })),
-        };
-      } // Invalid request format
-      else {
-        return c.json({
-          error: {
-            type: 'validation_error',
-            message: 'Invalid request format. Must include platform, userId, postId, and content.',
-          },
-        }, 400);
-      }
+      const request = await c.req.json() as QuotePostRequest;
 
       // Verify platform access
-      await verifyPlatformAccess(signerId, normalizedRequest.platform, normalizedRequest.userId);
+      await verifyPlatformAccess(signerId, request.platform, request.userId);
 
       // Quote the post
       const result = await this.postService.quotePost(
-        normalizedRequest.platform,
-        normalizedRequest.userId,
-        normalizedRequest.postId,
-        normalizedRequest.content,
+        request.platform,
+        request.userId,
+        request.postId,
+        request.content,
       );
 
       // Return the result
@@ -263,26 +177,7 @@ export class PostController {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get('signerId') as string;
 
-      // Parse request body
       const body = await c.req.json() as DeletePostRequest;
-
-      // Validate request body
-      const schema = z.object({
-        platform: z.string(),
-        userId: z.string(),
-        postId: z.string(),
-      });
-
-      const result = schema.safeParse(body);
-      if (!result.success) {
-        return c.json({
-          error: {
-            type: 'validation_error',
-            message: 'Invalid request body',
-            details: result.error,
-          },
-        }, 400);
-      }
 
       // Verify platform access
       await verifyPlatformAccess(signerId, body.platform, body.userId);
@@ -318,58 +213,17 @@ export class PostController {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get('signerId') as string;
 
-      // Parse request body
-      const body = await c.req.json();
-
-      // Validate and normalize the request
-      let normalizedRequest: ReplyToPostRequest;
-
-      // Check if we have a properly formatted request
-      if (body.platform && body.userId && body.postId) {
-        normalizedRequest = {
-          platform: body.platform,
-          userId: body.userId,
-          postId: body.postId,
-          content: Array.isArray(body.content) ? body.content : [{
-            text: body.text || '',
-            media: body.media,
-          }],
-        };
-      } // Check if we have an array of reply posts (thread)
-      else if (
-        Array.isArray(body) && body.length > 0 && body[0].platform && body[0].userId &&
-        body[0].postId
-      ) {
-        const { platform, userId, postId } = body[0];
-
-        normalizedRequest = {
-          platform,
-          userId,
-          postId,
-          content: body.map((item) => ({
-            text: item.text || '',
-            media: item.media,
-          })),
-        };
-      } // Invalid request format
-      else {
-        return c.json({
-          error: {
-            type: 'validation_error',
-            message: 'Invalid request format. Must include platform, userId, postId, and content.',
-          },
-        }, 400);
-      }
+      const request = await c.req.json() as ReplyToPostRequest;
 
       // Verify platform access
-      await verifyPlatformAccess(signerId, normalizedRequest.platform, normalizedRequest.userId);
+      await verifyPlatformAccess(signerId, request.platform, request.userId);
 
       // Reply to the post
       const result = await this.postService.replyToPost(
-        normalizedRequest.platform,
-        normalizedRequest.userId,
-        normalizedRequest.postId,
-        normalizedRequest.content,
+        request.platform,
+        request.userId,
+        request.postId,
+        request.content,
       );
 
       // Return the result
@@ -396,26 +250,7 @@ export class PostController {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get('signerId') as string;
 
-      // Parse request body
       const body = await c.req.json() as LikePostRequest;
-
-      // Validate request body
-      const schema = z.object({
-        platform: z.string(),
-        userId: z.string(),
-        postId: z.string(),
-      });
-
-      const result = schema.safeParse(body);
-      if (!result.success) {
-        return c.json({
-          error: {
-            type: 'validation_error',
-            message: 'Invalid request body',
-            details: result.error,
-          },
-        }, 400);
-      }
 
       // Verify platform access
       await verifyPlatformAccess(signerId, body.platform, body.userId);
@@ -447,26 +282,7 @@ export class PostController {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get('signerId') as string;
 
-      // Parse request body
       const body = await c.req.json() as UnlikePostRequest;
-
-      // Validate request body
-      const schema = z.object({
-        platform: z.string(),
-        userId: z.string(),
-        postId: z.string(),
-      });
-
-      const result = schema.safeParse(body);
-      if (!result.success) {
-        return c.json({
-          error: {
-            type: 'validation_error',
-            message: 'Invalid request body',
-            details: result.error,
-          },
-        }, 400);
-      }
 
       // Verify platform access
       await verifyPlatformAccess(signerId, body.platform, body.userId);

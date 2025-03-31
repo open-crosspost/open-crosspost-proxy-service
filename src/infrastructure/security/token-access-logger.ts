@@ -1,5 +1,6 @@
 import { Env } from '../../config/env.ts';
-import { KvStore, PrefixedKvStore } from '../../utils/kv-store.utils.ts';
+import { PlatformName } from '../../types/platform.types.ts';
+import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 
 export enum TokenOperation {
   GET = 'get',
@@ -14,7 +15,7 @@ export interface TokenAccessLog {
   userId: string; // Redacted or hashed in logs
   success: boolean;
   error?: string;
-  platform?: string;
+  platform?: PlatformName;
 }
 
 export class TokenAccessLogger {
@@ -37,7 +38,7 @@ export class TokenAccessLogger {
     userId: string,
     success: boolean,
     error?: string,
-    platform?: string,
+    platform?: PlatformName,
   ): Promise<void> {
     try {
       // Create a redacted user ID for logging

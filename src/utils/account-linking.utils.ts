@@ -72,7 +72,7 @@ export async function unlinkAccountFromNear(
 export async function getLinkedAccounts(
   signerId: string,
   env: Env,
-): Promise<Array<{ platform: string; userId: string }>> {
+): Promise<Array<{ platform: PlatformName; userId: string }>> {
   try {
     // Create NEAR auth service
     const nearAuthService = new NearAuthService(env);

@@ -1,15 +1,15 @@
 import { Hono } from './deps.ts';
 import { getSecureEnv, isProduction } from './src/config/env.ts';
-import { AuthMiddleware } from './src/middleware/auth-middleware.ts';
-import { corsMiddleware } from './src/middleware/cors-middleware.ts';
-import { errorMiddleware } from './src/middleware/error-middleware.ts';
-import { PlatformMiddleware } from './src/middleware/platform_middleware.ts';
+import { AuthMiddleware } from './src/middleware/auth.middleware.ts';
+import { corsMiddleware } from './src/middleware/cors.middleware.ts';
+import { errorMiddleware } from './src/middleware/error.middleware.ts';
+import { PlatformMiddleware } from './src/middleware/supported-platforms.middleware.ts';
 
 // Import controllers
-import { AuthController } from './src/controllers/auth_controller.ts';
-import { MediaController } from './src/controllers/media_controller.ts';
-import { PostController } from './src/controllers/post_controller.ts';
-import { RateLimitController } from './src/controllers/rate_limit_controller.ts';
+import { AuthController } from './src/controllers/auth.controller.ts';
+import { MediaController } from './src/controllers/media.controller.ts';
+import { PostController } from './src/controllers/post.controller.ts';
+import { RateLimitController } from './src/controllers/rate-limit.controller.ts';
 
 // Create a new Hono app
 const app = new Hono();

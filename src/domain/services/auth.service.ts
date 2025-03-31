@@ -4,11 +4,11 @@ import { PlatformAuth } from '../../infrastructure/platform/abstract/platform-au
 import { PlatformProfile } from '../../infrastructure/platform/abstract/platform-profile.interface.ts';
 import { TwitterAuth } from '../../infrastructure/platform/twitter/twitter-auth.ts';
 import { TwitterProfile } from '../../infrastructure/platform/twitter/twitter-profile.ts';
-import { TokenStorage, TwitterTokens } from '../../infrastructure/storage/token-storage.ts';
+import { TokenStorage, TwitterTokens } from '../../infrastructure/storage/auth-token-storage.ts';
 import { Platform, PlatformName } from '../../types/platform.types.ts';
 import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
-import { UserProfile } from './../../types/user-profile.types.ts';
+import { UserProfile } from '../../types/user-profile.types.ts';
 
 /**
  * Auth Service

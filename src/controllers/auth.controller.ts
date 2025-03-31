@@ -393,22 +393,27 @@ export class AuthController {
 
       // Get all linked accounts before removing authorization
       const linkedAccounts = await this.nearAuthService.listConnectedAccounts(signerId);
-      
+
       // Track any errors that occur during account unlinking
-      const unlinkErrors: Array<{ platform: string; userId: string; error: string }> = [];
-      
+      const unlinkErrors: Array<{ platform: PlatformName; userId: string; error: string }> = [];
+
       // Revoke tokens and unlink all connected accounts
       for (const account of linkedAccounts) {
         try {
           // Revoke token from the platform
           await this.authService.revokeToken(account.platform, account.userId);
-          
+
           // Unlink the account from the NEAR wallet
           await unlinkAccountFromNear(signerId, account.platform, account.userId, this.env);
-          
-          console.log(`Unlinked ${account.platform} account ${account.userId} from NEAR wallet ${signerId}`);
+
+          console.log(
+            `Unlinked ${account.platform} account ${account.userId} from NEAR wallet ${signerId}`,
+          );
         } catch (unlinkError) {
-          console.error(`Error unlinking account ${account.platform}:${account.userId}:`, unlinkError);
+          console.error(
+            `Error unlinking account ${account.platform}:${account.userId}:`,
+            unlinkError,
+          );
           unlinkErrors.push({
             platform: account.platform,
             userId: account.userId,
@@ -421,13 +426,13 @@ export class AuthController {
       const result = await this.nearAuthService.unauthorizeNearAccount(signerId);
 
       if (result.success) {
-        return c.json({ 
-          data: { 
-            success: true, 
+        return c.json({
+          data: {
+            success: true,
             signerId: signerId,
             accountsUnlinked: linkedAccounts.length,
-            unlinkErrors: unlinkErrors.length > 0 ? unlinkErrors : undefined
-          } 
+            unlinkErrors: unlinkErrors.length > 0 ? unlinkErrors : undefined,
+          },
         });
       } else {
         return c.json({

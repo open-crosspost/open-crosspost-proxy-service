@@ -19,6 +19,7 @@ export interface TwitterTokens {
 }
 
 import { Env } from '../../config/env.ts';
+import { PlatformName } from '../../types/platform.types.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { TokenAccessLogger, TokenOperation } from '../security/token-access-logger.ts';
 
@@ -48,7 +49,7 @@ export class TokenStorage {
    * @returns The user's tokens
    * @throws Error if tokens are not found
    */
-  async getTokens(userId: string, platform: string): Promise<TwitterTokens> {
+  async getTokens(userId: string, platform: PlatformName): Promise<TwitterTokens> {
     try {
       // Use platform-specific key with PrefixedKvStore
       const encryptedTokens = await this.tokenStore.get<string>([platform, userId]);
@@ -84,7 +85,7 @@ export class TokenStorage {
    * @param tokens The tokens to save
    * @param platform The platform name (e.g., 'twitter')
    */
-  async saveTokens(userId: string, tokens: TwitterTokens, platform: string): Promise<void> {
+  async saveTokens(userId: string, tokens: TwitterTokens, platform: PlatformName): Promise<void> {
     try {
       // Encrypt the tokens
       const encryptedTokens = await this.encryptTokens(tokens);
@@ -112,7 +113,7 @@ export class TokenStorage {
    * @param userId The user ID to delete tokens for
    * @param platform The platform name (e.g., 'twitter')
    */
-  async deleteTokens(userId: string, platform: string): Promise<void> {
+  async deleteTokens(userId: string, platform: PlatformName): Promise<void> {
     try {
       // Delete the tokens from KV using platform-specific key with PrefixedKvStore
       await this.tokenStore.delete([platform, userId]);
@@ -138,7 +139,7 @@ export class TokenStorage {
    * @param platform The platform name (e.g., 'twitter')
    * @returns True if tokens exist
    */
-  async hasTokens(userId: string, platform: string): Promise<boolean> {
+  async hasTokens(userId: string, platform: PlatformName): Promise<boolean> {
     try {
       // Check if tokens exist in KV using platform-specific key with PrefixedKvStore
       const tokens = await this.tokenStore.get([platform, userId]);

@@ -1,6 +1,7 @@
 import { Env } from '../../config/env.ts';
-import { KvStore, PrefixedKvStore } from '../../utils/kv-store.utils.ts';
+import { PlatformName } from '../../types/platform.types.ts';
 import { UserProfile } from '../../types/user-profile.types.ts';
+import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 
 /**
  * User Profile Storage using Deno KV
@@ -20,7 +21,7 @@ export class UserProfileStorage {
    * @param platform The platform name (e.g., 'twitter')
    * @returns The user profile or null if not found
    */
-  async getProfile(userId: string, platform: string): Promise<UserProfile | null> {
+  async getProfile(userId: string, platform: PlatformName): Promise<UserProfile | null> {
     try {
       // Get the profile from KV using PrefixedKvStore
       return await this.profileStore.get<UserProfile>([platform, userId]);
@@ -55,7 +56,7 @@ export class UserProfileStorage {
    * @param platform The platform name (e.g., 'twitter')
    * @returns True if the profile was deleted successfully
    */
-  async deleteProfile(userId: string, platform: string): Promise<boolean> {
+  async deleteProfile(userId: string, platform: PlatformName): Promise<boolean> {
     try {
       // Delete the profile from KV using PrefixedKvStore
       await this.profileStore.delete([platform, userId]);

@@ -6,7 +6,7 @@ import { Redis } from '@upstash/redis';
 import { BasePlatformClient } from '../abstract/base-platform-client.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
 import { PlatformError, PlatformErrorType } from '../abstract/platform-error.ts';
-import { TokenStorage, TokenType, TwitterTokens } from '../../storage/token-storage.ts';
+import { TokenStorage, TokenType, TwitterTokens } from '../../storage/auth-token-storage.ts';
 import { Env } from '../../../config/env.ts';
 
 /**

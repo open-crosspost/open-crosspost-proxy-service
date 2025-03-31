@@ -1,3 +1,5 @@
+import { PlatformName } from './platform.types.ts';
+
 /**
  * User Profile interface
  * Common interface for user profiles across platforms
@@ -8,7 +10,7 @@ export interface UserProfile {
   url?: string;
   profileImageUrl: string;
   isPremium?: boolean;
-  platform: string;
+  platform: PlatformName;
   lastUpdated: number; // timestamp
 }
 

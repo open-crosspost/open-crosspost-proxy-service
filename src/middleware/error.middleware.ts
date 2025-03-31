@@ -126,7 +126,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
               message: err.message,
               status: err.status,
             },
-          }
+          },
         );
       }
 
@@ -140,7 +140,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
               status: err.status,
               details: err.details,
             },
-          }
+          },
         );
       }
 

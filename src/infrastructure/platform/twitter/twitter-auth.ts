@@ -2,7 +2,7 @@ import { TwitterApi } from 'twitter-api-v2';
 import { Env } from '../../../config/env.ts';
 import { KvStore } from '../../../utils/kv-store.utils.ts';
 import { linkAccountToNear } from '../../../utils/account-linking.utils.ts';
-import { TokenStorage, TokenType, TwitterTokens } from '../../storage/token-storage.ts';
+import { TokenStorage, TokenType, TwitterTokens } from '../../storage/auth-token-storage.ts';
 import { BasePlatformAuth } from '../abstract/base-platform-auth.ts';
 import { PlatformAuth } from '../abstract/platform-auth.interface.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';

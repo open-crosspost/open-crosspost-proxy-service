@@ -409,7 +409,7 @@ classDiagram
     class BasePlatformAuth {
         <<abstract>>
         #env: Env
-        #platform: string
+        #platform: PlatformName
         #tokenStorage: TokenStorage
         #kvStore: PrefixedKvStore
         +initializeAuth()

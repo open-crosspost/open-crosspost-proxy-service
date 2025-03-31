@@ -5,6 +5,7 @@ import {
   PostResult,
 } from '../infrastructure/platform/abstract/platform-post.interface.ts';
 import { ApiResponse, ErrorResponse } from './response.types.ts';
+import { PlatformName } from './platform.types.ts';
 
 /**
  * Types for POST /posts endpoint
@@ -15,7 +16,7 @@ export interface PostTarget {
   /**
    * The platform to post to (e.g., "twitter")
    */
-  platform: string;
+  platform: PlatformName;
 
   /**
    * The user ID on the platform
@@ -41,7 +42,7 @@ export interface CreatePostTargetResult {
   /**
    * The platform the post was created on
    */
-  platform: string;
+  platform: PlatformName;
 
   /**
    * The user ID on the platform
@@ -58,7 +59,7 @@ export interface CreatePostTargetError {
   /**
    * The platform where the error occurred (if applicable)
    */
-  platform?: string;
+  platform?: PlatformName;
 
   /**
    * The user ID where the error occurred (if applicable)
@@ -93,7 +94,7 @@ export interface RepostRequest {
   /**
    * The platform to repost on (e.g., "twitter")
    */
-  platform: string;
+  platform: PlatformName;
 
   /**
    * The user ID on the platform
@@ -122,7 +123,7 @@ export interface QuotePostRequest {
   /**
    * The platform to post on
    */
-  platform: string;
+  platform: PlatformName;
 
   /**
    * The user ID on the platform
@@ -153,7 +154,7 @@ export interface DeletePostRequest {
   /**
    * The platform to delete from (e.g., "twitter")
    */
-  platform: string;
+  platform: PlatformName;
 
   /**
    * The user ID on the platform
@@ -182,7 +183,7 @@ export interface ReplyToPostRequest {
   /**
    * The platform to post on
    */
-  platform: string;
+  platform: PlatformName;
 
   /**
    * The user ID on the platform
@@ -213,7 +214,7 @@ export interface LikePostRequest {
   /**
    * The platform to like on (e.g., "twitter")
    */
-  platform: string;
+  platform: PlatformName;
 
   /**
    * The user ID on the platform
@@ -238,7 +239,7 @@ export interface UnlikePostRequest {
   /**
    * The platform to unlike on (e.g., "twitter")
    */
-  platform: string;
+  platform: PlatformName;
 
   /**
    * The user ID on the platform

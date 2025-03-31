@@ -255,7 +255,7 @@ export class NearAuthService {
   ): Promise<Array<{ platform: PlatformName; userId: string }>> {
     try {
       const indexKey = ['index', signerId];
-      const accounts = await this.kvStore.get<Array<{ platform: string; userId: string }>>(
+      const accounts = await this.kvStore.get<Array<{ platform: PlatformName; userId: string }>>(
         indexKey,
       );
 
@@ -286,7 +286,7 @@ export class NearAuthService {
     try {
       const indexKey = ['index', signerId];
       const accounts =
-        await this.kvStore.get<Array<{ platform: string; userId: string }>>(indexKey) || [];
+        await this.kvStore.get<Array<{ platform: PlatformName; userId: string }>>(indexKey) || [];
 
       // Check if the account is already in the index
       const exists = accounts.some((acc) => acc.platform === platform && acc.userId === userId);
@@ -314,7 +314,7 @@ export class NearAuthService {
   ): Promise<void> {
     try {
       const indexKey = ['index', signerId];
-      const accounts = await this.kvStore.get<Array<{ platform: string; userId: string }>>(
+      const accounts = await this.kvStore.get<Array<{ platform: PlatformName; userId: string }>>(
         indexKey,
       );
 

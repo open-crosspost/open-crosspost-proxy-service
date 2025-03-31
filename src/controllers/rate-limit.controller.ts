@@ -54,9 +54,6 @@ export class RateLimitController {
    */
   async getAllRateLimits(c: Context): Promise<Response> {
     try {
-      // Extract user ID from context
-      const userId = c.get('userId') as string;
-
       // Get all rate limits
       const limits = await this.rateLimitService.getAllRateLimits();
 

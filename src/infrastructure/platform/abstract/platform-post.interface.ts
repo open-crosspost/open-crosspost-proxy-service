@@ -2,6 +2,7 @@
  * Platform Post Interface
  * Defines the common interface for platform-specific post operations
  */
+import { PlatformName } from '../../../types/platform.types.ts';
 
 export interface MediaContent {
   data: string | Blob;
@@ -12,7 +13,7 @@ export interface MediaContent {
 export interface PostContent {
   text?: string;
   media?: MediaContent[];
-  platform?: string;
+  platform?: PlatformName;
   userId?: string;
   postId?: string;
 }

@@ -1,12 +1,13 @@
+import { Env } from '../../config/env.ts';
 import {
   DeleteResult,
   LikeResult,
+  PlatformPost,
   PostContent,
   PostResult,
 } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
-import { PlatformPost } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
 import { TwitterPost } from '../../infrastructure/platform/twitter/twitter-post.ts';
-import { Env } from '../../config/env.ts';
+import { Platform, PlatformName } from '../../types/platform.types.ts';
 import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 
 /**
@@ -22,10 +23,10 @@ export class PostService {
     this.platformPosts = new Map();
 
     // Initialize with Twitter
-    this.platformPosts.set('twitter', new TwitterPost(env));
+    this.platformPosts.set(Platform.TWITTER, new TwitterPost(env));
 
     // Add other platforms as they become available
-    // this.platformPosts.set('linkedin', new LinkedInPost(env));
+    // this.platformPosts.set(Platform.LINKEDIN, new LinkedInPost(env));
   }
 
   /**
@@ -33,8 +34,8 @@ export class PostService {
    * @param platform The platform name
    * @returns The platform implementation
    */
-  private getPlatformPost(platform: string): PlatformPost {
-    const platformPost = this.platformPosts.get(platform.toLowerCase());
+  private getPlatformPost(platform: PlatformName): PlatformPost {
+    const platformPost = this.platformPosts.get(platform);
 
     if (!platformPost) {
       throw new Error(`Unsupported platform: ${platform}`);
@@ -51,7 +52,7 @@ export class PostService {
    * @returns The created post result
    */
   async createPost(
-    platform: string,
+    platform: PlatformName,
     userId: string,
     content: PostContent | PostContent[],
   ): Promise<PostResult> {
@@ -71,7 +72,7 @@ export class PostService {
    * @param postId The ID of the post to repost
    * @returns The repost result
    */
-  async repost(platform: string, userId: string, postId: string): Promise<PostResult> {
+  async repost(platform: PlatformName, userId: string, postId: string): Promise<PostResult> {
     try {
       const platformPost = this.getPlatformPost(platform);
       return await platformPost.repost(userId, postId);
@@ -90,7 +91,7 @@ export class PostService {
    * @returns The quote post result
    */
   async quotePost(
-    platform: string,
+    platform: PlatformName,
     userId: string,
     postId: string,
     content: PostContent | PostContent[],
@@ -111,7 +112,7 @@ export class PostService {
    * @param postId The ID of the post to delete
    * @returns The delete result
    */
-  async deletePost(platform: string, userId: string, postId: string): Promise<DeleteResult> {
+  async deletePost(platform: PlatformName, userId: string, postId: string): Promise<DeleteResult> {
     try {
       const platformPost = this.getPlatformPost(platform);
       return await platformPost.deletePost(userId, postId);
@@ -130,7 +131,7 @@ export class PostService {
    * @returns The reply post result
    */
   async replyToPost(
-    platform: string,
+    platform: PlatformName,
     userId: string,
     postId: string,
     content: PostContent | PostContent[],
@@ -151,7 +152,7 @@ export class PostService {
    * @param postId The ID of the post to like
    * @returns The like result
    */
-  async likePost(platform: string, userId: string, postId: string): Promise<LikeResult> {
+  async likePost(platform: PlatformName, userId: string, postId: string): Promise<LikeResult> {
     try {
       const platformPost = this.getPlatformPost(platform);
       return await platformPost.likePost(userId, postId);
@@ -168,7 +169,7 @@ export class PostService {
    * @param postId The ID of the post to unlike
    * @returns The unlike result
    */
-  async unlikePost(platform: string, userId: string, postId: string): Promise<LikeResult> {
+  async unlikePost(platform: PlatformName, userId: string, postId: string): Promise<LikeResult> {
     try {
       const platformPost = this.getPlatformPost(platform);
       return await platformPost.unlikePost(userId, postId);
