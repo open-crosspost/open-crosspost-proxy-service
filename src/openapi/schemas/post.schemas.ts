@@ -4,10 +4,51 @@
  */
 export const postSchemas = {
   // Request Schemas
+  CreatePostRequest: {
+    type: 'object',
+    required: ['targets', 'content'],
+    properties: {
+      targets: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['platform', 'userId'],
+          properties: {
+            platform: {
+              type: 'string',
+              enum: ['twitter'],
+              description: 'The platform to post to'
+            },
+            userId: {
+              type: 'string',
+              description: 'The user ID on the platform'
+            }
+          }
+        },
+        description: 'Array of targets to post to (can be a single target)'
+      },
+      content: {
+        type: 'array',
+        items: {
+          $ref: '#/components/schemas/PostContent'
+        },
+        description: 'Content for the post(s)'
+      }
+    }
+  },
   RepostRequest: {
     type: 'object',
-    required: ['postId'],
+    required: ['platform', 'userId', 'postId'],
     properties: {
+      platform: {
+        type: 'string',
+        enum: ['twitter'],
+        description: 'The platform to repost on (e.g., "twitter")',
+      },
+      userId: {
+        type: 'string',
+        description: 'The user ID on the platform',
+      },
       postId: {
         type: 'string',
         description: 'ID of the post to repost',
@@ -17,22 +58,27 @@ export const postSchemas = {
 
   QuotePostRequest: {
     type: 'object',
-    required: ['postId'],
+    required: ['platform', 'userId', 'postId', 'content'],
     properties: {
+      platform: {
+        type: 'string',
+        enum: ['twitter'],
+        description: 'The platform to post on',
+      },
+      userId: {
+        type: 'string',
+        description: 'The user ID on the platform',
+      },
       postId: {
         type: 'string',
         description: 'ID of the post to quote',
       },
-      text: {
-        type: 'string',
-        description: 'Text content for the quote post',
-      },
-      media: {
+      content: {
         type: 'array',
         items: {
-          $ref: '#/components/schemas/Media',
+          $ref: '#/components/schemas/PostContent',
         },
-        description: 'Media attachments for the quote post',
+        description: 'Content for the quote post(s)',
       },
     },
   },
@@ -60,22 +106,27 @@ export const postSchemas = {
 
   ReplyToPostRequest: {
     type: 'object',
-    required: ['postId'],
+    required: ['platform', 'userId', 'postId', 'content'],
     properties: {
+      platform: {
+        type: 'string',
+        enum: ['twitter'],
+        description: 'The platform to post on',
+      },
+      userId: {
+        type: 'string',
+        description: 'The user ID on the platform',
+      },
       postId: {
         type: 'string',
         description: 'ID of the post to reply to',
       },
-      text: {
-        type: 'string',
-        description: 'Text content for the reply',
-      },
-      media: {
+      content: {
         type: 'array',
         items: {
-          $ref: '#/components/schemas/Media',
+          $ref: '#/components/schemas/PostContent',
         },
-        description: 'Media attachments for the reply',
+        description: 'Content for the reply post(s)',
       },
     },
   },

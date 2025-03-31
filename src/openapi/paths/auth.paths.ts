@@ -3,7 +3,7 @@
  * Defines OpenAPI paths for authentication-related endpoints
  */
 export const authPaths = {
-  '/auth/{platform}/login': {
+  '/api/auth/{platform}/login': {
     post: {
       tags: ['auth'],
       summary: 'Initialize authentication',
@@ -76,12 +76,12 @@ export const authPaths = {
       },
       security: [
         {
-          apiKey: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/auth/{platform}/callback': {
+  '/api/auth/{platform}/callback': {
     get: {
       tags: ['auth'],
       summary: 'Handle OAuth callback',
@@ -162,12 +162,12 @@ export const authPaths = {
       },
       security: [
         {
-          apiKey: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/auth/{platform}/refresh': {
+  '/api/auth/{platform}/refresh': {
     post: {
       tags: ['auth'],
       summary: 'Refresh token',
@@ -229,13 +229,12 @@ export const authPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
-        },
+          nearSignature: []
+        }
       ],
     },
   },
-  '/auth/{platform}/revoke': {
+  '/api/auth/{platform}/revoke': {
     delete: {
       tags: ['auth'],
       summary: 'Revoke token',
@@ -297,13 +296,12 @@ export const authPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
-        },
+          nearSignature: []
+        }
       ],
     },
   },
-  '/auth/{platform}/status': {
+  '/api/auth/{platform}/status': {
     get: {
       tags: ['auth'],
       summary: 'Check token status',
@@ -374,13 +372,12 @@ export const authPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
-        },
+          nearSignature: []
+        }
       ],
     },
   },
-  '/auth/accounts': {
+  '/api/auth/accounts': {
     get: {
       tags: ['auth'],
       summary: 'List connected accounts',
@@ -450,12 +447,12 @@ export const authPaths = {
       },
       security: [
         {
-          apiKey: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/auth/authorize/near': {
+  '/api/auth/authorize/near': {
     post: {
       tags: ['auth'],
       summary: 'Authorize NEAR Account',
@@ -496,12 +493,12 @@ export const authPaths = {
       },
       security: [
         {
-          nearSignature: [], // Requires NEAR signature validation via header
+          nearSignature: [], 
         },
       ],
     },
   },
-  '/auth/unauthorize/near': {
+  '/api/auth/unauthorize/near': {
     delete: {
       tags: ['auth'],
       summary: 'Unauthorize NEAR Account',
@@ -547,7 +544,7 @@ export const authPaths = {
       ],
     },
   },
-  '/auth/{platform}/refresh-profile': {
+  '/api/auth/{platform}/refresh-profile': {
     post: {
       tags: ['auth'],
       summary: 'Refresh user profile',
@@ -651,7 +648,7 @@ export const authPaths = {
       ],
     },
   },
-  '/auth/authorize/near/status': {
+  '/api/auth/authorize/near/status': {
     get: {
       tags: ['auth'],
       summary: 'Check NEAR Account Authorization Status',

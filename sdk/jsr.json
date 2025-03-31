@@ -1,0 +1,17 @@
+{
+  "name": "@crosspost/sdk",
+  "version": "0.1.0",
+  "exports": "./mod.ts",
+  "description": "A TypeScript SDK for interacting with the Crosspost API",
+  "repository": "https://github.com/crosspost/twitter-proxy",
+  "authors": ["crosspost"],
+  "license": "MIT",
+  "keywords": [
+    "crosspost",
+    "social media",
+    "api",
+    "sdk",
+    "twitter",
+    "near"
+  ]
+}

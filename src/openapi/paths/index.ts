@@ -1,7 +1,7 @@
-import { authPaths } from './auth.paths';
-import { postPaths } from './post.paths';
-import { mediaPaths } from './media.paths';
-import { rateLimitPaths } from './rate-limit.paths';
+import { authPaths } from './auth.paths.ts';
+import { postPaths } from './post.paths.ts';
+import { mediaPaths } from './media.paths.ts';
+import { rateLimitPaths } from './rate-limit.paths.ts';
 
 /**
  * OpenAPI Paths

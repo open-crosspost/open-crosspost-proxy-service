@@ -1,0 +1,3412 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Crosspost API",
+    "description": "A secure proxy for social media APIs that allows authorized frontends to perform actions on behalf of users who have granted permission.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "email": "support@example.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.crosspost.example/v1",
+      "description": "Production server"
+    },
+    {
+      "url": "https://staging-api.crosspost.example/v1",
+      "description": "Staging server"
+    },
+    {
+      "url": "http://localhost:8787",
+      "description": "Local development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Authentication and account management operations"
+    },
+    {
+      "name": "posts",
+      "description": "Post operations (create, delete, like, reply, etc.)"
+    },
+    {
+      "name": "media",
+      "description": "Media operations (upload, status, metadata)"
+    },
+    {
+      "name": "rate-limits",
+      "description": "Rate limit monitoring and management"
+    },
+    {
+      "name": "platforms",
+      "description": "Platform-specific operations"
+    }
+  ],
+  "paths": {
+    "/api/auth/{platform}/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Initialize authentication",
+        "description": "Start the OAuth flow by generating an authentication URL for a specific platform",
+        "operationId": "initializeAuth",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "twitter"
+              ]
+            },
+            "description": "The social media platform to authenticate with"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitializeAuthRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication URL generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InitializeAuthResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/auth/{platform}/callback": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Handle OAuth callback",
+        "description": "Process the OAuth callback and exchange the code for tokens for a specific platform",
+        "operationId": "handleCallback",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "twitter"
+              ]
+            },
+            "description": "The social media platform handling the callback"
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The authorization code from the OAuth provider"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The state parameter for CSRF protection"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthCallbackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/auth/{platform}/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Refresh token",
+        "description": "Refresh an access token for a specific platform",
+        "operationId": "refreshToken",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "twitter"
+              ]
+            },
+            "description": "The social media platform to refresh the token for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/auth/{platform}/revoke": {
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Revoke token",
+        "description": "Revoke a user's tokens for a specific platform",
+        "operationId": "revokeToken",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "twitter"
+              ]
+            },
+            "description": "The social media platform to revoke the token for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token revoked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/auth/{platform}/status": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Check token status",
+        "description": "Check if a user has valid tokens for a specific platform",
+        "operationId": "hasValidTokens",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "twitter"
+              ]
+            },
+            "description": "The social media platform to check token status for"
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The user ID on the platform"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token validation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateTokensResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/auth/accounts": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "List connected accounts",
+        "description": "List all social media accounts connected to a NEAR wallet",
+        "operationId": "listConnectedAccounts",
+        "responses": {
+          "200": {
+            "description": "Connected accounts retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accounts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "platform": {
+                                "type": "string",
+                                "description": "The social media platform"
+                              },
+                              "userId": {
+                                "type": "string",
+                                "description": "The user ID on the platform"
+                              },
+                              "username": {
+                                "type": "string",
+                                "description": "The username on the platform"
+                              },
+                              "profile": {
+                                "$ref": "#/components/schemas/UserProfile"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/auth/authorize/near": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Authorize NEAR Account",
+        "description": "Authorizes a NEAR account to interact with the proxy by verifying its signature provided in the Authorization header. This must be done before attempting to link any platform accounts.",
+        "operationId": "authorizeNear",
+        "responses": {
+          "200": {
+            "description": "NEAR account authorized successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizeNearResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or signature validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error (e.g., failed to store authorization).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/auth/unauthorize/near": {
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Unauthorize NEAR Account",
+        "description": "Removes the authorization for a NEAR account, preventing it from initiating new platform authentications. Requires signature validation via the Authorization header from the account being unauthorized.",
+        "operationId": "unauthorizeNear",
+        "responses": {
+          "200": {
+            "description": "NEAR account unauthorized successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizeNearResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or signature validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error (e.g., failed to remove authorization).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/auth/{platform}/refresh-profile": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Refresh user profile",
+        "description": "Refresh a user's profile data from the platform API",
+        "operationId": "refreshUserProfile",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "twitter"
+              ]
+            },
+            "description": "The social media platform to refresh the profile for"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userId"
+                ],
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "description": "The user ID on the platform"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Account not linked to this NEAR wallet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/auth/authorize/near/status": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Check NEAR Account Authorization Status",
+        "description": "Checks if the NEAR account (identified by the signature in the Authorization header) is authorized to interact with the proxy.",
+        "operationId": "checkNearAuthorizationStatus",
+        "responses": {
+          "200": {
+            "description": "NEAR account authorization status retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "signerId",
+                        "isAuthorized"
+                      ],
+                      "properties": {
+                        "signerId": {
+                          "type": "string",
+                          "description": "The NEAR account ID that was checked.",
+                          "example": "user.near"
+                        },
+                        "isAuthorized": {
+                          "type": "boolean",
+                          "description": "Whether the NEAR account is authorized."
+                        }
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid NEAR signature.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/post": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Create a post",
+        "description": "Create a new post (tweet)",
+        "operationId": "createPost",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Post created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/post/{id}": {
+      "delete": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Delete a post",
+        "description": "Delete an existing post",
+        "operationId": "deletePost",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Post ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Post not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/post/repost": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Repost",
+        "description": "Repost/retweet an existing post",
+        "operationId": "repost",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepostRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Repost successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Post not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/post/quote": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Quote post",
+        "description": "Quote an existing post",
+        "operationId": "quotePost",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/QuotePostRequest"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/QuotePostThreadItem"
+                    },
+                    "description": "Thread of quote posts"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quote post successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotePostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Post not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/post/reply": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Reply to post",
+        "description": "Reply to an existing post",
+        "operationId": "replyToPost",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ReplyToPostRequest"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ReplyToPostThreadItem"
+                    },
+                    "description": "Thread of replies"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reply successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplyToPostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Post not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/post/like/{id}": {
+      "post": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Like a post",
+        "description": "Like an existing post",
+        "operationId": "likePost",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Post ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post liked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LikePostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Post not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "posts"
+        ],
+        "summary": "Unlike a post",
+        "description": "Unlike a previously liked post",
+        "operationId": "unlikePost",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Post ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post unliked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnlikePostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Post not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/media": {
+      "post": {
+        "tags": [
+          "media"
+        ],
+        "summary": "Upload media",
+        "description": "Upload media for use in posts",
+        "operationId": "uploadMedia",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaUploadJsonRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaUploadFormRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Media uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaUploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/media/{id}/status": {
+      "get": {
+        "tags": [
+          "media"
+        ],
+        "summary": "Get media status",
+        "description": "Get the status of a media upload",
+        "operationId": "getMediaStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Media ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Media status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Media not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/media/{id}/metadata": {
+      "put": {
+        "tags": [
+          "media"
+        ],
+        "summary": "Update media metadata",
+        "description": "Update metadata for a media upload (e.g., alt text)",
+        "operationId": "updateMediaMetadata",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Media ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaMetadataUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Media metadata updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaMetadataUpdateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Media not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/rate-limit/{platform}": {
+      "get": {
+        "tags": [
+          "rate-limits"
+        ],
+        "summary": "Get all rate limits",
+        "description": "Get rate limit status for all endpoints for a specific platform",
+        "operationId": "getAllRateLimits",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "twitter"
+              ]
+            },
+            "description": "Platform name",
+            "example": "twitter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rate limit statuses retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllRateLimitsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/rate-limit/{platform}/{endpoint}": {
+      "get": {
+        "tags": [
+          "rate-limits"
+        ],
+        "summary": "Get rate limit status",
+        "description": "Get rate limit status for a specific endpoint on a specific platform",
+        "operationId": "getRateLimitStatus",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "twitter"
+              ]
+            },
+            "description": "Platform name",
+            "example": "twitter"
+          },
+          {
+            "name": "endpoint",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Endpoint path",
+            "example": "/2/tweets"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "v1",
+                "v2"
+              ],
+              "default": "v2"
+            },
+            "description": "API version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rate limit status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/rate-limit/{platform}/check": {
+      "post": {
+        "tags": [
+          "rate-limits"
+        ],
+        "summary": "Check if rate limited",
+        "description": "Check if a rate limit has been hit for a specific platform",
+        "operationId": "isRateLimited",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "twitter"
+              ]
+            },
+            "description": "Platform name",
+            "example": "twitter"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateLimitCheckRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rate limit check successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitCheckResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    },
+    "/api/rate-limit/{platform}/obsolete": {
+      "post": {
+        "tags": [
+          "rate-limits"
+        ],
+        "summary": "Check if rate limit is obsolete",
+        "description": "Check if a rate limit status is obsolete (reset time has passed) for a specific platform",
+        "operationId": "isRateLimitObsolete",
+        "parameters": [
+          {
+            "name": "platform",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "twitter"
+              ]
+            },
+            "description": "Platform name",
+            "example": "twitter"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateLimitObsoleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rate limit obsolete check successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitObsoleteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "nearSignature": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResponseMeta": {
+        "type": "object",
+        "properties": {
+          "rateLimit": {
+            "type": "object",
+            "properties": {
+              "remaining": {
+                "type": "number",
+                "description": "Number of requests remaining in the current window"
+              },
+              "limit": {
+                "type": "number",
+                "description": "Total number of requests allowed in the window"
+              },
+              "reset": {
+                "type": "number",
+                "description": "Timestamp when the rate limit resets (in seconds since epoch)"
+              }
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "number",
+                "description": "Current page number"
+              },
+              "perPage": {
+                "type": "number",
+                "description": "Number of items per page"
+              },
+              "total": {
+                "type": "number",
+                "description": "Total number of items"
+              },
+              "totalPages": {
+                "type": "number",
+                "description": "Total number of pages"
+              },
+              "nextCursor": {
+                "type": "string",
+                "description": "Next page cursor (if applicable)"
+              },
+              "prevCursor": {
+                "type": "string",
+                "description": "Previous page cursor (if applicable)"
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "type",
+              "message"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Error type",
+                "enum": [
+                  "AUTHENTICATION",
+                  "AUTHORIZATION",
+                  "VALIDATION",
+                  "RATE_LIMIT",
+                  "TWITTER_API",
+                  "TWITTER_REQUEST",
+                  "TWITTER_PARTIAL_RESPONSE",
+                  "INTERNAL"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "description": "Error message"
+              },
+              "code": {
+                "type": "string",
+                "description": "Error code (if applicable)"
+              },
+              "details": {
+                "type": "object",
+                "description": "Additional error details",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      },
+      "Media": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Media ID"
+          },
+          "data": {
+            "type": "string",
+            "description": "Base64 encoded media data (for upload only)"
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "Media MIME type"
+          },
+          "altText": {
+            "type": "string",
+            "description": "Alternative text for accessibility"
+          }
+        }
+      },
+      "PostContent": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Post text content"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Media"
+            },
+            "description": "Media attachments"
+          }
+        }
+      },
+      "InitializeAuthRequest": {
+        "type": "object",
+        "required": [
+          "redirectUri"
+        ],
+        "properties": {
+          "redirectUri": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URI to redirect to after authentication"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The OAuth scopes to request"
+          },
+          "state": {
+            "type": "string",
+            "description": "Optional state parameter for CSRF protection"
+          }
+        }
+      },
+      "AuthCallbackRequest": {
+        "type": "object",
+        "required": [
+          "code",
+          "state",
+          "savedState",
+          "redirectUri"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The authorization code from the OAuth callback"
+          },
+          "state": {
+            "type": "string",
+            "description": "The state parameter from the callback"
+          },
+          "savedState": {
+            "type": "string",
+            "description": "The state parameter saved during initialization"
+          },
+          "redirectUri": {
+            "type": "string",
+            "format": "uri",
+            "description": "The redirect URI used in the initial request"
+          },
+          "codeVerifier": {
+            "type": "string",
+            "description": "The PKCE code verifier (if PKCE was used)"
+          }
+        }
+      },
+      "InitializeAuthResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "authUrl",
+              "state"
+            ],
+            "properties": {
+              "authUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "The authentication URL to redirect the user to"
+              },
+              "state": {
+                "type": "string",
+                "description": "The state parameter for CSRF protection"
+              },
+              "codeVerifier": {
+                "type": "string",
+                "description": "The PKCE code verifier (if PKCE is used)"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "AuthCallbackResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "userId",
+              "tokens"
+            ],
+            "properties": {
+              "userId": {
+                "type": "string",
+                "description": "The user ID to use for subsequent requests"
+              },
+              "tokens": {
+                "type": "object",
+                "required": [
+                  "accessToken",
+                  "refreshToken"
+                ],
+                "properties": {
+                  "accessToken": {
+                    "type": "string",
+                    "description": "The access token"
+                  },
+                  "refreshToken": {
+                    "type": "string",
+                    "description": "The refresh token"
+                  },
+                  "expiresAt": {
+                    "type": "number",
+                    "description": "The timestamp when the access token expires"
+                  }
+                }
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "RefreshTokenResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "accessToken",
+              "refreshToken"
+            ],
+            "properties": {
+              "accessToken": {
+                "type": "string",
+                "description": "The new access token"
+              },
+              "refreshToken": {
+                "type": "string",
+                "description": "The new refresh token"
+              },
+              "expiresAt": {
+                "type": "number",
+                "description": "The timestamp when the access token expires"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "RevokeTokenResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "success"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "description": "Whether the token was successfully revoked"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "ValidateTokensResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "hasTokens"
+            ],
+            "properties": {
+              "hasTokens": {
+                "type": "boolean",
+                "description": "Whether the user has valid tokens"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "AuthorizeNearResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "success",
+              "signerId"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "description": "Indicates if the NEAR account was successfully authorized."
+              },
+              "signerId": {
+                "type": "string",
+                "description": "The NEAR account ID that was authorized.",
+                "example": "user.near"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "UnauthorizeNearResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "success",
+              "signerId"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "description": "Indicates if the NEAR account was successfully unauthorized."
+              },
+              "signerId": {
+                "type": "string",
+                "description": "The NEAR account ID that was unauthorized.",
+                "example": "user.near"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "UserProfile": {
+        "type": "object",
+        "required": [
+          "userId",
+          "username",
+          "platform",
+          "lastUpdated"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The user ID on the platform"
+          },
+          "username": {
+            "type": "string",
+            "description": "The username on the platform"
+          },
+          "url": {
+            "type": "string",
+            "description": "The profile url on the platform"
+          },
+          "profileImageUrl": {
+            "type": "string",
+            "description": "URL to the user's profile image"
+          },
+          "isPremium": {
+            "type": "boolean",
+            "description": "Whether the user has a premium account"
+          },
+          "platform": {
+            "type": "string",
+            "description": "The social media platform"
+          },
+          "lastUpdated": {
+            "type": "number",
+            "description": "Timestamp when the profile was last updated"
+          }
+        }
+      },
+      "RefreshProfileResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "profile"
+            ],
+            "properties": {
+              "profile": {
+                "$ref": "#/components/schemas/UserProfile"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "CreatePostRequest": {
+        "type": "object",
+        "required": [
+          "targets",
+          "content"
+        ],
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "platform",
+                "userId"
+              ],
+              "properties": {
+                "platform": {
+                  "type": "string",
+                  "enum": [
+                    "twitter"
+                  ],
+                  "description": "The platform to post to"
+                },
+                "userId": {
+                  "type": "string",
+                  "description": "The user ID on the platform"
+                }
+              }
+            },
+            "description": "Array of targets to post to (can be a single target)"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostContent"
+            },
+            "description": "Content for the post(s)"
+          }
+        }
+      },
+      "RepostRequest": {
+        "type": "object",
+        "required": [
+          "platform",
+          "userId",
+          "postId"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "twitter"
+            ],
+            "description": "The platform to repost on (e.g., \"twitter\")"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID on the platform"
+          },
+          "postId": {
+            "type": "string",
+            "description": "ID of the post to repost"
+          }
+        }
+      },
+      "QuotePostRequest": {
+        "type": "object",
+        "required": [
+          "platform",
+          "userId",
+          "postId",
+          "content"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "twitter"
+            ],
+            "description": "The platform to post on"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID on the platform"
+          },
+          "postId": {
+            "type": "string",
+            "description": "ID of the post to quote"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostContent"
+            },
+            "description": "Content for the quote post(s)"
+          }
+        }
+      },
+      "QuotePostThreadItem": {
+        "type": "object",
+        "properties": {
+          "postId": {
+            "type": "string",
+            "description": "ID of the post to quote (required for the first item in the thread)"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text content for the quote post"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Media"
+            },
+            "description": "Media attachments for the quote post"
+          }
+        }
+      },
+      "ReplyToPostRequest": {
+        "type": "object",
+        "required": [
+          "platform",
+          "userId",
+          "postId",
+          "content"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "twitter"
+            ],
+            "description": "The platform to post on"
+          },
+          "userId": {
+            "type": "string",
+            "description": "The user ID on the platform"
+          },
+          "postId": {
+            "type": "string",
+            "description": "ID of the post to reply to"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostContent"
+            },
+            "description": "Content for the reply post(s)"
+          }
+        }
+      },
+      "ReplyToPostThreadItem": {
+        "type": "object",
+        "properties": {
+          "postId": {
+            "type": "string",
+            "description": "ID of the post to reply to (required for the first item in the thread)"
+          },
+          "text": {
+            "type": "string",
+            "description": "Text content for the reply"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Media"
+            },
+            "description": "Media attachments for the reply"
+          }
+        }
+      },
+      "Post": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Post ID"
+          },
+          "text": {
+            "type": "string",
+            "description": "Post text content"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Post creation timestamp"
+          },
+          "authorId": {
+            "type": "string",
+            "description": "ID of the post author"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Media"
+            },
+            "description": "Media attachments"
+          },
+          "metrics": {
+            "type": "object",
+            "properties": {
+              "retweets": {
+                "type": "number",
+                "description": "Number of retweets"
+              },
+              "quotes": {
+                "type": "number",
+                "description": "Number of quote tweets"
+              },
+              "likes": {
+                "type": "number",
+                "description": "Number of likes"
+              },
+              "replies": {
+                "type": "number",
+                "description": "Number of replies"
+              }
+            }
+          },
+          "inReplyToId": {
+            "type": "string",
+            "description": "ID of the post this is a reply to (if applicable)"
+          },
+          "quotedPostId": {
+            "type": "string",
+            "description": "ID of the post this is quoting (if applicable)"
+          }
+        }
+      },
+      "PostResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Post"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Post"
+                },
+                "description": "Array of posts (for threads)"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "DeletePostResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "success"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "description": "Whether the post was successfully deleted"
+              },
+              "id": {
+                "type": "string",
+                "description": "ID of the deleted post"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "RepostResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Post"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "QuotePostResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Post"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Post"
+                },
+                "description": "Array of posts (for threads)"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "ReplyToPostResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Post"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Post"
+                },
+                "description": "Array of posts (for threads)"
+              }
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "LikePostResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "success"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "description": "Whether the post was successfully liked"
+              },
+              "id": {
+                "type": "string",
+                "description": "ID of the liked post"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "UnlikePostResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "success"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "description": "Whether the post was successfully unliked"
+              },
+              "id": {
+                "type": "string",
+                "description": "ID of the unliked post"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "MediaUploadJsonRequest": {
+        "type": "object",
+        "required": [
+          "data",
+          "mimeType"
+        ],
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "byte",
+            "description": "Base64 encoded media data"
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "Media MIME type",
+            "example": "image/jpeg"
+          },
+          "altText": {
+            "type": "string",
+            "description": "Alternative text for accessibility"
+          }
+        }
+      },
+      "MediaUploadFormRequest": {
+        "type": "object",
+        "required": [
+          "media"
+        ],
+        "properties": {
+          "media": {
+            "type": "string",
+            "format": "binary",
+            "description": "Media file"
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "Media MIME type (optional, will be detected from file)"
+          },
+          "altText": {
+            "type": "string",
+            "description": "Alternative text for accessibility"
+          }
+        }
+      },
+      "MediaMetadataUpdateRequest": {
+        "type": "object",
+        "required": [
+          "altText"
+        ],
+        "properties": {
+          "altText": {
+            "type": "string",
+            "description": "Alternative text for accessibility"
+          }
+        }
+      },
+      "MediaUploadResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "mediaId",
+              "status"
+            ],
+            "properties": {
+              "mediaId": {
+                "type": "string",
+                "description": "Media ID"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "in_progress",
+                  "succeeded",
+                  "failed"
+                ],
+                "description": "Media upload status"
+              },
+              "expiresAfter": {
+                "type": "number",
+                "description": "Timestamp when the media expires (in seconds since epoch)"
+              },
+              "processingInfo": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "in_progress",
+                      "completed",
+                      "failed"
+                    ],
+                    "description": "Processing state"
+                  },
+                  "progressPercent": {
+                    "type": "number",
+                    "description": "Processing progress percentage"
+                  },
+                  "error": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "description": "Error code"
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "Error message"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "MediaStatusResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "mediaId",
+              "status"
+            ],
+            "properties": {
+              "mediaId": {
+                "type": "string",
+                "description": "Media ID"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "in_progress",
+                  "succeeded",
+                  "failed"
+                ],
+                "description": "Media upload status"
+              },
+              "expiresAfter": {
+                "type": "number",
+                "description": "Timestamp when the media expires (in seconds since epoch)"
+              },
+              "processingInfo": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "in_progress",
+                      "completed",
+                      "failed"
+                    ],
+                    "description": "Processing state"
+                  },
+                  "progressPercent": {
+                    "type": "number",
+                    "description": "Processing progress percentage"
+                  },
+                  "error": {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "description": "Error code"
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "Error message"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "MediaMetadataUpdateResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "success"
+            ],
+            "properties": {
+              "success": {
+                "type": "boolean",
+                "description": "Whether the metadata was successfully updated"
+              },
+              "mediaId": {
+                "type": "string",
+                "description": "Media ID"
+              },
+              "altText": {
+                "type": "string",
+                "description": "Updated alternative text"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "RateLimitCheckRequest": {
+        "type": "object",
+        "required": [
+          "rateLimitStatus"
+        ],
+        "properties": {
+          "rateLimitStatus": {
+            "$ref": "#/components/schemas/RateLimitStatus",
+            "description": "Rate limit status object to check"
+          },
+          "action": {
+            "type": "string",
+            "description": "Action to check rate limits for (e.g., post, like)",
+            "example": "post"
+          }
+        }
+      },
+      "RateLimitObsoleteRequest": {
+        "type": "object",
+        "required": [
+          "rateLimitStatus"
+        ],
+        "properties": {
+          "rateLimitStatus": {
+            "$ref": "#/components/schemas/RateLimitStatus",
+            "description": "Rate limit status object to check for obsolescence"
+          }
+        }
+      },
+      "RateLimitStatus": {
+        "type": "object",
+        "required": [
+          "limit",
+          "remaining",
+          "reset",
+          "endpoint"
+        ],
+        "properties": {
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of requests allowed in the window"
+          },
+          "remaining": {
+            "type": "number",
+            "description": "Number of requests remaining in the current window"
+          },
+          "reset": {
+            "type": "number",
+            "description": "Timestamp when the rate limit resets (in seconds since epoch)"
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "Endpoint path"
+          }
+        }
+      },
+      "RateLimitStatusResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RateLimitStatus"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "AllRateLimitsResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/RateLimitStatus"
+            },
+            "description": "Rate limit statuses for various endpoints"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "RateLimitCheckResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "isRateLimited"
+            ],
+            "properties": {
+              "isRateLimited": {
+                "type": "boolean",
+                "description": "Whether the rate limit has been hit"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      },
+      "RateLimitObsoleteResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "isObsolete"
+            ],
+            "properties": {
+              "isObsolete": {
+                "type": "boolean",
+                "description": "Whether the rate limit status is obsolete"
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "nearSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "NEAR wallet signature authentication. Format: Bearer {JSON.stringify(nearAuthData)}"
+      }
+    }
+  },
+  "security": [
+    {
+      "nearSignature": []
+    }
+  ]
+}

@@ -587,7 +587,6 @@ classDiagram
     }
     
     class AuthMiddleware {
-        +validateApiKey()
         +validateNearSignature()
     }
     

@@ -3,7 +3,7 @@
  * Defines OpenAPI paths for media-related endpoints
  */
 export const mediaPaths = {
-  '/media': {
+  '/api/media': {
     post: {
       tags: ['media'],
       summary: 'Upload media',
@@ -108,13 +108,12 @@ export const mediaPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/media/{id}/status': {
+  '/api/media/{id}/status': {
     get: {
       tags: ['media'],
       summary: 'Get media status',
@@ -205,13 +204,12 @@ export const mediaPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/media/{id}/metadata': {
+  '/api/media/{id}/metadata': {
     put: {
       tags: ['media'],
       summary: 'Update media metadata',
@@ -312,8 +310,7 @@ export const mediaPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
+          nearSignature: [],
         },
       ],
     },

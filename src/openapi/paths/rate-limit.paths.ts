@@ -3,7 +3,7 @@
  * Defines OpenAPI paths for rate limit-related endpoints
  */
 export const rateLimitPaths = {
-  '/rate-limits/{platform}': {
+  '/api/rate-limit/{platform}': {
     get: {
       tags: ['rate-limits'],
       summary: 'Get all rate limits',
@@ -66,12 +66,12 @@ export const rateLimitPaths = {
       },
       security: [
         {
-          apiKey: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/rate-limits/{platform}/{endpoint}': {
+  '/api/rate-limit/{platform}/{endpoint}': {
     get: {
       tags: ['rate-limits'],
       summary: 'Get rate limit status',
@@ -165,12 +165,12 @@ export const rateLimitPaths = {
       },
       security: [
         {
-          apiKey: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/rate-limits/{platform}/check': {
+  '/api/rate-limit/{platform}/check': {
     post: {
       tags: ['rate-limits'],
       summary: 'Check if rate limited',
@@ -253,12 +253,12 @@ export const rateLimitPaths = {
       },
       security: [
         {
-          apiKey: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/rate-limits/{platform}/obsolete': {
+  '/api/rate-limit/{platform}/obsolete': {
     post: {
       tags: ['rate-limits'],
       summary: 'Check if rate limit is obsolete',
@@ -341,7 +341,7 @@ export const rateLimitPaths = {
       },
       security: [
         {
-          apiKey: [],
+          nearSignature: [],
         },
       ],
     },

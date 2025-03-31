@@ -3,7 +3,7 @@
  * Defines OpenAPI paths for post-related endpoints
  */
 export const postPaths = {
-  '/posts': {
+  '/api/post': {
     post: {
       tags: ['posts'],
       summary: 'Create a post',
@@ -14,22 +14,7 @@ export const postPaths = {
         content: {
           'application/json': {
             schema: {
-              oneOf: [
-                {
-                  type: 'string',
-                  description: 'Simple text post',
-                },
-                {
-                  $ref: '#/components/schemas/PostContent',
-                },
-                {
-                  type: 'array',
-                  items: {
-                    $ref: '#/components/schemas/PostContent',
-                  },
-                  description: 'Thread of posts',
-                },
-              ],
+              $ref: '#/components/schemas/CreatePostRequest',
             },
           },
         },
@@ -98,13 +83,12 @@ export const postPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/posts/{id}': {
+  '/api/post/{id}': {
     delete: {
       tags: ['posts'],
       summary: 'Delete a post',
@@ -195,13 +179,12 @@ export const postPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/posts/repost': {
+  '/api/post/repost': {
     post: {
       tags: ['posts'],
       summary: 'Repost',
@@ -291,13 +274,12 @@ export const postPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/posts/quote': {
+  '/api/post/quote': {
     post: {
       tags: ['posts'],
       summary: 'Quote post',
@@ -398,13 +380,12 @@ export const postPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/posts/reply': {
+  '/api/post/reply': {
     post: {
       tags: ['posts'],
       summary: 'Reply to post',
@@ -505,13 +486,12 @@ export const postPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
+          nearSignature: [],
         },
       ],
     },
   },
-  '/posts/{id}/like': {
+  '/api/post/like/{id}': {
     post: {
       tags: ['posts'],
       summary: 'Like a post',
@@ -602,8 +582,7 @@ export const postPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
+          nearSignature: [],
         },
       ],
     },
@@ -697,8 +676,7 @@ export const postPaths = {
       },
       security: [
         {
-          apiKey: [],
-          userId: [],
+          nearSignature: [],
         },
       ],
     },

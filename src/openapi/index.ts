@@ -39,8 +39,8 @@ export interface OpenAPIObject {
 }
 
 // Import paths and schemas
-import { paths } from './paths/index';
-import { schemas } from './schemas/index';
+import { paths } from './paths/index.ts';
+import { schemas } from './schemas/index.ts';
 
 /**
  * OpenAPI Specification
@@ -49,9 +49,9 @@ import { schemas } from './schemas/index';
 export const openApiSpec: OpenAPIObject = {
   openapi: '3.0.3',
   info: {
-    title: 'Twitter API Proxy',
+    title: 'Crosspost API',
     description:
-      'A secure proxy for the Twitter API that allows authorized frontends to perform Twitter actions on behalf of users who have granted permission.',
+      'A secure proxy for social media APIs that allows authorized frontends to perform actions on behalf of users who have granted permission.',
     version: '1.0.0',
     contact: {
       name: 'API Support',
@@ -64,11 +64,11 @@ export const openApiSpec: OpenAPIObject = {
   },
   servers: [
     {
-      url: 'https://api.example.com/v1',
+      url: 'https://api.crosspost.example/v1',
       description: 'Production server',
     },
     {
-      url: 'https://staging-api.example.com/v1',
+      url: 'https://staging-api.crosspost.example/v1',
       description: 'Staging server',
     },
     {
@@ -79,29 +79,40 @@ export const openApiSpec: OpenAPIObject = {
   tags: [
     {
       name: 'auth',
-      description: 'Authentication operations',
+      description: 'Authentication and account management operations',
     },
     {
       name: 'posts',
-      description: 'Post operations (tweets, retweets, etc.)',
+      description: 'Post operations (create, delete, like, reply, etc.)',
     },
     {
       name: 'media',
-      description: 'Media operations (upload, status, etc.)',
+      description: 'Media operations (upload, status, metadata)',
     },
     {
       name: 'rate-limits',
-      description: 'Rate limit operations',
+      description: 'Rate limit monitoring and management',
+    },
+    {
+      name: 'platforms',
+      description: 'Platform-specific operations',
     },
   ],
   paths,
   components: {
     schemas,
-    securitySchemes: {},
+    securitySchemes: {
+      nearSignature: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'Authorization',
+        description: 'NEAR wallet signature authentication. Format: Bearer {JSON.stringify(nearAuthData)}'
+      }
+    },
   },
   security: [
     {
-      apiKey: [],
+      nearSignature: [],
     },
   ],
 };

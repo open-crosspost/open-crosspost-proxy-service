@@ -8,8 +8,12 @@ that makes it easier to adapt the service for other social media platforms beyon
 infrastructure, authentication system, API endpoints, and middleware have been implemented and are
 now running on Deno Deploy.
 
+We are now focusing on developing a client SDK to make it easier for applications to integrate with
+the Crosspost API.
+
 ## Recent Changes
 
+- **Started SDK development**: Created SDK directory structure, README.md, and memory bank documentation for the client SDK.
 - **Completed migration from Cloudflare Workers to Deno Deploy**
 - Switched from itty-router to Hono for HTTP routing
 - Replaced Cloudflare KV with Deno KV for token storage
@@ -109,6 +113,18 @@ now running on Deno Deploy.
    - ⬜ Create comprehensive test suite
    - ✅ Set up CI/CD pipeline for Deno
 
+6. **SDK Development**: 🔄 IN PROGRESS
+   - ✅ Created SDK directory structure
+   - ✅ Created SDK README.md with documentation
+   - ✅ Created memory bank entry for SDK development
+   - 🔄 Defining TypeScript types for the SDK
+   - 🔄 Implementing the CrosspostApiClient class
+   - ⬜ Generate TypeScript types from OpenAPI specification
+   - ⬜ Implement authentication handling
+   - ⬜ Implement platform-specific modules
+   - ⬜ Create example applications
+   - ⬜ Set up build and publishing configuration
+
 ## Next Steps
 
 1. **Testing Framework**:
@@ -140,10 +156,12 @@ now running on Deno Deploy.
    - Create health check endpoints
 
 5. **SDK Development**:
-   - Create client SDK for easy integration
+   - Complete core SDK implementation
    - Generate TypeScript types from OpenAPI specification
    - Implement client-side validation
    - Add examples and documentation
+   - Set up build and publishing configuration
+   - Publish to NPM and JSR
 
 ## Current Challenges
 
@@ -169,6 +187,11 @@ now running on Deno Deploy.
    - ✅ Implemented rollback capability
    - ✅ Successfully deployed to Deno Deploy
 
+5. **SDK Development**:
+   - Need to generate TypeScript types from OpenAPI specification
+   - Need to ensure cross-environment compatibility (Node.js and browser)
+   - Need to set up build and publishing configuration
+
 ## Current Directory Structure
 
 ```
@@ -179,6 +202,12 @@ now running on Deno Deploy.
   clear-kv.ts             # KV management utility
   /docs
     kv-structure.md       # KV structure documentation
+  /sdk                    # Client SDK
+    README.md             # SDK documentation
+    /src                  # SDK source code
+      /types              # TypeScript type definitions
+      /platforms          # Platform-specific modules
+    /examples             # Example usage
   /src
     /config
       env.ts              # Environment configuration

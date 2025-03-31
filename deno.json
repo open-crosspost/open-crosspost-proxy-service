@@ -7,7 +7,10 @@
     "fmt": "deno fmt",
     "cache": "deno cache --reload deps.ts",
     "clear-kv": "deno run --allow-env --allow-read --allow-write --unstable-kv scripts/clear-kv.ts",
-    "list-kv": "deno run --allow-env --allow-read --allow-write --unstable-kv scripts/clear-kv.ts --list-only"
+    "list-kv": "deno run --allow-env --allow-read --allow-write --unstable-kv scripts/clear-kv.ts --list-only",
+    "generate-openapi-json": "deno run --allow-net --allow-env --allow-read --allow-write --unstable-sloppy-imports scripts/generate-openapi-json.ts",
+    "generate-types": "bun run openapi-generator-cli generate -i openapi.json -g typescript-fetch -o src/types/generated --additional-properties=supportsES6=true,npmVersion=6.9.0,typescriptThreePlus=true",
+    "generate-all": "deno task generate-openapi-json && deno task generate-types"
   },
   "imports": {
     "hono": "jsr:@hono/hono",
