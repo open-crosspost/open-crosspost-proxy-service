@@ -118,6 +118,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
 
       // Handle HTTPException from Hono
       if (err instanceof HTTPException) {
+        c.status(err.status);
         return c.json(
           {
             error: {
@@ -125,8 +126,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
               message: err.message,
               status: err.status,
             },
-          },
-          err.status,
+          }
         );
       }
 
@@ -140,8 +140,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
               status: err.status,
               details: err.details,
             },
-            status: err.status,
-          },
+          }
         );
       }
 

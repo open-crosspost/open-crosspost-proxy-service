@@ -1,8 +1,9 @@
 import { Hono } from './deps.ts';
 import { getSecureEnv, isProduction } from './src/config/env.ts';
-import { AuthMiddleware } from './src/middleware/auth_middleware.ts';
-import { corsMiddleware } from './src/middleware/cors_middleware.ts';
-import { errorMiddleware } from './src/middleware/error_middleware.ts';
+import { AuthMiddleware } from './src/middleware/auth-middleware.ts';
+import { corsMiddleware } from './src/middleware/cors-middleware.ts';
+import { errorMiddleware } from './src/middleware/error-middleware.ts';
+import { PlatformMiddleware } from './src/middleware/platform_middleware.ts';
 
 // Import controllers
 import { AuthController } from './src/controllers/auth_controller.ts';
@@ -35,53 +36,59 @@ const auth = new Hono();
 // Generic platform routes
 auth.post(
   '/:platform/login',
+  PlatformMiddleware.validatePlatform(),
   AuthMiddleware.validateNearSignature(),
   (c) => {
-    const platform = c.req.param('platform');
+    const platform = PlatformMiddleware.getPlatform(c);
     return authController.initializeAuth(c, platform);
   },
 );
 
 auth.get(
   '/:platform/callback',
+  PlatformMiddleware.validatePlatform(),
   (c) => {
-    const platform = c.req.param('platform');
+    const platform = PlatformMiddleware.getPlatform(c);
     return authController.handleCallback(c, platform);
   },
 );
 
 auth.post(
   '/:platform/refresh',
+  PlatformMiddleware.validatePlatform(),
   AuthMiddleware.validateNearSignature(),
   (c) => {
-    const platform = c.req.param('platform');
+    const platform = PlatformMiddleware.getPlatform(c);
     return authController.refreshToken(c, platform);
   },
 );
 
 auth.delete(
   '/:platform/revoke',
+  PlatformMiddleware.validatePlatform(),
   AuthMiddleware.validateNearSignature(),
   (c) => {
-    const platform = c.req.param('platform');
+    const platform = PlatformMiddleware.getPlatform(c);
     return authController.revokeToken(c, platform);
   },
 );
 
 auth.get(
   '/:platform/status',
+  PlatformMiddleware.validatePlatform(),
   AuthMiddleware.validateNearSignature(),
   (c) => {
-    const platform = c.req.param('platform');
+    const platform = PlatformMiddleware.getPlatform(c);
     return authController.hasValidTokens(c, platform);
   },
 );
 
 auth.post(
   '/:platform/refresh-profile',
+  PlatformMiddleware.validatePlatform(),
   AuthMiddleware.validateNearSignature(),
   (c) => {
-    const platform = c.req.param('platform');
+    const platform = PlatformMiddleware.getPlatform(c);
     return authController.refreshUserProfile(c, platform);
   },
 );

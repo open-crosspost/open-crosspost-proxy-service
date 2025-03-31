@@ -24,13 +24,6 @@ export interface Env {
   // Optional
   UPSTASH_REDIS_REST_URL?: string;
   UPSTASH_REDIS_REST_TOKEN?: string;
-
-  // Deno KV bindings
-  TOKENS?: {
-    put: (key: string, value: string) => Promise<void>;
-    get: (key: string) => Promise<string | null>;
-    delete: (key: string) => Promise<void>;
-  };
 }
 
 /**

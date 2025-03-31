@@ -12,6 +12,9 @@ export interface MediaContent {
 export interface PostContent {
   text?: string;
   media?: MediaContent[];
+  platform?: string;
+  userId?: string;
+  postId?: string;
 }
 
 export interface PostResult {

@@ -1,4 +1,5 @@
 import { Env } from '../../config/env.ts';
+import { KvStore, PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { UserProfile } from '../../types/user-profile.types.ts';
 
 /**
@@ -6,18 +7,11 @@ import { UserProfile } from '../../types/user-profile.types.ts';
  * Handles storage and retrieval of user profiles
  */
 export class UserProfileStorage {
-  private kv: Deno.Kv | null = null;
+  private profileStore: PrefixedKvStore;
   private readonly CACHE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
-  constructor(private env: Env) {}
-
-  /**
-   * Initialize the KV store
-   */
-  private async initialize(): Promise<void> {
-    if (!this.kv) {
-      this.kv = await Deno.openKv();
-    }
+  constructor(private env: Env) {
+    this.profileStore = new PrefixedKvStore(['profile']);
   }
 
   /**
@@ -28,17 +22,8 @@ export class UserProfileStorage {
    */
   async getProfile(userId: string, platform: string): Promise<UserProfile | null> {
     try {
-      await this.initialize();
-
-      if (!this.kv) {
-        throw new Error('KV store not initialized');
-      }
-
-      // Get the profile from KV
-      const key = ['profile', platform, userId];
-      const result = await this.kv.get<UserProfile>(key);
-
-      return result.value;
+      // Get the profile from KV using PrefixedKvStore
+      return await this.profileStore.get<UserProfile>([platform, userId]);
     } catch (error) {
       console.error('Error getting user profile:', error);
       return null;
@@ -52,20 +37,12 @@ export class UserProfileStorage {
    */
   async saveProfile(profile: UserProfile): Promise<boolean> {
     try {
-      await this.initialize();
-
-      if (!this.kv) {
-        throw new Error('KV store not initialized');
-      }
-
       // Set the last updated timestamp
       profile.lastUpdated = Date.now();
 
-      // Save the profile to KV
-      const key = ['profile', profile.platform, profile.userId];
-      const result = await this.kv.set(key, profile);
-
-      return result.ok;
+      // Save the profile to KV using PrefixedKvStore
+      await this.profileStore.set([profile.platform, profile.userId], profile);
+      return true;
     } catch (error) {
       console.error('Error saving user profile:', error);
       return false;
@@ -80,16 +57,8 @@ export class UserProfileStorage {
    */
   async deleteProfile(userId: string, platform: string): Promise<boolean> {
     try {
-      await this.initialize();
-
-      if (!this.kv) {
-        throw new Error('KV store not initialized');
-      }
-
-      // Delete the profile from KV
-      const key = ['profile', platform, userId];
-      await this.kv.delete(key);
-
+      // Delete the profile from KV using PrefixedKvStore
+      await this.profileStore.delete([platform, userId]);
       return true;
     } catch (error) {
       console.error('Error deleting user profile:', error);

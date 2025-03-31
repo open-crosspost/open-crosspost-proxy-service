@@ -42,6 +42,19 @@ now running on Deno Deploy.
   from auth classes into dedicated profile interfaces and implementations.
 - **Made TokenStorage platform-specific**: Updated TokenStorage to require platform parameter for
   all operations, ensuring proper separation of tokens by platform.
+- **Created KV utility classes**: Implemented `KvStore` and `PrefixedKvStore` utility classes for
+  standardized KV operations with error handling.
+- **Implemented platform error handling**: Created `PlatformError` class and error types for
+  standardized error handling across platform implementations.
+- **Created base platform classes**: Implemented `BasePlatformClient` and `BasePlatformAuth`
+  abstract classes with common functionality for platform implementations.
+- **Refactored token refresh and revocation**: Clarified responsibilities between platform client
+  (API operations) and platform auth (storage operations).
+- **Created KV structure documentation**: Added comprehensive documentation of KV structure and
+  patterns used in the application.
+- **Refactored classes to use KV utilities**: Updated `TwitterAuth`, `TokenStorage`,
+  `TokenAccessLogger`, and `UserProfileStorage` to use the new KV utility classes instead of direct
+  KV access.
 
 ## Active Decisions
 
@@ -63,6 +76,9 @@ now running on Deno Deploy.
    - ✅ Maintained all existing functionality in the new structure
    - ✅ Created PlatformProfile interface for user profile operations
    - ✅ Implemented TwitterProfile with profile-specific functionality
+   - ✅ Created base classes with common functionality
+   - ✅ Standardized error handling across platform implementations
+   - ✅ Clarified responsibilities between client and auth components
 
 3. **Authentication**:
    - ✅ Implemented OAuth 2.0 flow with PKCE
@@ -74,6 +90,7 @@ now running on Deno Deploy.
    - ✅ Implemented factory pattern for platform-specific auth implementations
    - ✅ Implemented NEAR account authorization pre-check for platform logins (using KV)
    - ✅ Made token storage platform-specific for better separation
+   - ✅ Standardized KV operations with utility classes
    - ⬜ Enhance security with proper key rotation
 
 4. **API Implementation**:
@@ -88,6 +105,7 @@ now running on Deno Deploy.
 5. **Testing and Documentation**:
    - ✅ Created OpenAPI documentation (updated NEAR auth/unauth endpoints for header auth)
    - ✅ Implemented request validation with Zod
+   - ✅ Created KV structure documentation
    - ⬜ Create comprehensive test suite
    - ✅ Set up CI/CD pipeline for Deno
 
@@ -158,6 +176,9 @@ now running on Deno Deploy.
   deno.json               # Deno configuration
   deps.ts                 # Central dependencies file
   main.ts                 # Main entry point
+  clear-kv.ts             # KV management utility
+  /docs
+    kv-structure.md       # KV structure documentation
   /src
     /config
       env.ts              # Environment configuration
@@ -180,13 +201,16 @@ now running on Deno Deploy.
           platform-client.interface.ts
           platform-media.interface.ts
           platform-post.interface.ts
-          platform-profile.interface.ts # New profile interface
+          platform-profile.interface.ts
+          platform-error.ts       # Platform error types and handling
+          base-platform-auth.ts   # Base auth implementation
+          base-platform-client.ts # Base client implementation
         /twitter          # Twitter-specific implementations
           twitter-auth.ts
           twitter-client.ts
           twitter-media.ts
           twitter-post.ts
-          twitter-profile.ts # New profile implementation
+          twitter-profile.ts
       /security
         /near-auth        # NEAR wallet authentication
           near-auth.service.ts
@@ -224,6 +248,7 @@ now running on Deno Deploy.
     /utils
       account-linking.utils.ts # Account linking utilities
       near-auth.utils.ts  # NEAR authentication utilities
+      kv-store.utils.ts   # KV utility classes
 ```
 
 ## Development Environment

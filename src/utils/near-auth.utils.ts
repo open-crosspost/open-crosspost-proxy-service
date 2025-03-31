@@ -6,6 +6,7 @@ import {
   nearAuthDataSchema,
 } from '../infrastructure/security/near-auth/near-auth.types.ts';
 import { ApiError, ErrorType } from '../middleware/errors.ts';
+import { PlatformName } from '../types/platform.types.ts';
 
 /**
  * NEAR Authentication Utilities
@@ -92,13 +93,13 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
 /**
  * Verify that a NEAR account has a valid token for a platform and userId
  * @param signerId NEAR account ID
- * @param platform Platform name
+ * @param platform Platform name (e.g., Platform.TWITTER)
  * @param userId User ID on the platform
  * @returns The token if valid, throws an error if not
  */
 export async function verifyPlatformAccess(
   signerId: string,
-  platform: string,
+  platform: PlatformName,
   userId: string,
 ): Promise<any> {
   const env = getEnv();

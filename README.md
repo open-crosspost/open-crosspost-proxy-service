@@ -1,9 +1,10 @@
-# Twitter API Proxy (Deno Version)
+# Social Media API Proxy (Deno Version)
 
-A secure Deno-based proxy for the Twitter API that allows authorized frontends to perform Twitter
-actions on behalf of users who have granted permission. The system securely stores OAuth tokens,
-handles refreshes, enforces rate limits, and supports all major Twitter API functions including
-media uploads.
+A secure Deno-based proxy for social media APIs that allows authorized frontends to perform actions
+on behalf of users who have granted permission. The system securely stores OAuth tokens, handles
+refreshes, enforces rate limits, and supports all major API functions including media uploads.
+Initially focused on Twitter, the architecture is designed to be platform-agnostic to support
+additional social media platforms in the future.
 
 ## Migration to Deno
 
@@ -22,13 +23,24 @@ twitter-api-v2 library and its plugins. The migration includes:
   deno.json               # Deno configuration
   deps.ts                 # Central dependencies file
   main.ts                 # Main entry point
+  clear-kv.ts             # KV management utility
+  /docs
+    kv-structure.md       # KV structure documentation
   /src
-    /api                  # API controllers and validation
     /config               # Configuration
+    /controllers          # API controllers
     /domain               # Business logic
+      /services           # Domain services
     /infrastructure       # External services and storage
+      /platform           # Platform-specific implementations
+        /abstract         # Platform abstraction interfaces
+        /twitter          # Twitter implementation
+      /security           # Security-related functionality
+      /storage            # Storage services
     /middleware           # HTTP middleware
+    /openapi              # OpenAPI documentation
     /types                # TypeScript types
+    /utils                # Utility functions
 ```
 
 ## Getting Started
@@ -43,16 +55,25 @@ twitter-api-v2 library and its plugins. The migration includes:
 Create a `.env` file with the following variables:
 
 ```
+# Twitter API credentials
 TWITTER_CLIENT_ID=your_client_id
 TWITTER_CLIENT_SECRET=your_client_secret
 TWITTER_API_KEY=your_api_key
 TWITTER_API_SECRET=your_api_secret
 TWITTER_ACCESS_TOKEN=your_access_token
 TWITTER_ACCESS_SECRET=your_access_secret
+
+# Security
 ENCRYPTION_KEY=your_encryption_key
 ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
-API_KEYS={"your_api_key":["http://localhost:3000"]}
+
+# Environment
 ENVIRONMENT=development
+
+# Optional
+PORT=8000
+UPSTASH_REDIS_REST_URL=your_upstash_redis_rest_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_rest_token
 ```
 
 ### Running Locally
@@ -83,6 +104,24 @@ deno bundle main.ts bundle.js
 deno run --allow-net --allow-env --allow-read main.ts
 ```
 
+## Deno KV Structure
+
+The application uses Deno KV for storing various types of data. For a comprehensive guide to the KV
+structure, see [docs/kv-structure.md](docs/kv-structure.md).
+
+Key patterns include:
+
+- **Token Storage**: `['tokens', platform, userId]` - Stores encrypted OAuth tokens
+- **Auth State**: `['auth', state]` - Temporarily stores OAuth state during authentication flow
+- **NEAR Account Authorization**: `['near_auth', signerId]` - Tracks whether a NEAR account is
+  authorized
+- **NEAR Account Tokens**: `['token', signerId, platform, userId]` - Links NEAR accounts to platform
+  accounts
+- **Connected Accounts Index**: `['index', signerId]` - Lists all accounts connected to a NEAR
+  wallet
+- **User Profiles**: `['profile', platform, userId]` - Stores user profile information
+- **Token Access Logs**: `['token_access_logs', timestamp]` - Logs token access operations
+
 ## Deno KV Management
 
 This project includes a utility script for managing the Deno KV database during development:
@@ -103,20 +142,6 @@ deno task clear-kv -- --prefix=tokens
 # Show help message
 deno task clear-kv -- --help
 ```
-
-The script supports the following options:
-
-- `--list-only`: Only list keys without deleting them
-- `--prefix=PREFIX`: Only operate on keys with the specified prefix
-- `--yes`: Skip confirmation prompt
-- `--help`: Show help message
-
-Common prefixes in this project:
-- `tokens`: OAuth tokens
-- `profile`: User profiles
-- `near_auth`: NEAR authorization status
-- `token`: NEAR account tokens
-- `index`: Connected accounts index
 
 ### Deployment
 
@@ -147,9 +172,51 @@ The following secrets need to be configured in your GitHub repository:
 
 See the [CI/CD documentation](.github/workflows/README.md) for more details.
 
+## Authentication Flow
+
+The application uses a combination of NEAR wallet signatures and platform-specific OAuth flows for
+authentication:
+
+### NEAR Account Authorization
+
+Before a user can connect a social media account, their NEAR account must be authorized:
+
+1. User signs a message with their NEAR wallet
+2. Client sends the signature to `POST /auth/authorize/near`
+3. Server validates the signature and stores the authorization status
+4. Authorization status can be checked with `GET /auth/authorize/near/status`
+5. Authorization can be revoked with `DELETE /auth/unauthorize/near`
+
+### Platform Authentication
+
+Once a NEAR account is authorized, the user can connect a social media account:
+
+1. User initiates authentication in client application
+2. Client sends NEAR wallet signature to `POST /auth/{platform}/login`
+3. Server validates the signature and checks NEAR account authorization
+4. Server redirects to social media platform OAuth page
+5. User authorizes the application on the platform
+6. Platform redirects back to server with authorization code
+7. Server exchanges code for tokens and stores them securely
+8. Server links the social media account to the NEAR wallet
+9. User is redirected back to client application
+
+### Account Management
+
+- List connected accounts: `GET /auth/accounts`
+- Check token status: `GET /auth/{platform}/status`
+- Refresh token: `POST /auth/{platform}/refresh`
+- Revoke token: `DELETE /auth/{platform}/revoke`
+
 ## API Endpoints
 
 ### Authentication
+
+NEAR authorization routes:
+
+- `POST /auth/authorize/near` - Authorize a NEAR account
+- `DELETE /auth/unauthorize/near` - Unauthorize a NEAR account
+- `GET /auth/authorize/near/status` - Check NEAR account authorization status
 
 Platform-specific authentication routes:
 
@@ -158,6 +225,7 @@ Platform-specific authentication routes:
 - `POST /auth/{platform}/refresh` - Refresh OAuth token for a specific platform
 - `DELETE /auth/{platform}/revoke` - Revoke OAuth token for a specific platform
 - `GET /auth/{platform}/status` - Check token status for a specific platform
+- `POST /auth/{platform}/refresh-profile` - Refresh user profile from platform
 
 Common authentication routes:
 
@@ -200,9 +268,13 @@ The API returns structured error responses with the following format:
 
 ## Security
 
-- OAuth tokens are encrypted before storage in Deno KV
+- OAuth tokens are encrypted with AES-GCM before storage in Deno KV
+- Versioned encryption supports future key rotation
+- Token access is logged with PII redaction
+- NEAR wallet signatures are validated for all authenticated requests
 - CORS is configured to only allow requests from allowed origins
-- Input validation is performed on all requests
+- Input validation is performed on all requests using Zod
+- Standardized error handling across all endpoints
 
 ## License
 

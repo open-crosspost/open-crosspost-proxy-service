@@ -3,7 +3,9 @@ import { TwitterApiAutoTokenRefresher } from '@twitter-api-v2/plugin-token-refre
 import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
 import { TwitterApiCachePluginRedis } from '@twitter-api-v2/plugin-cache-redis';
 import { Redis } from '@upstash/redis';
+import { BasePlatformClient } from '../abstract/base-platform-client.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
+import { PlatformError, PlatformErrorType } from '../abstract/platform-error.ts';
 import { TokenStorage, TokenType, TwitterTokens } from '../../storage/token-storage.ts';
 import { Env } from '../../../config/env.ts';
 
@@ -11,15 +13,14 @@ import { Env } from '../../../config/env.ts';
  * Twitter Client
  * Implements the PlatformClient interface for Twitter
  */
-export class TwitterClient implements PlatformClient {
-  private env: Env;
+export class TwitterClient extends BasePlatformClient implements PlatformClient {
   private tokenStorage: TokenStorage;
   private rateLimitPlugin: TwitterApiRateLimitPlugin;
   private redisPlugin: TwitterApiCachePluginRedis | null = null;
   private redisClient: Redis | null = null;
 
   constructor(env: Env) {
-    this.env = env;
+    super(env);
     this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY, env);
     this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
 
@@ -170,11 +171,13 @@ export class TwitterClient implements PlatformClient {
   }
 
   /**
-   * Refresh an access token using a refresh token
+   * Refresh a platform token using a refresh token
+   * This method only interacts with the platform API and does not update storage
    * @param refreshToken The refresh token to use
-   * @returns The new OAuth tokens
+   * @returns The new tokens from the platform
+   * @throws PlatformError if the refresh fails
    */
-  async refreshToken(refreshToken: string): Promise<TwitterTokens> {
+  async refreshPlatformToken(refreshToken: string): Promise<TwitterTokens> {
     try {
       const client = new TwitterApi({
         clientId: this.env.TWITTER_CLIENT_ID,
@@ -197,50 +200,54 @@ export class TwitterClient implements PlatformClient {
         error.data?.error === 'invalid_request' ||
         (error.status === 400 && error.code === 'invalid_grant')
       ) {
-        throw new Error('User authentication expired. Please reconnect your Twitter account.');
+        throw PlatformError.invalidToken(
+          'User authentication expired. Please reconnect your Twitter account.',
+          error,
+        );
       }
 
-      throw error;
+      throw this.handleApiError(error, 'refreshPlatformToken');
     }
   }
 
   /**
-   * Revoke a user's tokens
-   * @param userId The user ID whose tokens should be revoked
-   * @returns True if the tokens were revoked
+   * Revoke platform tokens
+   * This method only interacts with the platform API and does not update storage
+   * @param accessToken The access token to revoke
+   * @param refreshToken The refresh token to revoke (if applicable)
+   * @returns True if the revocation was successful
+   * @throws PlatformError if the revocation fails
    */
-  async revokeToken(userId: string): Promise<boolean> {
+  async revokePlatformToken(accessToken: string, refreshToken?: string): Promise<boolean> {
     try {
-      // Get the tokens from storage
-      const tokens = await this.tokenStorage.getTokens(userId, 'twitter');
-
       // Create a Twitter API client
       const client = new TwitterApi({
         clientId: this.env.TWITTER_CLIENT_ID,
         clientSecret: this.env.TWITTER_CLIENT_SECRET,
       });
 
-      try {
-        // Revoke the OAuth 2.0 tokens
-        if (tokens.accessToken) {
-          await client.revokeOAuth2Token(tokens.accessToken, 'access_token');
-        }
-
-        if (tokens.refreshToken) {
-          await client.revokeOAuth2Token(tokens.refreshToken, 'refresh_token');
-        }
-      } catch (error) {
-        // Log but continue - we still want to delete the tokens locally
-        console.error('Error revoking tokens with Twitter API:', error);
+      // Revoke the OAuth 2.0 tokens
+      if (accessToken) {
+        await client.revokeOAuth2Token(accessToken, 'access_token');
       }
 
-      // Delete the tokens from storage
-      await this.tokenStorage.deleteTokens(userId, 'twitter');
+      if (refreshToken) {
+        await client.revokeOAuth2Token(refreshToken, 'refresh_token');
+      }
 
       return true;
     } catch (error) {
-      console.error('Error revoking token:', error);
-      return false;
+      console.error('Error revoking tokens with Twitter API:', error);
+
+      // If it's a 401 error, the token might already be invalid/revoked
+      if (
+        error instanceof Error &&
+        (error.message.includes('401') || error.message.includes('unauthorized'))
+      ) {
+        return true;
+      }
+
+      throw this.handleApiError(error, 'revokePlatformToken');
     }
   }
 

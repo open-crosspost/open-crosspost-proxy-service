@@ -198,7 +198,41 @@ stateDiagram-v2
     HalfOpen --> Open: Failure
 ```
 
-### 6. Platform-Specific Token Manager Pattern
+### 6. KV Utility Pattern
+
+The system implements a KV Utility pattern that provides a standardized interface for interacting
+with Deno KV, with error handling, prefixed keys, and other utilities.
+
+```mermaid
+flowchart TD
+    Component[Application Component] --> KvStore[KvStore Utility]
+    Component --> PrefixedKvStore[PrefixedKvStore Utility]
+    
+    KvStore --> DenoKv[Deno KV]
+    PrefixedKvStore --> KvStore
+    
+    KvStore --> ErrorHandling[Error Handling]
+    KvStore --> Transactions[Transaction Support]
+    
+    PrefixedKvStore --> PrefixManagement[Prefix Management]
+```
+
+The KV Utility pattern includes:
+
+- **KvStore**: Static utility class for direct KV operations
+- **PrefixedKvStore**: Instance-based utility for working with prefixed keys
+- **Error handling**: Standardized error handling for all KV operations
+- **Transaction support**: Simplified transaction handling
+
+This pattern ensures:
+
+- Consistent error handling across all KV operations
+- Simplified key management with prefixes
+- Reduced code duplication
+- Improved maintainability
+- Standardized approach to KV access
+
+### 7. Platform-Specific Token Manager Pattern
 
 A dedicated Token Manager handles secure storage, retrieval, and refresh of OAuth tokens with
 platform-specific separation.
@@ -207,8 +241,8 @@ platform-specific separation.
 flowchart TD
     Request[API Request] --> TokenManager[Token Manager]
     TokenManager --> ExtractPlatform[Extract Platform]
-    ExtractPlatform --> KV[KV Storage]
-    KV --> PlatformKey[Platform-Specific Key]
+    TokenManager --> PrefixedKvStore[PrefixedKvStore]
+    PrefixedKvStore --> PlatformKey[Platform-Specific Key]
     PlatformKey --> Valid{Token Valid?}
     Valid -->|Yes| UseToken[Use Token]
     Valid -->|No| Refresh[Refresh Token]
@@ -224,8 +258,39 @@ This pattern ensures:
 - Improved security through isolation
 - Better organization of token storage
 - Support for multiple platforms per user
+- Standardized KV access through KvStore utilities
 
-### 7. Multi-level Rate Limit Pattern
+### 8. Base Platform Classes Pattern
+
+The system implements a Base Platform Classes pattern that provides common functionality for
+platform-specific implementations.
+
+```mermaid
+flowchart TD
+    PlatformInterface[Platform Interface] --> BasePlatform[Base Platform Class]
+    BasePlatform --> PlatformImpl[Platform Implementation]
+    
+    BasePlatform --> ErrorHandling[Error Handling]
+    BasePlatform --> CommonFunctionality[Common Functionality]
+    BasePlatform --> StandardizedApproach[Standardized Approach]
+```
+
+The Base Platform Classes pattern includes:
+
+- **BasePlatformClient**: Base implementation of PlatformClient interface
+- **BasePlatformAuth**: Base implementation of PlatformAuth interface
+- **Common error handling**: Standardized error handling for all platform operations
+- **Common functionality**: Shared functionality across platform implementations
+
+This pattern ensures:
+
+- Reduced code duplication
+- Consistent error handling
+- Standardized approach to platform operations
+- Easier implementation of new platforms
+- Improved maintainability
+
+### 9. Multi-level Rate Limit Pattern
 
 A comprehensive Rate Limit Manager tracks and enforces rate limits at multiple levels: platform API
 limits, global service limits, per-API key limits, and per-user limits.
@@ -252,7 +317,7 @@ flowchart TD
     CacheResponse --> ReturnResponse
 ```
 
-### 8. Cache-Aside Pattern
+### 10. Cache-Aside Pattern
 
 The system implements a Cache-Aside pattern using Redis for caching API responses, reducing
 duplicate API calls and improving performance.
@@ -273,7 +338,7 @@ flowchart TD
     ServeResponse --> ReturnResponse
 ```
 
-### 9. OpenAPI Documentation Pattern
+### 11. OpenAPI Documentation Pattern
 
 The system generates and serves OpenAPI documentation for all endpoints, providing a
 self-documenting API.
@@ -295,6 +360,66 @@ flowchart TD
 
 ```mermaid
 classDiagram
+    class KvStore {
+        <<utility>>
+        +getInstance()
+        +get(key)
+        +set(key, value, options)
+        +delete(key)
+        +list(prefix, options)
+        +withTransaction(fn)
+    }
+    
+    class PrefixedKvStore {
+        -prefix: Deno.KvKey
+        +get(subKey)
+        +set(subKey, value, options)
+        +delete(subKey)
+        +list(subPrefix, options)
+    }
+    
+    class PlatformError {
+        <<error>>
+        +type: PlatformErrorType
+        +message: string
+        +originalError?: unknown
+        +statusCode?: number
+        +tokenExpired()
+        +invalidToken()
+        +rateLimited()
+        +permissionDenied()
+        +networkError()
+        +authenticationFailed()
+        +apiError()
+        +unknown()
+    }
+    
+    class BasePlatformClient {
+        <<abstract>>
+        #env: Env
+        +initialize()
+        +getClientForUser()
+        +getAuthUrl()
+        +exchangeCodeForToken()
+        +refreshPlatformToken()
+        +revokePlatformToken()
+        #handleApiError()
+    }
+    
+    class BasePlatformAuth {
+        <<abstract>>
+        #env: Env
+        #platform: string
+        #tokenStorage: TokenStorage
+        #kvStore: PrefixedKvStore
+        +initializeAuth()
+        +getAuthState()
+        +handleCallback()
+        +refreshToken()
+        +revokeToken()
+        +getPlatformClient()
+        #handleAuthError()
+    }
     class Router {
         +route(request)
     }
@@ -369,19 +494,18 @@ classDiagram
         +getClientForUser()
         +getAuthUrl()
         +exchangeCodeForToken()
-        +refreshToken()
-        +revokeToken()
-        +getRateLimitStatus()
+        +refreshPlatformToken()
+        +revokePlatformToken()
     }
     
     class PlatformAuth {
         <<interface>>
         +initializeAuth()
+        +getAuthState()
         +handleCallback()
         +refreshToken()
         +revokeToken()
-        +hasValidTokens()
-        +listConnectedAccounts()
+        +getPlatformClient()
     }
     
     class PlatformPost {
@@ -414,17 +538,18 @@ classDiagram
         +getClientForUser()
         +getAuthUrl()
         +exchangeCodeForToken()
-        +refreshToken()
-        +revokeToken()
+        +refreshPlatformToken()
+        +revokePlatformToken()
         +getRateLimitStatus()
+        +isRateLimited()
+        +isRateLimitObsolete()
     }
     
     class TwitterAuth {
         +initializeAuth()
+        +getAuthState()
         +handleCallback()
-        +refreshToken()
-        +revokeToken()
-        +hasValidTokens()
+        +getPlatformClient()
     }
     
     class TwitterPost {
@@ -450,11 +575,15 @@ classDiagram
     }
     
     class TokenStorage {
+        -tokenStore: PrefixedKvStore
+        -encryptionKey: string
+        -logger: TokenAccessLogger
         +getTokens(userId, platform)
         +saveTokens(userId, tokens, platform)
         +deleteTokens(userId, platform)
         +hasTokens(userId, platform)
-        +listTokens(platform)
+        -encryptTokens()
+        -decryptTokens()
     }
     
     class AuthMiddleware {
@@ -490,11 +619,25 @@ classDiagram
     PostService --> PlatformPost
     MediaService --> PlatformMedia
     
-    PlatformAuth <|-- TwitterAuth
+    KvStore <-- PrefixedKvStore
+    
+    BasePlatformClient <|-- TwitterClient
+    BasePlatformAuth <|-- TwitterAuth
+    
+    PlatformClient <|.. BasePlatformClient
+    PlatformAuth <|.. BasePlatformAuth
+    
     PlatformPost <|-- TwitterPost
     PlatformMedia <|-- TwitterMedia
-    PlatformClient <|-- TwitterClient
     PlatformProfile <|-- TwitterProfile
+    
+    BasePlatformClient --> PlatformError
+    BasePlatformAuth --> PlatformError
+    
+    BasePlatformAuth --> TokenStorage
+    BasePlatformAuth --> PrefixedKvStore
+    
+    TokenStorage --> PrefixedKvStore
     
     TwitterAuth --> TwitterClient
     TwitterPost --> TwitterClient

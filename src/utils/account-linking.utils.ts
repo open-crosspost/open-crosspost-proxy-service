@@ -1,5 +1,6 @@
-import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
 import { Env } from '../config/env.ts';
+import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
+import { PlatformName } from '../types/platform.types.ts';
 
 /**
  * Account Linking Utilities
@@ -9,14 +10,14 @@ import { Env } from '../config/env.ts';
 /**
  * Link a social media account to a NEAR wallet
  * @param signerId NEAR account ID
- * @param platform Platform name (e.g., 'twitter')
+ * @param platform Platform name (e.g., Platform.TWITTER)
  * @param userId User ID on the platform
  * @param tokens Tokens for the platform
  * @param env Environment configuration
  */
 export async function linkAccountToNear(
   signerId: string,
-  platform: string,
+  platform: PlatformName,
   userId: string,
   tokens: any,
   env: Env,
@@ -38,13 +39,13 @@ export async function linkAccountToNear(
 /**
  * Unlink a social media account from a NEAR wallet
  * @param signerId NEAR account ID
- * @param platform Platform name (e.g., 'twitter')
+ * @param platform Platform name (e.g., Platform.TWITTER)
  * @param userId User ID on the platform
  * @param env Environment configuration
  */
 export async function unlinkAccountFromNear(
   signerId: string,
-  platform: string,
+  platform: PlatformName,
   userId: string,
   env: Env,
 ): Promise<void> {

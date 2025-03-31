@@ -18,15 +18,16 @@ export interface TwitterTokens {
   tokenType: TokenType | string;
 }
 
-import { TokenAccessLogger, TokenOperation } from '../security/token-access-logger.ts';
 import { Env } from '../../config/env.ts';
+import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
+import { TokenAccessLogger, TokenOperation } from '../security/token-access-logger.ts';
 
 /**
  * Token Storage using Deno KV
  * Handles secure storage and retrieval of OAuth tokens
  */
 export class TokenStorage {
-  private kv: Deno.Kv | null = null;
+  private tokenStore: PrefixedKvStore;
   private encryptionKey: string;
   private logger: TokenAccessLogger;
 
@@ -37,15 +38,7 @@ export class TokenStorage {
   constructor(encryptionKey: string, env: Env) {
     this.encryptionKey = encryptionKey;
     this.logger = new TokenAccessLogger(env);
-  }
-
-  /**
-   * Initialize the KV store
-   */
-  async initialize(): Promise<void> {
-    if (!this.kv) {
-      this.kv = await Deno.openKv();
-    }
+    this.tokenStore = new PrefixedKvStore(['tokens']);
   }
 
   /**
@@ -57,23 +50,16 @@ export class TokenStorage {
    */
   async getTokens(userId: string, platform: string): Promise<TwitterTokens> {
     try {
-      await this.initialize();
+      // Use platform-specific key with PrefixedKvStore
+      const encryptedTokens = await this.tokenStore.get<string>([platform, userId]);
 
-      if (!this.kv) {
-        throw new Error('KV store not initialized');
-      }
-
-      // Use platform-specific key
-      const key = ['tokens', platform, userId];
-      const result = await this.kv.get<string>(key);
-
-      if (!result.value) {
+      if (!encryptedTokens) {
         await this.logger.logAccess(TokenOperation.GET, userId, false, 'Tokens not found');
         throw new Error(`Tokens not found for user ${userId} on platform ${platform}`);
       }
 
       // Decrypt the tokens
-      const tokens = await this.decryptTokens(result.value);
+      const tokens = await this.decryptTokens(encryptedTokens);
 
       // Log successful access
       await this.logger.logAccess(TokenOperation.GET, userId, true);
@@ -100,23 +86,11 @@ export class TokenStorage {
    */
   async saveTokens(userId: string, tokens: TwitterTokens, platform: string): Promise<void> {
     try {
-      await this.initialize();
-
-      if (!this.kv) {
-        throw new Error('KV store not initialized');
-      }
-
       // Encrypt the tokens
       const encryptedTokens = await this.encryptTokens(tokens);
 
-      // Save the encrypted tokens to KV using platform-specific key
-      const key = ['tokens', platform, userId];
-      const result = await this.kv.set(key, encryptedTokens);
-
-      if (!result.ok) {
-        await this.logger.logAccess(TokenOperation.SAVE, userId, false, 'Failed to save tokens');
-        throw new Error(`Failed to save tokens for user ${userId} on platform ${platform}`);
-      }
+      // Save the encrypted tokens to KV using platform-specific key with PrefixedKvStore
+      await this.tokenStore.set([platform, userId], encryptedTokens);
 
       // Log successful save
       await this.logger.logAccess(TokenOperation.SAVE, userId, true);
@@ -140,15 +114,8 @@ export class TokenStorage {
    */
   async deleteTokens(userId: string, platform: string): Promise<void> {
     try {
-      await this.initialize();
-
-      if (!this.kv) {
-        throw new Error('KV store not initialized');
-      }
-
-      // Delete the tokens from KV using platform-specific key
-      const key = ['tokens', platform, userId];
-      await this.kv.delete(key);
+      // Delete the tokens from KV using platform-specific key with PrefixedKvStore
+      await this.tokenStore.delete([platform, userId]);
 
       // Log successful deletion
       await this.logger.logAccess(TokenOperation.DELETE, userId, true);
@@ -173,16 +140,9 @@ export class TokenStorage {
    */
   async hasTokens(userId: string, platform: string): Promise<boolean> {
     try {
-      await this.initialize();
-
-      if (!this.kv) {
-        throw new Error('KV store not initialized');
-      }
-
-      // Check if tokens exist in KV using platform-specific key
-      const key = ['tokens', platform, userId];
-      const result = await this.kv.get(key);
-      const exists = result.value !== null;
+      // Check if tokens exist in KV using platform-specific key with PrefixedKvStore
+      const tokens = await this.tokenStore.get([platform, userId]);
+      const exists = tokens !== null;
 
       // Log check operation
       await this.logger.logAccess(TokenOperation.CHECK, userId, true);
@@ -199,13 +159,6 @@ export class TokenStorage {
       console.error('Error checking tokens:', error);
       return false;
     }
-  }
-
-  /**
-   * Close the KV store
-   */
-  async close(): Promise<void> {
-    // Deno KV doesn't require explicit closing
   }
 
   /**

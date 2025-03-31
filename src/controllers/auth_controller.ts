@@ -3,9 +3,9 @@ import { Env, getEnv } from '../config/env.ts';
 import { DEFAULT_CONFIG } from '../config/index.ts';
 import { AuthService } from '../domain/services/auth.service.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
-import { NearAuthData } from '../infrastructure/security/near-auth/near-auth.types.ts';
-import { extractAndValidateNearAuth } from '../utils/near-auth.utils.ts';
+import { PlatformName } from '../types/platform.types.ts';
 import { unlinkAccountFromNear } from '../utils/account-linking.utils.ts';
+import { extractAndValidateNearAuth } from '../utils/near-auth.utils.ts';
 
 /**
  * Auth Controller
@@ -25,10 +25,10 @@ export class AuthController {
   /**
    * Initialize authentication with NEAR signature
    * @param c The Hono context
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @returns HTTP response with auth URL and state
    */
-  async initializeAuth(c: Context, platform: string): Promise<Response> {
+  async initializeAuth(c: Context, platform: PlatformName): Promise<Response> {
     try {
       // Extract and validate NEAR auth data
       const { signerId } = await extractAndValidateNearAuth(c);
@@ -90,10 +90,10 @@ export class AuthController {
   /**
    * Handle the OAuth callback
    * @param c The Hono context
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @returns HTTP response with user ID and tokens or a redirect
    */
-  async handleCallback(c: Context, platform: string): Promise<Response> {
+  async handleCallback(c: Context, platform: PlatformName): Promise<Response> {
     try {
       // Get the query parameters from the URL
       const url = new URL(c.req.url);
@@ -170,10 +170,10 @@ export class AuthController {
   /**
    * Refresh a user's access token
    * @param c The Hono context
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @returns HTTP response with new tokens
    */
-  async refreshToken(c: Context, platform: string): Promise<Response> {
+  async refreshToken(c: Context, platform: PlatformName): Promise<Response> {
     try {
       // Extract NEAR account ID from the validated signature
       const { signerId } = await extractAndValidateNearAuth(c);
@@ -215,10 +215,10 @@ export class AuthController {
   /**
    * Revoke a user's tokens
    * @param c The Hono context
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @returns HTTP response with success status
    */
-  async revokeToken(c: Context, platform: string): Promise<Response> {
+  async revokeToken(c: Context, platform: PlatformName): Promise<Response> {
     try {
       // Extract NEAR account ID from the validated signature
       const { signerId } = await extractAndValidateNearAuth(c);
@@ -262,26 +262,16 @@ export class AuthController {
   /**
    * Check if a user has valid tokens
    * @param c The Hono context
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @returns HTTP response with validity status
    */
-  async hasValidTokens(c: Context, platform: string): Promise<Response> {
+  async hasValidTokens(c: Context, platform: PlatformName): Promise<Response> {
     try {
       // Extract NEAR account ID from the validated signature
       const { signerId } = await extractAndValidateNearAuth(c);
 
       // Extract userId from request body or query parameters
-      let userId = c.req.query('userId');
-
-      // If not in query parameters, try to get from request body
-      if (!userId) {
-        try {
-          const body = await c.req.json();
-          userId = body.userId;
-        } catch (e) {
-          // Ignore JSON parsing errors
-        }
-      }
+      const userId = c.req.query('userId');
 
       if (!userId) {
         return c.json({
@@ -392,6 +382,7 @@ export class AuthController {
 
   /**
    * Unauthorize a NEAR account, removing its ability to interact with the proxy.
+   * Also removes all linked accounts associated with the NEAR account.
    * @param c The Hono context
    * @returns HTTP response indicating success or failure of unauthorization.
    */
@@ -400,12 +391,44 @@ export class AuthController {
       // Extract and validate NEAR auth data from the header
       const { signerId } = await extractAndValidateNearAuth(c);
 
+      // Get all linked accounts before removing authorization
+      const linkedAccounts = await this.nearAuthService.listConnectedAccounts(signerId);
+      
+      // Track any errors that occur during account unlinking
+      const unlinkErrors: Array<{ platform: string; userId: string; error: string }> = [];
+      
+      // Revoke tokens and unlink all connected accounts
+      for (const account of linkedAccounts) {
+        try {
+          // Revoke token from the platform
+          await this.authService.revokeToken(account.platform, account.userId);
+          
+          // Unlink the account from the NEAR wallet
+          await unlinkAccountFromNear(signerId, account.platform, account.userId, this.env);
+          
+          console.log(`Unlinked ${account.platform} account ${account.userId} from NEAR wallet ${signerId}`);
+        } catch (unlinkError) {
+          console.error(`Error unlinking account ${account.platform}:${account.userId}:`, unlinkError);
+          unlinkErrors.push({
+            platform: account.platform,
+            userId: account.userId,
+            error: unlinkError instanceof Error ? unlinkError.message : 'Unknown error',
+          });
+        }
+      }
+
       // Attempt to unauthorize the NEAR account
       const result = await this.nearAuthService.unauthorizeNearAccount(signerId);
 
       if (result.success) {
-        // Consider also removing linked accounts? For now, just remove auth status.
-        return c.json({ data: { success: true, signerId: signerId } });
+        return c.json({ 
+          data: { 
+            success: true, 
+            signerId: signerId,
+            accountsUnlinked: linkedAccounts.length,
+            unlinkErrors: unlinkErrors.length > 0 ? unlinkErrors : undefined
+          } 
+        });
       } else {
         return c.json({
           error: {
@@ -460,10 +483,10 @@ export class AuthController {
   /**
    * Refresh a user's profile from the platform API
    * @param c The Hono context
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @returns HTTP response with the refreshed profile
    */
-  async refreshUserProfile(c: Context, platform: string): Promise<Response> {
+  async refreshUserProfile(c: Context, platform: PlatformName): Promise<Response> {
     try {
       // Extract and validate NEAR auth data from the header
       const { signerId } = await extractAndValidateNearAuth(c);

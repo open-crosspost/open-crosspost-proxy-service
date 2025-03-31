@@ -115,20 +115,7 @@ export interface RepostResponse extends ApiResponse<PostResult> {}
 
 // Request types
 export interface QuotePostContent extends PostContent {
-  /**
-   * The platform to post on (required for the first item only in a thread)
-   */
-  platform?: string;
-
-  /**
-   * The user ID on the platform (required for the first item only in a thread)
-   */
-  userId?: string;
-
-  /**
-   * The ID of the post to quote (required for the first item only in a thread)
-   */
-  postId?: string;
+  // PostContent now includes platform, userId, and postId properties
 }
 
 export interface QuotePostRequest {
@@ -188,20 +175,7 @@ export interface DeletePostResponse extends ApiResponse<DeleteResult> {}
 
 // Request types
 export interface ReplyPostContent extends PostContent {
-  /**
-   * The platform to post on (required for the first item only in a thread)
-   */
-  platform?: string;
-
-  /**
-   * The user ID on the platform (required for the first item only in a thread)
-   */
-  userId?: string;
-
-  /**
-   * The ID of the post to reply to (required for the first item only in a thread)
-   */
-  postId?: string;
+  // PostContent now includes platform, userId, and postId properties
 }
 
 export interface ReplyToPostRequest {

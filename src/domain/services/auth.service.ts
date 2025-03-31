@@ -1,20 +1,22 @@
+import { Env } from '../../config/env.ts';
+import { DEFAULT_CONFIG } from '../../config/index.ts';
 import { PlatformAuth } from '../../infrastructure/platform/abstract/platform-auth.interface.ts';
 import { PlatformProfile } from '../../infrastructure/platform/abstract/platform-profile.interface.ts';
 import { TwitterAuth } from '../../infrastructure/platform/twitter/twitter-auth.ts';
 import { TwitterProfile } from '../../infrastructure/platform/twitter/twitter-profile.ts';
-import { Env } from '../../config/env.ts';
-import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
-import { DEFAULT_CONFIG } from '../../config/index.ts';
 import { TokenStorage, TwitterTokens } from '../../infrastructure/storage/token-storage.ts';
+import { Platform, PlatformName } from '../../types/platform.types.ts';
+import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
+import { UserProfile } from './../../types/user-profile.types.ts';
 
 /**
  * Auth Service
  * Domain service for authentication-related operations
  */
 export class AuthService {
-  private platformAuthMap: Map<string, PlatformAuth>;
-  private platformProfileMap: Map<string, PlatformProfile>;
+  private platformAuthMap: Map<PlatformName, PlatformAuth>;
+  private platformProfileMap: Map<PlatformName, PlatformProfile>;
   private tokenStorage: TokenStorage;
   private env: Env;
 
@@ -24,25 +26,25 @@ export class AuthService {
 
     // Initialize supported platforms
     this.platformAuthMap = new Map();
-    this.platformAuthMap.set('twitter', new TwitterAuth(env));
+    this.platformAuthMap.set(Platform.TWITTER, new TwitterAuth(env));
     // Add more platforms as they're implemented
-    // this.platformAuthMap.set('linkedin', new LinkedInAuth(env));
+    // this.platformAuthMap.set(Platform.LINKEDIN, new LinkedInAuth(env));
 
     // Initialize platform profiles
     this.platformProfileMap = new Map();
-    this.platformProfileMap.set('twitter', new TwitterProfile(env));
+    this.platformProfileMap.set(Platform.TWITTER, new TwitterProfile(env));
     // Add more platform profiles as they're implemented
-    // this.platformProfileMap.set('linkedin', new LinkedInProfile(env));
+    // this.platformProfileMap.set(Platform.LINKEDIN, new LinkedInProfile(env));
   }
 
   /**
    * Get the platform-specific auth implementation
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @returns The platform-specific auth implementation
    * @throws Error if the platform is not supported
    */
-  getPlatformAuth(platform: string): PlatformAuth {
-    const platformAuth = this.platformAuthMap.get(platform.toLowerCase());
+  getPlatformAuth(platform: PlatformName): PlatformAuth {
+    const platformAuth = this.platformAuthMap.get(platform.toLowerCase() as PlatformName);
     if (!platformAuth) {
       throw new Error(`Unsupported platform: ${platform}`);
     }
@@ -51,12 +53,12 @@ export class AuthService {
 
   /**
    * Get the platform-specific profile implementation
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @returns The platform-specific profile implementation
    * @throws Error if the platform is not supported
    */
-  getPlatformProfile(platform: string): PlatformProfile {
-    const platformProfile = this.platformProfileMap.get(platform.toLowerCase());
+  getPlatformProfile(platform: PlatformName): PlatformProfile {
+    const platformProfile = this.platformProfileMap.get(platform.toLowerCase() as PlatformName);
     if (!platformProfile) {
       throw new Error(`Unsupported platform: ${platform}`);
     }
@@ -65,7 +67,7 @@ export class AuthService {
 
   /**
    * Initialize the authentication process
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @param signerId NEAR account ID for linking
    * @param redirectUri The redirect URI for the OAuth callback
    * @param scopes The requested OAuth scopes
@@ -74,7 +76,7 @@ export class AuthService {
    * @returns The authentication URL and state
    */
   async initializeAuth(
-    platform: string,
+    platform: PlatformName,
     signerId: string,
     redirectUri: string,
     scopes: string[] = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
@@ -92,12 +94,12 @@ export class AuthService {
 
   /**
    * Get the auth state data from storage
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @param state The state parameter from the callback
    * @returns The auth state data including successUrl and errorUrl
    */
   async getAuthState(
-    platform: string,
+    platform: PlatformName,
     state: string,
   ): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
     try {
@@ -111,13 +113,13 @@ export class AuthService {
 
   /**
    * Handle the OAuth callback
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @param code The authorization code from the OAuth callback
    * @param state The state parameter from the callback
    * @returns The user ID and tokens
    */
   async handleCallback(
-    platform: string,
+    platform: PlatformName,
     code: string,
     state: string,
   ): Promise<{ userId: string; tokens: TwitterTokens; successUrl: string }> {
@@ -132,11 +134,11 @@ export class AuthService {
 
   /**
    * Refresh a user's access token
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @param userId The user ID whose token should be refreshed
    * @returns The new tokens
    */
-  async refreshToken(platform: string, userId: string): Promise<TwitterTokens> {
+  async refreshToken(platform: PlatformName, userId: string): Promise<TwitterTokens> {
     try {
       const platformAuth = this.getPlatformAuth(platform);
       return await platformAuth.refreshToken(userId);
@@ -148,11 +150,11 @@ export class AuthService {
 
   /**
    * Revoke a user's tokens
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @param userId The user ID whose tokens should be revoked
    * @returns True if the tokens were revoked
    */
-  async revokeToken(platform: string, userId: string): Promise<boolean> {
+  async revokeToken(platform: PlatformName, userId: string): Promise<boolean> {
     try {
       const platformAuth = this.getPlatformAuth(platform);
       return await platformAuth.revokeToken(userId);
@@ -164,11 +166,11 @@ export class AuthService {
 
   /**
    * Check if a user has valid tokens
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @param userId The user ID to check
    * @returns True if the user has valid tokens
    */
-  async hasValidTokens(platform: string, userId: string): Promise<boolean> {
+  async hasValidTokens(platform: PlatformName, userId: string): Promise<boolean> {
     try {
       return await this.tokenStorage.hasTokens(userId, platform);
     } catch (error) {
@@ -180,13 +182,13 @@ export class AuthService {
   /**
    * Link a social media account to a NEAR wallet
    * @param signerId NEAR account ID
-   * @param platform Platform name (e.g., 'twitter')
+   * @param platform Platform name (e.g., Platform.TWITTER)
    * @param userId User ID on the platform
    * @returns Success status
    */
   async linkAccount(
     signerId: string,
-    platform: string,
+    platform: PlatformName,
     userId: string,
   ): Promise<boolean> {
     try {
@@ -218,12 +220,16 @@ export class AuthService {
 
   /**
    * Get a user's profile
-   * @param platform The platform name (e.g., 'twitter')
+   * @param platform The platform name (e.g., Platform.TWITTER)
    * @param userId The user ID to get the profile for
    * @param forceRefresh Whether to force a refresh from the API
    * @returns The user profile or null if not found
    */
-  async getUserProfile(platform: string, userId: string, forceRefresh = false): Promise<any> {
+  async getUserProfile(
+    platform: PlatformName,
+    userId: string,
+    forceRefresh = false,
+  ): Promise<UserProfile | null> {
     try {
       const platformProfile = this.getPlatformProfile(platform);
       return await platformProfile.getUserProfile(userId, forceRefresh);

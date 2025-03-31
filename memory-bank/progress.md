@@ -56,6 +56,13 @@ now running on Deno Deploy.
 - ✅ NEAR account authorization flow (with authorize, unauthorize, and status check endpoints)
 - ✅ PlatformProfile interface and implementation for user profile operations
 - ✅ Platform-specific token storage for better separation between platforms
+- ✅ KV utility classes for standardized KV operations
+- ✅ Platform error handling with standardized error types
+- ✅ Base platform classes with common functionality
+- ✅ Clarified responsibilities between platform client and auth components
+- ✅ KV structure documentation
+- ✅ Refactored classes to use KV utilities (TwitterAuth, TokenStorage, TokenAccessLogger,
+  UserProfileStorage)
 
 ## What's In Progress
 
@@ -120,9 +127,10 @@ now running on Deno Deploy.
 2. Deno KV is still in beta/unstable status
 3. Limited storage capacity on Deno KV free tier
 4. ✅ Resolved: Performance impact when using npm packages through Deno's compatibility layer
-5. Token refresh mechanism needs more robust error recovery
+5. ✅ Resolved: Token refresh mechanism needs more robust error recovery
 6. Rate limit data is not persisted across worker restarts
 7. Input validation is inconsistent across endpoints
+8. NearAuthService still uses direct KV access instead of KvStore utilities
 
 ## Next Milestones
 
@@ -178,6 +186,11 @@ now running on Deno Deploy.
 - ✅ Factory pattern for platform-specific implementations (Completed)
 - ✅ User profile abstraction and implementation (Completed)
 - ✅ Phase 1 security enhancements (Completed)
+- ✅ KV utility classes (Completed)
+- ✅ Platform error handling (Completed)
+- ✅ Base platform classes (Completed)
+- ✅ KV structure documentation (Completed)
+- ✅ KV utility refactoring (Partially completed - NearAuthService still needs updating)
 - 🔄 Phase 2 & 3 security enhancements (In planning)
 - ⬜ Unit tests (Not started)
 - ⬜ Integration tests (Not started)

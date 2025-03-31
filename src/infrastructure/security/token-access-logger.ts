@@ -1,4 +1,5 @@
 import { Env } from '../../config/env.ts';
+import { KvStore, PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 
 export enum TokenOperation {
   GET = 'get',
@@ -17,17 +18,10 @@ export interface TokenAccessLog {
 }
 
 export class TokenAccessLogger {
-  private kv: Deno.Kv | null = null;
+  private logStore: PrefixedKvStore;
 
-  constructor(private env: Env) {}
-
-  /**
-   * Initialize the KV store
-   */
-  private async initializeKv(): Promise<void> {
-    if (!this.kv) {
-      this.kv = await Deno.openKv();
-    }
+  constructor(private env: Env) {
+    this.logStore = new PrefixedKvStore(['token_access_logs']);
   }
 
   /**
@@ -46,13 +40,6 @@ export class TokenAccessLogger {
     platform?: string,
   ): Promise<void> {
     try {
-      await this.initializeKv();
-
-      if (!this.kv) {
-        console.error('Failed to initialize KV store for token access logging');
-        return;
-      }
-
       // Create a redacted user ID for logging
       // Only keep first 4 and last 4 characters, replace middle with ***
       const redactedUserId = this.redactUserId(userId);
@@ -67,8 +54,7 @@ export class TokenAccessLogger {
       };
 
       // Use timestamp as part of the key for chronological ordering
-      const key = [`token_access_logs`, logEntry.timestamp.toString()];
-      await this.kv.set(key, logEntry);
+      await this.logStore.set([logEntry.timestamp.toString()], logEntry);
 
       // Also log to console in development
       if (this.env.ENVIRONMENT !== 'production') {
@@ -107,25 +93,13 @@ export class TokenAccessLogger {
    */
   async getRecentLogs(limit = 100): Promise<TokenAccessLog[]> {
     try {
-      await this.initializeKv();
-
-      if (!this.kv) {
-        throw new Error('KV store not initialized');
-      }
-
-      const logs: TokenAccessLog[] = [];
-
-      // Use prefix scan to get logs in reverse chronological order
-      const iter = this.kv.list<TokenAccessLog>({ prefix: ['token_access_logs'] }, {
+      // Use list method from PrefixedKvStore to get logs in reverse chronological order
+      const entries = await this.logStore.list<TokenAccessLog>([], {
         reverse: true,
         limit,
       });
 
-      for await (const entry of iter) {
-        logs.push(entry.value);
-      }
-
-      return logs;
+      return entries.map((entry) => entry.value);
     } catch (error) {
       console.error('Error retrieving token access logs:', error);
       return [];

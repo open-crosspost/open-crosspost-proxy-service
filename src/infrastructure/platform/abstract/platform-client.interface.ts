@@ -1,6 +1,9 @@
+import { PlatformError } from './platform-error.ts';
+
 /**
  * Platform Client Interface
  * Defines the common interface for platform-specific client implementations
+ * Responsible for direct interactions with platform APIs
  */
 export interface PlatformClient {
   /**
@@ -11,6 +14,7 @@ export interface PlatformClient {
   /**
    * Get a client instance for a specific user
    * @param userId The user ID to get a client for
+   * @throws PlatformError if the client cannot be created
    */
   getClientForUser(userId: string): Promise<any>;
 
@@ -19,6 +23,7 @@ export interface PlatformClient {
    * @param redirectUri The redirect URI for the OAuth callback
    * @param state The state parameter for CSRF protection
    * @param scopes The requested OAuth scopes
+   * @returns The authorization URL
    */
   getAuthUrl(redirectUri: string, state: string, scopes: string[]): string;
 
@@ -27,18 +32,27 @@ export interface PlatformClient {
    * @param code The authorization code from the OAuth callback
    * @param redirectUri The redirect URI used in the initial request
    * @param codeVerifier The PKCE code verifier (if applicable)
+   * @returns The tokens from the platform
+   * @throws PlatformError if the exchange fails
    */
   exchangeCodeForToken(code: string, redirectUri: string, codeVerifier?: string): Promise<any>;
 
   /**
-   * Refresh an access token using a refresh token
+   * Refresh a platform token using a refresh token
+   * This method only interacts with the platform API and does not update storage
    * @param refreshToken The refresh token to use
+   * @returns The new tokens from the platform
+   * @throws PlatformError if the refresh fails
    */
-  refreshToken(refreshToken: string): Promise<any>;
+  refreshPlatformToken(refreshToken: string): Promise<any>;
 
   /**
-   * Revoke a user's tokens
-   * @param userId The user ID whose tokens should be revoked
+   * Revoke platform tokens
+   * This method only interacts with the platform API and does not update storage
+   * @param accessToken The access token to revoke
+   * @param refreshToken The refresh token to revoke (if applicable)
+   * @returns True if the revocation was successful
+   * @throws PlatformError if the revocation fails
    */
-  revokeToken(userId: string): Promise<boolean>;
+  revokePlatformToken(accessToken: string, refreshToken?: string): Promise<boolean>;
 }
