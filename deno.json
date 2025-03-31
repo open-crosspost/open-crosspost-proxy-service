@@ -6,8 +6,8 @@
     "lint": "deno lint",
     "fmt": "deno fmt",
     "cache": "deno cache --reload deps.ts",
-    "clear-kv": "deno run --allow-env --allow-read --allow-write --unstable-kv clear-kv.ts",
-    "list-kv": "deno run --allow-env --allow-read --allow-write --unstable-kv clear-kv.ts --list-only"
+    "clear-kv": "deno run --allow-env --allow-read --allow-write --unstable-kv scripts/clear-kv.ts",
+    "list-kv": "deno run --allow-env --allow-read --allow-write --unstable-kv scripts/clear-kv.ts --list-only"
   },
   "imports": {
     "hono": "jsr:@hono/hono",
