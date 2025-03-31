@@ -1,8 +1,9 @@
-import { authSchemas } from './auth.schemas';
-import { postSchemas } from './post.schemas';
-import { mediaSchemas } from './media.schemas';
-import { rateLimitSchemas } from './rate-limit.schemas';
-import { commonSchemas } from './common.schemas';
+import { authSchemas } from './auth.schemas.ts';
+import { postSchemas } from './post.schemas.ts';
+import { mediaSchemas } from './media.schemas.ts';
+import { rateLimitSchemas } from './rate-limit.schemas.ts';
+import { commonSchemas } from './common.schemas.ts';
+import { leaderboardSchemas } from './leaderboard.schemas.ts';
 
 /**
  * OpenAPI Schemas
@@ -14,4 +15,5 @@ export const schemas = {
   ...postSchemas,
   ...mediaSchemas,
   ...rateLimitSchemas,
+  ...leaderboardSchemas,
 };

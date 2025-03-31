@@ -1,5 +1,6 @@
 import { Context } from '../../deps.ts';
 import { getEnv } from '../config/env.ts';
+import { ActivityTrackingService } from '../domain/services/activity-tracking.service.ts';
 import { PostService } from '../domain/services/post.service.ts';
 import { RateLimitService } from '../domain/services/rate-limit.service.ts';
 import { PlatformName } from '../types/platform.types.ts';
@@ -23,11 +24,13 @@ import { addContentVariation, getPostDelay } from '../utils/spam-detection.utils
 export class PostController {
   private postService: PostService;
   private rateLimitService: RateLimitService;
+  private activityTrackingService: ActivityTrackingService;
 
   constructor() {
     const env = getEnv();
     this.postService = new PostService(env);
     this.rateLimitService = new RateLimitService(env);
+    this.activityTrackingService = new ActivityTrackingService(env);
   }
 
   /**
@@ -95,6 +98,14 @@ export class PostController {
             userId,
             result,
           });
+
+          // Track the post for activity tracking
+          await this.activityTrackingService.trackPost(
+            signerId,
+            platform,
+            userId,
+            result.id // The post ID from the platform
+          );
 
           // Add a small delay between posts to avoid spam detection
           if (i < request.targets.length - 1) {

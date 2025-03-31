@@ -7,6 +7,7 @@ import { PlatformMiddleware } from './src/middleware/supported-platforms.middlew
 
 // Import controllers
 import { AuthController } from './src/controllers/auth.controller.ts';
+import { LeaderboardController } from './src/controllers/leaderboard.controller.ts';
 import { MediaController } from './src/controllers/media.controller.ts';
 import { PostController } from './src/controllers/post.controller.ts';
 import { RateLimitController } from './src/controllers/rate-limit.controller.ts';
@@ -20,6 +21,7 @@ app.use('*', corsMiddleware());
 
 // Initialize controllers
 const authController = new AuthController();
+const leaderboardController = new LeaderboardController();
 const postController = new PostController();
 const mediaController = new MediaController();
 const rateLimitController = new RateLimitController();
@@ -155,10 +157,18 @@ const rateLimit = new Hono();
 rateLimit.get('/:endpoint?', (c) => rateLimitController.getRateLimitStatus(c));
 rateLimit.get('/', (c) => rateLimitController.getAllRateLimits(c));
 
+// Leaderboard routes
+const leaderboard = new Hono();
+leaderboard.get('/', AuthMiddleware.validateNearSignature(), (c) => leaderboardController.getLeaderboard(c));
+leaderboard.get('/:signerId', AuthMiddleware.validateNearSignature(), (c) => leaderboardController.getAccountActivity(c));
+leaderboard.get('/:signerId/posts', AuthMiddleware.validateNearSignature(), (c) => leaderboardController.getAccountPosts(c));
+
 // Mount routes
 api.route('/post', post);
 api.route('/media', media);
 api.route('/rate-limit', rateLimit);
+api.route('/leaderboard', leaderboard);
+api.route('/activity', leaderboard);
 app.route('/auth', auth);
 
 app.route('/api', api);
