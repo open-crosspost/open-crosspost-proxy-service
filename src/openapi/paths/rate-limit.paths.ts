@@ -3,7 +3,110 @@
  * Defines OpenAPI paths for rate limit-related endpoints
  */
 export const rateLimitPaths = {
-  '/rate-limits/{platform}': {
+  '/rate-limit': {
+    get: {
+      tags: ['rate-limits'],
+      summary: 'Get usage rate limit status',
+      description: 'Get rate limit status for the authenticated NEAR account',
+      operationId: 'getUsageRateLimit',
+      responses: {
+        '200': {
+          description: 'NEAR account rate limit status retrieved successfully',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UsageRateLimitResponse',
+              },
+            },
+          },
+        },
+        '401': {
+          description: 'Unauthorized',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+        '500': {
+          description: 'Internal server error',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+      },
+      security: [
+        {
+          nearSignature: [],
+        },
+      ],
+    },
+  },
+  '/rate-limit/{endpoint}': {
+    get: {
+      tags: ['rate-limits'],
+      summary: 'Get usage rate limit status for specific endpoint',
+      description: 'Get rate limit status for the authenticated NEAR account for a specific endpoint',
+      operationId: 'getUsageRateLimitForEndpoint',
+      parameters: [
+        {
+          name: 'endpoint',
+          in: 'path',
+          required: true,
+          schema: {
+            type: 'string',
+            enum: ['post', 'repost', 'quote', 'reply', 'like'],
+          },
+          description: 'Endpoint name',
+          example: 'post',
+        },
+      ],
+      responses: {
+        '200': {
+          description: 'NEAR account rate limit status retrieved successfully',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/UsageRateLimitResponse',
+              },
+            },
+          },
+        },
+        '401': {
+          description: 'Unauthorized',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+        '500': {
+          description: 'Internal server error',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ErrorResponse',
+              },
+            },
+          },
+        },
+      },
+      security: [
+        {
+          nearSignature: [],
+        },
+      ],
+    },
+  },
+  '/{platform}/rate-limit': {
     get: {
       tags: ['rate-limits'],
       summary: 'Get all rate limits',
@@ -71,7 +174,7 @@ export const rateLimitPaths = {
       ],
     },
   },
-  '/rate-limits/{platform}/{endpoint}': {
+  '/{platform}/rate-limit/{endpoint}': {
     get: {
       tags: ['rate-limits'],
       summary: 'Get rate limit status',
@@ -170,7 +273,7 @@ export const rateLimitPaths = {
       ],
     },
   },
-  '/rate-limits/{platform}/check': {
+  '/{platform}/rate-limit/check': {
     post: {
       tags: ['rate-limits'],
       summary: 'Check if rate limited',
@@ -258,7 +361,7 @@ export const rateLimitPaths = {
       ],
     },
   },
-  '/rate-limits/{platform}/obsolete': {
+  '/{platform}/rate-limit/obsolete': {
     post: {
       tags: ['rate-limits'],
       summary: 'Check if rate limit is obsolete',

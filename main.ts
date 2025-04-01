@@ -3,6 +3,7 @@ import { getSecureEnv, isProduction } from './src/config/env.ts';
 import { AuthMiddleware } from './src/middleware/auth.middleware.ts';
 import { corsMiddleware } from './src/middleware/cors.middleware.ts';
 import { errorMiddleware } from './src/middleware/error.middleware.ts';
+import { UsageRateLimitMiddleware } from './src/middleware/usage-rate-limit.middleware.ts';
 import { PlatformMiddleware } from './src/middleware/supported-platforms.middleware.ts';
 
 // Import controllers
@@ -122,7 +123,11 @@ auth.get(
 
 // Post routes
 const post = new Hono();
-post.post('/', AuthMiddleware.validateNearSignature(), (c) => postController.createPost(c));
+post.post('/',
+  AuthMiddleware.validateNearSignature(),
+  UsageRateLimitMiddleware.limitByNearAccount('post'),
+  (c) => postController.createPost(c)
+);
 post.post('/repost', AuthMiddleware.validateNearSignature(), (c) => postController.repost(c));
 post.post('/quote', AuthMiddleware.validateNearSignature(), (c) => postController.quotePost(c));
 post.delete('/:id', AuthMiddleware.validateNearSignature(), (c) => postController.deletePost(c));
@@ -152,10 +157,6 @@ media.post(
   (c) => mediaController.updateMediaMetadata(c),
 );
 
-// Rate limit routes
-const rateLimit = new Hono();
-rateLimit.get('/:endpoint?', (c) => rateLimitController.getRateLimitStatus(c));
-rateLimit.get('/', (c) => rateLimitController.getAllRateLimits(c));
 
 // Leaderboard routes
 const leaderboard = new Hono();
@@ -166,15 +167,27 @@ leaderboard.get('/:signerId/posts', AuthMiddleware.validateNearSignature(), (c) 
 // Mount routes
 api.route('/post', post);
 api.route('/media', media);
-api.route('/rate-limit', rateLimit);
 api.route('/leaderboard', leaderboard);
 api.route('/activity', leaderboard);
 app.route('/auth', auth);
+
+// Usage rate limits (associated with near account)
+const usageRateLimit = new Hono();
+usageRateLimit.get('/:endpoint?',
+  AuthMiddleware.validateNearSignature(),
+  (c) => rateLimitController.getUsageRateLimit(c)
+);
+api.route('/rate-limit', usageRateLimit);
 
 app.route('/api', api);
 
 const env = getSecureEnv(isProduction());
 const port = parseInt(Deno.env.get('PORT') || '8000');
+
+// Initialize usage rate limit middleware with configuration
+UsageRateLimitMiddleware.initialize({
+  maxPostsPerDay: 10 // Configurable limit for posts per day per NEAR account
+});
 
 console.log(`Starting server on port ${port}...`);
 console.log(`Environment: ${env.ENVIRONMENT}`);

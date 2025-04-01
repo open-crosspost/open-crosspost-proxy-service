@@ -3,6 +3,52 @@
  * Defines OpenAPI schemas for rate limit-related requests and responses
  */
 export const rateLimitSchemas = {
+  // Usage Rate Limit Schemas
+  UsageRateLimitStatus: {
+    type: 'object',
+    required: ['signerId', 'endpoint', 'limit', 'remaining', 'reset'],
+    properties: {
+      signerId: {
+        type: 'string',
+        description: 'NEAR account ID',
+        example: 'example.near',
+      },
+      endpoint: {
+        type: 'string',
+        description: 'Endpoint being rate limited',
+        example: 'post',
+      },
+      limit: {
+        type: 'number',
+        description: 'Maximum number of requests allowed per day',
+        example: 10,
+      },
+      remaining: {
+        type: 'number',
+        description: 'Number of requests remaining for the current day',
+        example: 5,
+      },
+      reset: {
+        type: 'number',
+        description: 'Timestamp when the rate limit resets (in seconds since epoch)',
+        example: 1617235200,
+      },
+    },
+  },
+
+  UsageRateLimitResponse: {
+    type: 'object',
+    required: ['data'],
+    properties: {
+      data: {
+        $ref: '#/components/schemas/UsageRateLimitStatus',
+      },
+      meta: {
+        $ref: '#/components/schemas/ResponseMeta',
+      },
+    },
+  },
+
   // Request Schemas
   RateLimitCheckRequest: {
     type: 'object',
