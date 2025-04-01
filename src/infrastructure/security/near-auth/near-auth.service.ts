@@ -1,4 +1,4 @@
-import { BorshSchema } from 'npm:borsher';
+import { BorshSchema, borshSerialize } from 'npm:borsher';
 import { base58_to_binary } from 'npm:base58-js';
 import nacl from 'npm:tweetnacl';
 import { Env } from '../../../config/env.ts';
@@ -101,7 +101,16 @@ export class NearAuthService {
   ): Promise<boolean> {
     try {
       // Serialize the payload using borsher
-      const borshPayload = BorshSchema.serialize(BorshSchema.Struct(PAYLOAD_SCHEMA), payload);
+      // Try both methods for compatibility with different environments
+      let borshPayload: Uint8Array;
+      try {
+        // First try using BorshSchema.serialize (works in development)
+        borshPayload = BorshSchema.serialize(BorshSchema.Struct(PAYLOAD_SCHEMA), payload);
+      } catch (serializeError) {
+        console.log('BorshSchema.serialize failed, trying borshSerialize directly');
+        // Fallback to direct borshSerialize function (should work in production)
+        borshPayload = borshSerialize(BorshSchema.Struct(PAYLOAD_SCHEMA), payload);
+      }
 
       // Hash the payload using Web Crypto API
       const hashBuffer = await crypto.subtle.digest('SHA-256', borshPayload);

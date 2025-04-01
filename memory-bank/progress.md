@@ -131,8 +131,8 @@ now running on Deno Deploy.
 6. Rate limit data is not persisted across worker restarts
 7. Input validation is inconsistent across endpoints
 8. NearAuthService still uses direct KV access instead of KvStore utilities
-9. ✅ Resolved: NEAR authentication failing in Deno Deploy production due to inconsistent import of
-   borsher library
+9. ✅ Resolved: NEAR authentication failing in Deno Deploy production due to borsher library
+   serialization issues (implemented fallback mechanism)
 
 ## Next Milestones
 
