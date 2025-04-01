@@ -1,280 +1,155 @@
-# Social Media API Proxy (Deno Version)
+# open crosspost proxy service
 
-A secure Deno-based proxy for social media APIs that allows authorized frontends to perform actions
-on behalf of users who have granted permission. The system securely stores OAuth tokens, handles
-refreshes, enforces rate limits, and supports all major API functions including media uploads.
-Initially focused on Twitter, the architecture is designed to be platform-agnostic to support
-additional social media platforms in the future.
+Easily and securely connect your app to social media platforms (like Twitter) using NEAR wallet authentication. No more handling OAuth tokens on the client!
 
-## Migration to Deno
+## What It Does
 
-This project has been migrated from Cloudflare Workers to Deno for improved compatibility with the
-twitter-api-v2 library and its plugins. The migration includes:
+- Acts as a secure bridge between your app and platforms like Twitter
+- Handles OAuth authentication, token refreshes, and rate limits for you
+- Uses your NEAR wallet signature to authorize actions, keeping platform keys safe on the server
+- Built with Deno and designed to run efficiently on the edge (Deno Deploy)
 
-- Replacing Cloudflare KV with Deno KV for token storage
-- Replacing itty-router with Hono for HTTP routing
-- Updating the project structure to follow Deno conventions
-- Implementing proper error handling and middleware for Deno
-
-## Project Structure
-
-```
-/
-  deno.json               # Deno configuration
-  deps.ts                 # Central dependencies file
-  main.ts                 # Main entry point
-  clear-kv.ts             # KV management utility
-  /docs
-    kv-structure.md       # KV structure documentation
-  /src
-    /config               # Configuration
-    /controllers          # API controllers
-    /domain               # Business logic
-      /services           # Domain services
-    /infrastructure       # External services and storage
-      /platform           # Platform-specific implementations
-        /abstract         # Platform abstraction interfaces
-        /twitter          # Twitter implementation
-      /security           # Security-related functionality
-      /storage            # Storage services
-    /middleware           # HTTP middleware
-    /openapi              # OpenAPI documentation
-    /types                # TypeScript types
-    /utils                # Utility functions
-```
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
 - [Deno](https://deno.land/) (latest version)
-- Twitter API credentials
+- NEAR Wallet
+- Twitter Developer Account (for Twitter API access)
 
-### Environment Variables
-
-Create a `.env` file with the following variables:
-
-```
-# Twitter API credentials
-TWITTER_CLIENT_ID=your_client_id
-TWITTER_CLIENT_SECRET=your_client_secret
-TWITTER_API_KEY=your_api_key
-TWITTER_API_SECRET=your_api_secret
-TWITTER_ACCESS_TOKEN=your_access_token
-TWITTER_ACCESS_SECRET=your_access_secret
-
-# Security
-ENCRYPTION_KEY=your_encryption_key
-ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
-
-# Environment
-ENVIRONMENT=development
-
-# Optional
-PORT=8000
-UPSTASH_REDIS_REST_URL=your_upstash_redis_rest_url
-UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_rest_token
-```
-
-### Running Locally
+### Setup & Run
 
 ```bash
-# Install Deno
-curl -fsSL https://deno.land/x/install/install.sh | sh
+# Clone the repository
+git clone https://github.com/your-org/crosspost-proxy.git
+cd crosspost-proxy
+
+# Create .env file with required variables
+cp .env.example .env
+# Edit .env with your credentials
 
 # Start the development server
 deno task dev
 
-# Format code
-deno fmt
-
-# Lint code
-deno lint
-
-# Run tests
-deno test
-
-# Cache dependencies
-deno cache deps.ts
-
-# Bundle the application
-deno bundle main.ts bundle.js
-
-# Run with specific permissions
-deno run --allow-net --allow-env --allow-read main.ts
+# Run tests (when available)
+deno task test
 ```
 
-## Deno KV Structure
+### Essential Environment Variables
 
-The application uses Deno KV for storing various types of data. For a comprehensive guide to the KV
-structure, see [docs/kv-structure.md](docs/kv-structure.md).
+```
+TWITTER_CLIENT_ID=your_client_id
+TWITTER_CLIENT_SECRET=your_client_secret
 
-Key patterns include:
+ENCRYPTION_KEY=your_encryption_key
 
-- **Token Storage**: `['tokens', platform, userId]` - Stores encrypted OAuth tokens
-- **Auth State**: `['auth', state]` - Temporarily stores OAuth state during authentication flow
-- **NEAR Account Authorization**: `['near_auth', signerId]` - Tracks whether a NEAR account is
-  authorized
-- **NEAR Account Tokens**: `['token', signerId, platform, userId]` - Links NEAR accounts to platform
-  accounts
-- **Connected Accounts Index**: `['index', signerId]` - Lists all accounts connected to a NEAR
-  wallet
-- **User Profiles**: `['profile', platform, userId]` - Stores user profile information
-- **Token Access Logs**: `['token_access_logs', timestamp]` - Logs token access operations
-
-## Deno KV Management
-
-This project includes a utility script for managing the Deno KV database during development:
-
-```bash
-# List all keys in the Deno KV database
-deno task list-kv
-
-# Clear all keys from the Deno KV database (with confirmation prompt)
-deno task clear-kv
-
-# Clear all keys without confirmation
-deno task clear-kv -- --yes
-
-# Only operate on keys with a specific prefix
-deno task clear-kv -- --prefix=tokens
-
-# Show help message
-deno task clear-kv -- --help
+ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 ```
 
-### Deployment
+## How It Works
 
-The application is deployed to Deno Deploy using GitHub Actions workflows:
+### Authentication Flow
 
-#### Automatic Deployment to Staging
+```mermaid
+sequenceDiagram
+    participant ClientApp as Client Application
+    participant NearWallet as NEAR Wallet
+    participant ProxyService as Crosspost Proxy
+    participant DenoKV as Deno KV Storage
+    participant PlatformAPI as Social Media Platform API
 
-When code is pushed to the `main` branch, it is automatically:
+    ClientApp->>NearWallet: Request signature for API action
+    NearWallet-->>ClientApp: Provide signed message
+    ClientApp->>ProxyService: API Request + NEAR Auth Header
+    ProxyService->>ProxyService: 1. Verify NEAR Signature
+    ProxyService->>DenoKV: 2. Check if NEAR Account is Authorized
+    alt NEAR Account Authorized
+        ProxyService->>DenoKV: 3. Retrieve Platform User ID linked to NEAR Account
+        ProxyService->>DenoKV: 4. Retrieve Encrypted Platform Token
+        ProxyService->>ProxyService: 5. Decrypt Token
+        ProxyService->>PlatformAPI: 6. Execute API Call with User's Token
+        PlatformAPI-->>ProxyService: Platform Response
+        ProxyService-->>ClientApp: API Response
+    else NEAR Account Not Authorized
+        ProxyService-->>ClientApp: 403 Forbidden Error
+    end
+```
 
-1. Tested (format, lint, unit tests)
-2. Deployed to the staging environment on Deno Deploy
+### Three Simple Steps
 
-#### Manual Deployment to Production
+1. **Authorize Your NEAR Account** (one-time setup)
 
-To deploy to production:
+   ```bash
+   POST /auth/authorize/near
+   ```
 
-1. Go to the "Actions" tab in the GitHub repository
-2. Select "Deploy to Production" from the workflows list
-3. Click "Run workflow"
-4. Type "yes" in the confirmation field
-5. Click "Run workflow" to start the deployment
+   Include your NEAR signature in the header.
 
-#### Required GitHub Secrets
+2. **Connect a Platform Account** (for each platform)
 
-The following secrets need to be configured in your GitHub repository:
+   ```bash
+   POST /auth/twitter/login
+   ```
 
-- `DENO_DEPLOY_TOKEN`: A token for authenticating with Deno Deploy
+   Include your NEAR signature. This redirects through Twitter's OAuth flow.
 
-See the [CI/CD documentation](.github/workflows/README.md) for more details.
+3. **Make API Calls** (using your NEAR signature)
 
-## Authentication Flow
+   ```bash
+   POST /api/post
+   ```
 
-The application uses a combination of NEAR wallet signatures and platform-specific OAuth flows for
-authentication:
+   Include the `Authorization` header in all requests.
 
-### NEAR Account Authorization
-
-Before a user can connect a social media account, their NEAR account must be authorized:
-
-1. User signs a message with their NEAR wallet
-2. Client sends the signature to `POST /auth/authorize/near`
-3. Server validates the signature and stores the authorization status
-4. Authorization status can be checked with `GET /auth/authorize/near/status`
-5. Authorization can be revoked with `DELETE /auth/unauthorize/near`
-
-### Platform Authentication
-
-Once a NEAR account is authorized, the user can connect a social media account:
-
-1. User initiates authentication in client application
-2. Client sends NEAR wallet signature to `POST /auth/{platform}/login`
-3. Server validates the signature and checks NEAR account authorization
-4. Server redirects to social media platform OAuth page
-5. User authorizes the application on the platform
-6. Platform redirects back to server with authorization code
-7. Server exchanges code for tokens and stores them securely
-8. Server links the social media account to the NEAR wallet
-9. User is redirected back to client application
-
-### Account Management
-
-- List connected accounts: `GET /auth/accounts`
-- Check token status: `GET /auth/{platform}/status`
-- Refresh token: `POST /auth/{platform}/refresh`
-- Revoke token: `DELETE /auth/{platform}/revoke`
-
-## API Endpoints
+## Core API Endpoints
 
 ### Authentication
 
-NEAR authorization routes:
+```bash
+POST /auth/authorize/near          # Authorize your NEAR account
+POST /auth/{platform}/login        # Connect a platform account (e.g., twitter)
+GET /auth/accounts                 # List accounts connected to your NEAR wallet
+```
 
-- `POST /auth/authorize/near` - Authorize a NEAR account
-- `DELETE /auth/unauthorize/near` - Unauthorize a NEAR account
-- `GET /auth/authorize/near/status` - Check NEAR account authorization status
+### Posting
 
-Platform-specific authentication routes:
+```bash
+POST /api/post                     # Create a post
+```
 
-- `POST /auth/{platform}/login` - Initialize OAuth flow for a specific platform
-- `GET /auth/{platform}/callback` - Handle OAuth callback from a specific platform
-- `POST /auth/{platform}/refresh` - Refresh OAuth token for a specific platform
-- `DELETE /auth/{platform}/revoke` - Revoke OAuth token for a specific platform
-- `GET /auth/{platform}/status` - Check token status for a specific platform
-- `POST /auth/{platform}/refresh-profile` - Refresh user profile from platform
-
-Common authentication routes:
-
-- `GET /auth/accounts` - List all connected accounts for a NEAR wallet
-
-Currently supported platforms: `twitter`
-
-### Posts
-
-- `POST /api/post` - Create a post (platform-agnostic)
-- `POST /api/post/repost` - Repost a post
-- `POST /api/post/quote` - Quote a post
-- `DELETE /api/post/:id` - Delete a post
-- `POST /api/post/reply` - Reply to a post
-- `POST /api/post/like/:id` - Like a post
-- `DELETE /api/post/like/:id` - Unlike a post
-
-All post endpoints accept `platform` and `userId` parameters to specify which platform and account
-to use.
-
-### Rate Limits
-
-- `GET /api/rate-limit/:endpoint?` - Get rate limit status for an endpoint
-- `GET /api/rate-limit` - Get all rate limits
-
-## Error Handling
-
-The API returns structured error responses with the following format:
+Example request:
 
 ```json
 {
-  "error": {
-    "type": "error_type",
-    "message": "Error message",
-    "status": 400,
-    "details": {}
-  }
+  "platform": "twitter",
+  "content": "Hello world from Crosspost Proxy!",
+  "mediaIds": ["optional-media-id-if-uploading-media"]
 }
+
+```bash
+Required header: `Authorization: Bearer ${JSON.stringify(signature)}`
+
+```bash
+POST /api/post/like/:id            # Like a post
+POST /api/post/reply               # Reply to a post
+POST /api/post/repost              # Repost content
+DELETE /api/post/:id               # Delete a post
 ```
 
-## Security
+### Media
 
-- OAuth tokens are encrypted with AES-GCM before storage in Deno KV
-- Versioned encryption supports future key rotation
-- Token access is logged with PII redaction
-- NEAR wallet signatures are validated for all authenticated requests
-- CORS is configured to only allow requests from allowed origins
-- Input validation is performed on all requests using Zod
-- Standardized error handling across all endpoints
+```bash
+POST /api/media/upload             # Upload media for attaching to posts
+GET /api/media/:id/status          # Check media upload status
+```
+
+For all endpoints and details, see the OpenAPI Specification available at `/openapi.json` when running the server.
+
+## Extending & Contributing
+
+This project uses a platform-agnostic design, making it easy to add support for additional social media platforms beyond Twitter.
+
+Want to add support for LinkedIn, Mastodon, or another platform? Contributions are welcome! Just implement the platform interfaces in `src/infrastructure/platform/abstract/`.
 
 ## License
 

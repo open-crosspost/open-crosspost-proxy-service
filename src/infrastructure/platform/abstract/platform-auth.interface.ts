@@ -1,4 +1,3 @@
-import { PlatformError } from './platform-error.ts';
 import { PlatformClient } from './platform-client.interface.ts';
 
 /**
