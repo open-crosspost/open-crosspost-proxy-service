@@ -1,6 +1,7 @@
 # open crosspost proxy service
 
-Easily and securely connect your app to social media platforms (like Twitter) using NEAR wallet authentication. No more handling OAuth tokens on the client!
+Easily and securely connect your app to social media platforms (like Twitter) using NEAR wallet
+authentication. No more handling OAuth tokens on the client!
 
 ## What It Does
 
@@ -119,7 +120,7 @@ POST /api/post                     # Create a post
 
 Example request:
 
-```json
+````json
 {
   "platform": "twitter",
   "content": "Hello world from Crosspost Proxy!",
@@ -134,7 +135,7 @@ POST /api/post/like/:id            # Like a post
 POST /api/post/reply               # Reply to a post
 POST /api/post/repost              # Repost content
 DELETE /api/post/:id               # Delete a post
-```
+````
 
 ### Media
 
@@ -143,13 +144,16 @@ POST /api/media/upload             # Upload media for attaching to posts
 GET /api/media/:id/status          # Check media upload status
 ```
 
-For all endpoints and details, see the OpenAPI Specification available at `/openapi.json` when running the server.
+For all endpoints and details, see the OpenAPI Specification available at `/openapi.json` when
+running the server.
 
 ## Extending & Contributing
 
-This project uses a platform-agnostic design, making it easy to add support for additional social media platforms beyond Twitter.
+This project uses a platform-agnostic design, making it easy to add support for additional social
+media platforms beyond Twitter.
 
-Want to add support for LinkedIn, Mastodon, or another platform? Contributions are welcome! Just implement the platform interfaces in `src/infrastructure/platform/abstract/`.
+Want to add support for LinkedIn, Mastodon, or another platform? Contributions are welcome! Just
+implement the platform interfaces in `src/infrastructure/platform/abstract/`.
 
 ## License
 
