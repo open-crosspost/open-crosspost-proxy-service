@@ -20,5 +20,9 @@ export interface PlatformProfile {
    * @param providedClient Optional platform client to use (for initial auth)
    * @returns The user profile or null if not found
    */
-  fetchUserProfile(userId: string, isInitialAuth?: boolean, providedClient?: any): Promise<UserProfile | null>;
+  fetchUserProfile(
+    userId: string,
+    isInitialAuth?: boolean,
+    providedClient?: any,
+  ): Promise<UserProfile | null>;
 }

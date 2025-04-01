@@ -22,17 +22,17 @@ interface UsageRateLimitRecord {
    * NEAR account ID
    */
   signerId: string;
-  
+
   /**
    * Endpoint being rate limited
    */
   endpoint: string;
-  
+
   /**
    * Count of requests made today
    */
   count: number;
-  
+
   /**
    * Timestamp when the count was last reset
    */
@@ -45,12 +45,12 @@ interface UsageRateLimitRecord {
  */
 export class UsageRateLimitMiddleware {
   private static kvStore: PrefixedKvStore = new PrefixedKvStore(['usage_rate_limit']);
-  
+
   /**
    * Default configuration
    */
   private static defaultConfig: UsageRateLimitConfig = {
-    maxPostsPerDay: 10
+    maxPostsPerDay: 10,
   };
 
   /**
@@ -65,7 +65,7 @@ export class UsageRateLimitMiddleware {
   static initialize(config?: Partial<UsageRateLimitConfig>): void {
     UsageRateLimitMiddleware.config = {
       ...UsageRateLimitMiddleware.defaultConfig,
-      ...config
+      ...config,
     };
   }
 
@@ -87,9 +87,9 @@ export class UsageRateLimitMiddleware {
   static updateConfig(config: Partial<UsageRateLimitConfig>): void {
     UsageRateLimitMiddleware.config = {
       ...UsageRateLimitMiddleware.getConfig(),
-      ...config
+      ...config,
     };
-    
+
     console.log(`Usage Rate Limit Middleware config updated:`, UsageRateLimitMiddleware.config);
   }
 
@@ -110,44 +110,44 @@ export class UsageRateLimitMiddleware {
    */
   private static async checkAndUpdateRateLimit(
     signerId: string,
-    endpoint: string
+    endpoint: string,
   ): Promise<{ allowed: boolean; current: number; limit: number; reset: number }> {
     const config = UsageRateLimitMiddleware.getConfig();
     const dayStart = UsageRateLimitMiddleware.getDayStart();
     const key = [signerId, endpoint];
-    
+
     // Get current rate limit record
     let record = await UsageRateLimitMiddleware.kvStore.get<UsageRateLimitRecord>(key);
-    
+
     // If no record exists or it's from a previous day, create a new one
     if (!record || record.resetTimestamp < dayStart) {
       record = {
         signerId,
         endpoint,
         count: 0,
-        resetTimestamp: dayStart
+        resetTimestamp: dayStart,
       };
     }
-    
+
     // Check if limit is reached
     const allowed = record.count < config.maxPostsPerDay;
-    
+
     // If allowed, increment the count
     if (allowed) {
       record.count += 1;
       await UsageRateLimitMiddleware.kvStore.set(key, record);
     }
-    
+
     // Calculate next reset time (start of next day)
     const nextDay = new Date(dayStart);
     nextDay.setDate(nextDay.getDate() + 1);
     const resetTime = nextDay.getTime();
-    
+
     return {
       allowed,
       current: record.count,
       limit: config.maxPostsPerDay,
-      reset: resetTime
+      reset: resetTime,
     };
   }
 
@@ -161,37 +161,37 @@ export class UsageRateLimitMiddleware {
       try {
         // Get NEAR account ID from context (set by AuthMiddleware.validateNearSignature)
         const signerId = c.get('signerId') as string;
-        
+
         if (!signerId) {
           throw new ApiError(
             ErrorType.AUTHENTICATION,
             'NEAR account ID not found in context',
-            401
+            401,
           );
         }
-        
+
         // Check and update rate limit
         const result = await UsageRateLimitMiddleware.checkAndUpdateRateLimit(signerId, endpoint);
-        
+
         // If not allowed, return rate limit error
         if (!result.allowed) {
           // Add rate limit headers
           c.header('X-RateLimit-Limit', result.limit.toString());
           c.header('X-RateLimit-Remaining', '0');
           c.header('X-RateLimit-Reset', Math.floor(result.reset / 1000).toString());
-          
+
           throw new ApiError(
             ErrorType.RATE_LIMIT,
             `Rate limit exceeded for NEAR account ${signerId}. Maximum ${result.limit} requests per day allowed.`,
-            429
+            429,
           );
         }
-        
+
         // Add rate limit headers
         c.header('X-RateLimit-Limit', result.limit.toString());
         c.header('X-RateLimit-Remaining', (result.limit - result.current).toString());
         c.header('X-RateLimit-Reset', Math.floor(result.reset / 1000).toString());
-        
+
         await next();
       } catch (error) {
         if (error instanceof ApiError) {
@@ -200,7 +200,7 @@ export class UsageRateLimitMiddleware {
         throw new ApiError(
           ErrorType.INTERNAL,
           'Error checking rate limit',
-          500
+          500,
         );
       }
     };

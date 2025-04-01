@@ -49,14 +49,14 @@ export class TwitterProfile implements PlatformProfile {
    * @returns The user profile or null if not found
    */
   async fetchUserProfile(
-    userId: string, 
+    userId: string,
     isInitialAuth = false,
-    providedClient?: TwitterApi
+    providedClient?: TwitterApi,
   ): Promise<UserProfile | null> {
     try {
       // Use provided client or get a new one
       let client: TwitterApi;
-      
+
       if (isInitialAuth && providedClient) {
         // During initial auth, use the provided client
         client = providedClient;

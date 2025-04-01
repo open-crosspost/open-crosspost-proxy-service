@@ -33,7 +33,7 @@ export class RateLimitController {
       const status = await this.rateLimitService.getRateLimitStatus(
         platform,
         endpoint,
-        version
+        version,
       );
 
       // Return the result
@@ -59,7 +59,7 @@ export class RateLimitController {
     try {
       // Get platform from the request
       const platform = c.req.param('platform') as PlatformName;
-      
+
       // Get all rate limits for the platform
       const limits = await this.rateLimitService.getAllRateLimits(platform);
 
@@ -86,7 +86,7 @@ export class RateLimitController {
     try {
       // Get NEAR account ID from context (set by AuthMiddleware.validateNearSignature)
       const signerId = c.get('signerId') as string;
-      
+
       if (!signerId) {
         return c.json({
           error: {
@@ -96,22 +96,22 @@ export class RateLimitController {
           },
         }, 401);
       }
-      
+
       // Get endpoint from the request
       const endpoint = c.req.param('endpoint') || 'post';
-      
+
       // Get the current configuration
       const config = UsageRateLimitMiddleware.getConfig();
-      
+
       // Get the start of the current day
       const dayStart = new Date();
       dayStart.setHours(0, 0, 0, 0);
-      
+
       // Calculate next reset time (start of next day)
       const nextDay = new Date(dayStart);
       nextDay.setDate(nextDay.getDate() + 1);
       const resetTime = nextDay.getTime();
-      
+
       // Get current rate limit record
       const kvStore = new PrefixedKvStore(['usage_rate_limit']);
       const key = [signerId, endpoint];
@@ -121,7 +121,7 @@ export class RateLimitController {
         count: number;
         resetTimestamp: number;
       }>(key);
-      
+
       // If no record exists, create a default response
       if (!record) {
         return c.json({
@@ -134,7 +134,7 @@ export class RateLimitController {
           },
         });
       }
-      
+
       // Return the rate limit status
       return c.json({
         data: {

@@ -1,7 +1,10 @@
 import { Env } from '../../config/env.ts';
 import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 import { Platform, PlatformName } from '../../types/platform.types.ts';
-import { PlatformRateLimit, RateLimitStatus } from '../../infrastructure/platform/abstract/platform-rate-limit.interface.ts';
+import {
+  PlatformRateLimit,
+  RateLimitStatus,
+} from '../../infrastructure/platform/abstract/platform-rate-limit.interface.ts';
 import { TwitterRateLimit } from '../../infrastructure/platform/twitter/twitter-rate-limit.ts';
 
 /**
@@ -48,7 +51,7 @@ export class RateLimitService {
   async getRateLimitStatus(
     platform: PlatformName,
     endpoint: string,
-    version?: string
+    version?: string,
   ): Promise<RateLimitStatus | null> {
     try {
       const platformRateLimit = this.getPlatformRateLimit(platform);
@@ -102,27 +105,27 @@ export class RateLimitService {
   async canPerformAction(platform: PlatformName, action: string = 'post'): Promise<boolean> {
     try {
       const platformRateLimit = this.getPlatformRateLimit(platform);
-      
+
       // Get the endpoint for the specified action
       const endpointInfo = platformRateLimit.getEndpointForAction(action);
-      
+
       if (!endpointInfo) {
         // If we don't have endpoint info for this action, assume it's ok
         console.warn(`No rate limit endpoint defined for ${platform}/${action}`);
         return true;
       }
-      
+
       // Check rate limits for the endpoint
       const rateLimitStatus = await platformRateLimit.getRateLimitStatus(
-        endpointInfo.endpoint, 
-        endpointInfo.version
+        endpointInfo.endpoint,
+        endpointInfo.version,
       );
-      
+
       if (platformRateLimit.isRateLimited(rateLimitStatus)) {
         console.warn(`Rate limit reached for ${platform}/${action}`);
         return false;
       }
-      
+
       return true;
     } catch (error) {
       console.error(`Error checking rate limits for ${platform}/${action}:`, error);

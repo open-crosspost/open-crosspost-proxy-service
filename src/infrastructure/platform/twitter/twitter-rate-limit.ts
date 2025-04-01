@@ -12,7 +12,7 @@ export class TwitterRateLimit implements PlatformRateLimit {
 
   constructor(env: Env) {
     this.twitterClient = new TwitterClient(env);
-    
+
     // Map common actions to their corresponding endpoints
     this.actionEndpointMap = {
       post: { endpoint: '/2/tweets', version: 'v2' },
@@ -30,14 +30,17 @@ export class TwitterRateLimit implements PlatformRateLimit {
    * @param version The API version (v1 or v2)
    * @returns The rate limit status
    */
-  async getRateLimitStatus(endpoint: string, version: 'v1' | 'v2' = 'v2'): Promise<RateLimitStatus | null> {
+  async getRateLimitStatus(
+    endpoint: string,
+    version: 'v1' | 'v2' = 'v2',
+  ): Promise<RateLimitStatus | null> {
     try {
       const rateLimitData = await this.twitterClient.getRateLimitStatus(endpoint, version);
-      
+
       if (!rateLimitData) {
         return null;
       }
-      
+
       return {
         limit: rateLimitData.limit,
         remaining: rateLimitData.remaining,

@@ -33,18 +33,16 @@ export class MediaCache {
       if (typeof media.data === 'string') {
         return createHash('sha256').update(media.data).digest('hex');
       }
-      
+
       // For Blob data
       if (media.data instanceof Blob) {
         const arrayBuffer = await media.data.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         return createHash('sha256').update(buffer).digest('hex');
       }
-      
+
       // Fallback using mime type and size if available
-      const dataString = typeof media.data === 'string' 
-        ? media.data 
-        : 'blob-data';
+      const dataString = typeof media.data === 'string' ? media.data : 'blob-data';
       return `${media.mimeType || 'unknown'}-${dataString.length}`;
     } catch (error) {
       console.error('Error generating media hash:', error);

@@ -1,6 +1,9 @@
 import { Context } from '../../deps.ts';
 import { getEnv } from '../config/env.ts';
-import { ActivityTrackingService, TimePeriod } from '../domain/services/activity-tracking.service.ts';
+import {
+  ActivityTrackingService,
+  TimePeriod,
+} from '../domain/services/activity-tracking.service.ts';
 import { PlatformName } from '../types/platform.types.ts';
 
 /**
@@ -46,7 +49,7 @@ export class LeaderboardController {
           platform,
           limit,
           offset,
-          timePeriod
+          timePeriod,
         );
         total = await this.activityTrackingService.getTotalPlatformAccounts(platform, timePeriod);
       } else {
@@ -62,11 +65,11 @@ export class LeaderboardController {
           pagination: {
             total,
             limit,
-            offset
+            offset,
           },
           timeframe: timePeriod,
-          platform
-        }
+          platform,
+        },
       });
     } catch (error) {
       console.error('Error getting leaderboard:', error);
@@ -74,8 +77,8 @@ export class LeaderboardController {
         error: {
           type: 'internal_error',
           message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500
-        }
+          status: 500,
+        },
       }, 500);
     }
   }
@@ -93,7 +96,10 @@ export class LeaderboardController {
       let activity;
       if (platform) {
         // Get platform-specific account activity
-        activity = await this.activityTrackingService.getPlatformAccountActivity(signerId, platform);
+        activity = await this.activityTrackingService.getPlatformAccountActivity(
+          signerId,
+          platform,
+        );
       } else {
         // Get global account activity
         activity = await this.activityTrackingService.getAccountActivity(signerId);
@@ -104,14 +110,14 @@ export class LeaderboardController {
           error: {
             type: 'not_found',
             message: 'Account activity not found',
-            status: 404
-          }
+            status: 404,
+          },
         }, 404);
       }
 
       // Return the result
       return c.json({
-        data: activity
+        data: activity,
       });
     } catch (error) {
       console.error('Error getting account activity:', error);
@@ -119,8 +125,8 @@ export class LeaderboardController {
         error: {
           type: 'internal_error',
           message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500
-        }
+          status: 500,
+        },
       }, 500);
     }
   }
@@ -144,7 +150,7 @@ export class LeaderboardController {
           signerId,
           platform,
           limit,
-          offset
+          offset,
         );
       } else {
         // Get all account posts
@@ -157,10 +163,10 @@ export class LeaderboardController {
           posts,
           pagination: {
             limit,
-            offset
+            offset,
           },
-          platform
-        }
+          platform,
+        },
       });
     } catch (error) {
       console.error('Error getting account posts:', error);
@@ -168,8 +174,8 @@ export class LeaderboardController {
         error: {
           type: 'internal_error',
           message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500
-        }
+          status: 500,
+        },
       }, 500);
     }
   }

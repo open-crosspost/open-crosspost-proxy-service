@@ -52,7 +52,8 @@ export const rateLimitPaths = {
     get: {
       tags: ['rate-limits'],
       summary: 'Get usage rate limit status for specific endpoint',
-      description: 'Get rate limit status for the authenticated NEAR account for a specific endpoint',
+      description:
+        'Get rate limit status for the authenticated NEAR account for a specific endpoint',
       operationId: 'getUsageRateLimitForEndpoint',
       parameters: [
         {
@@ -365,7 +366,8 @@ export const rateLimitPaths = {
     post: {
       tags: ['rate-limits'],
       summary: 'Check if rate limit is obsolete',
-      description: 'Check if a rate limit status is obsolete (reset time has passed) for a specific platform',
+      description:
+        'Check if a rate limit status is obsolete (reset time has passed) for a specific platform',
       operationId: 'isRateLimitObsolete',
       parameters: [
         {

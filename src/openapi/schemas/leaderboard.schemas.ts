@@ -12,17 +12,17 @@ export const leaderboardSchemas = {
     properties: {
       signerId: {
         type: 'string',
-        description: 'NEAR account ID'
+        description: 'NEAR account ID',
       },
       postCount: {
         type: 'number',
-        description: 'Number of posts'
+        description: 'Number of posts',
       },
       lastPostTimestamp: {
         type: 'number',
-        description: 'Timestamp of the last post'
-      }
-    }
+        description: 'Timestamp of the last post',
+      },
+    },
   },
 
   PlatformLeaderboardEntry: {
@@ -31,21 +31,21 @@ export const leaderboardSchemas = {
     properties: {
       signerId: {
         type: 'string',
-        description: 'NEAR account ID'
+        description: 'NEAR account ID',
       },
       postCount: {
         type: 'number',
-        description: 'Number of posts'
+        description: 'Number of posts',
       },
       lastPostTimestamp: {
         type: 'number',
-        description: 'Timestamp of the last post'
+        description: 'Timestamp of the last post',
       },
       platform: {
         type: 'string',
-        description: 'Platform name'
-      }
-    }
+        description: 'Platform name',
+      },
+    },
   },
 
   Pagination: {
@@ -54,17 +54,17 @@ export const leaderboardSchemas = {
     properties: {
       total: {
         type: 'number',
-        description: 'Total number of entries'
+        description: 'Total number of entries',
       },
       limit: {
         type: 'number',
-        description: 'Maximum number of entries per page'
+        description: 'Maximum number of entries per page',
       },
       offset: {
         type: 'number',
-        description: 'Number of entries to skip'
-      }
-    }
+        description: 'Number of entries to skip',
+      },
+    },
   },
 
   PostRecord: {
@@ -73,22 +73,22 @@ export const leaderboardSchemas = {
     properties: {
       postId: {
         type: 'string',
-        description: 'Post ID'
+        description: 'Post ID',
       },
       platform: {
         type: 'string',
-        description: 'Platform name'
+        description: 'Platform name',
       },
       timestamp: {
         type: 'string',
         format: 'date-time',
-        description: 'Timestamp of the post'
+        description: 'Timestamp of the post',
       },
       userId: {
         type: 'string',
-        description: 'User ID on the platform'
-      }
-    }
+        description: 'User ID on the platform',
+      },
+    },
   },
 
   AccountActivity: {
@@ -97,21 +97,21 @@ export const leaderboardSchemas = {
     properties: {
       signerId: {
         type: 'string',
-        description: 'NEAR account ID'
+        description: 'NEAR account ID',
       },
       postCount: {
         type: 'number',
-        description: 'Number of posts'
+        description: 'Number of posts',
       },
       firstPostTimestamp: {
         type: 'number',
-        description: 'Timestamp of the first post'
+        description: 'Timestamp of the first post',
       },
       lastPostTimestamp: {
         type: 'number',
-        description: 'Timestamp of the last post'
-      }
-    }
+        description: 'Timestamp of the last post',
+      },
+    },
   },
 
   PlatformAccountActivity: {
@@ -120,25 +120,25 @@ export const leaderboardSchemas = {
     properties: {
       signerId: {
         type: 'string',
-        description: 'NEAR account ID'
+        description: 'NEAR account ID',
       },
       postCount: {
         type: 'number',
-        description: 'Number of posts'
+        description: 'Number of posts',
       },
       firstPostTimestamp: {
         type: 'number',
-        description: 'Timestamp of the first post'
+        description: 'Timestamp of the first post',
       },
       lastPostTimestamp: {
         type: 'number',
-        description: 'Timestamp of the last post'
+        description: 'Timestamp of the last post',
       },
       platform: {
         type: 'string',
-        description: 'Platform name'
-      }
-    }
+        description: 'Platform name',
+      },
+    },
   },
 
   // Response Schemas
@@ -153,26 +153,26 @@ export const leaderboardSchemas = {
           entries: {
             type: 'array',
             items: {
-              $ref: '#/components/schemas/LeaderboardEntry'
+              $ref: '#/components/schemas/LeaderboardEntry',
             },
-            description: 'Leaderboard entries'
+            description: 'Leaderboard entries',
           },
           pagination: {
             $ref: '#/components/schemas/Pagination',
-            description: 'Pagination information'
+            description: 'Pagination information',
           },
           timeframe: {
             type: 'string',
             enum: Object.values(TimePeriod),
-            description: 'Time period for filtering'
+            description: 'Time period for filtering',
           },
           platform: {
             type: 'string',
-            description: 'Platform name for filtering (if specified)'
-          }
-        }
-      }
-    }
+            description: 'Platform name for filtering (if specified)',
+          },
+        },
+      },
+    },
   },
 
   AccountActivityResponse: {
@@ -182,11 +182,11 @@ export const leaderboardSchemas = {
       data: {
         oneOf: [
           { $ref: '#/components/schemas/AccountActivity' },
-          { $ref: '#/components/schemas/PlatformAccountActivity' }
+          { $ref: '#/components/schemas/PlatformAccountActivity' },
         ],
-        description: 'Account activity data'
-      }
-    }
+        description: 'Account activity data',
+      },
+    },
   },
 
   AccountPostsResponse: {
@@ -200,9 +200,9 @@ export const leaderboardSchemas = {
           posts: {
             type: 'array',
             items: {
-              $ref: '#/components/schemas/PostRecord'
+              $ref: '#/components/schemas/PostRecord',
             },
-            description: 'Post records'
+            description: 'Post records',
           },
           pagination: {
             type: 'object',
@@ -210,22 +210,22 @@ export const leaderboardSchemas = {
             properties: {
               limit: {
                 type: 'number',
-                description: 'Maximum number of posts per page'
+                description: 'Maximum number of posts per page',
               },
               offset: {
                 type: 'number',
-                description: 'Number of posts to skip'
-              }
+                description: 'Number of posts to skip',
+              },
             },
-            description: 'Pagination information'
+            description: 'Pagination information',
           },
           platform: {
             type: 'string',
-            description: 'Platform name for filtering (if specified)'
-          }
-        }
-      }
-    }
+            description: 'Platform name for filtering (if specified)',
+          },
+        },
+      },
+    },
   },
 
   LeaderboardErrorResponse: {
@@ -238,18 +238,18 @@ export const leaderboardSchemas = {
         properties: {
           type: {
             type: 'string',
-            description: 'Error type'
+            description: 'Error type',
           },
           message: {
             type: 'string',
-            description: 'Error message'
+            description: 'Error message',
           },
           status: {
             type: 'number',
-            description: 'HTTP status code'
-          }
-        }
-      }
-    }
-  }
+            description: 'HTTP status code',
+          },
+        },
+      },
+    },
+  },
 };

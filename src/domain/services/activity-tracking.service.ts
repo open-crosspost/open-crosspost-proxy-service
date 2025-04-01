@@ -63,7 +63,7 @@ export enum TimePeriod {
   YEARLY = 'yearly',
   MONTHLY = 'monthly',
   WEEKLY = 'weekly',
-  DAILY = 'daily'
+  DAILY = 'daily',
 }
 
 /**
@@ -90,20 +90,20 @@ export class ActivityTrackingService {
     signerId: string,
     platform: PlatformName,
     userId: string,
-    postId: string
+    postId: string,
   ): Promise<void> {
     try {
       const now = Date.now();
-      
+
       // Update account activity record
       await this.updateAccountActivity(signerId, now);
-      
+
       // Update platform-specific account activity record
       await this.updatePlatformAccountActivity(signerId, platform, now);
-      
+
       // Update post list
       await this.updateAccountPosts(signerId, platform, userId, postId, now);
-      
+
       // Invalidate leaderboard cache
       await this.invalidateLeaderboardCache();
       await this.invalidatePlatformLeaderboardCache(platform);
@@ -124,7 +124,7 @@ export class ActivityTrackingService {
       signerId,
       postCount: 0,
       firstPostTimestamp: timestamp,
-      lastPostTimestamp: timestamp
+      lastPostTimestamp: timestamp,
     };
 
     // Update activity data
@@ -147,7 +147,7 @@ export class ActivityTrackingService {
   private async updatePlatformAccountActivity(
     signerId: string,
     platform: PlatformName,
-    timestamp: number
+    timestamp: number,
   ): Promise<void> {
     const key = ['near_account_platform', signerId, platform];
     const activity = await this.kvStore.get<PlatformAccountActivity>(key) || {
@@ -155,7 +155,7 @@ export class ActivityTrackingService {
       platform,
       postCount: 0,
       firstPostTimestamp: timestamp,
-      lastPostTimestamp: timestamp
+      lastPostTimestamp: timestamp,
     };
 
     // Update activity data
@@ -182,7 +182,7 @@ export class ActivityTrackingService {
     platform: PlatformName,
     userId: string,
     postId: string,
-    timestamp: number
+    timestamp: number,
   ): Promise<void> {
     const key = ['near_account_posts', signerId];
     const posts = await this.kvStore.get<PostRecord[]>(key) || [];
@@ -192,7 +192,7 @@ export class ActivityTrackingService {
       id: postId,
       p: platform,
       t: timestamp,
-      u: userId
+      u: userId,
     });
 
     // Limit the number of posts stored
@@ -211,7 +211,7 @@ export class ActivityTrackingService {
       ['leaderboard_cache', TimePeriod.YEARLY],
       ['leaderboard_cache', TimePeriod.MONTHLY],
       ['leaderboard_cache', TimePeriod.WEEKLY],
-      ['leaderboard_cache', TimePeriod.DAILY]
+      ['leaderboard_cache', TimePeriod.DAILY],
     ];
 
     for (const key of cacheKeys) {
@@ -229,7 +229,7 @@ export class ActivityTrackingService {
       ['leaderboard_cache_platform', platform, TimePeriod.YEARLY],
       ['leaderboard_cache_platform', platform, TimePeriod.MONTHLY],
       ['leaderboard_cache_platform', platform, TimePeriod.WEEKLY],
-      ['leaderboard_cache_platform', platform, TimePeriod.DAILY]
+      ['leaderboard_cache_platform', platform, TimePeriod.DAILY],
     ];
 
     for (const key of cacheKeys) {
@@ -260,7 +260,7 @@ export class ActivityTrackingService {
    */
   async getPlatformAccountActivity(
     signerId: string,
-    platform: PlatformName
+    platform: PlatformName,
   ): Promise<PlatformAccountActivity | null> {
     try {
       const key = ['near_account_platform', signerId, platform];
@@ -281,7 +281,7 @@ export class ActivityTrackingService {
   async getAccountPosts(
     signerId: string,
     limit = 10,
-    offset = 0
+    offset = 0,
   ): Promise<PostRecordResponse[]> {
     try {
       const key = ['near_account_posts', signerId];
@@ -291,11 +291,11 @@ export class ActivityTrackingService {
       const paginatedPosts = posts.slice(offset, offset + limit);
 
       // Convert to response format
-      return paginatedPosts.map(post => ({
+      return paginatedPosts.map((post) => ({
         postId: post.id,
         platform: post.p,
         timestamp: new Date(post.t).toISOString(),
-        userId: post.u
+        userId: post.u,
       }));
     } catch (error) {
       console.error('Error getting account posts:', error);
@@ -315,24 +315,24 @@ export class ActivityTrackingService {
     signerId: string,
     platform: PlatformName,
     limit = 10,
-    offset = 0
+    offset = 0,
   ): Promise<PostRecordResponse[]> {
     try {
       const key = ['near_account_posts', signerId];
       const posts = await this.kvStore.get<PostRecord[]>(key) || [];
 
       // Filter by platform
-      const platformPosts = posts.filter(post => post.p === platform);
+      const platformPosts = posts.filter((post) => post.p === platform);
 
       // Apply pagination
       const paginatedPosts = platformPosts.slice(offset, offset + limit);
 
       // Convert to response format
-      return paginatedPosts.map(post => ({
+      return paginatedPosts.map((post) => ({
         postId: post.id,
         platform: post.p,
         timestamp: new Date(post.t).toISOString(),
-        userId: post.u
+        userId: post.u,
       }));
     } catch (error) {
       console.error('Error getting account platform posts:', error);
@@ -347,25 +347,25 @@ export class ActivityTrackingService {
    */
   private getTimePeriodStart(timePeriod: TimePeriod): number {
     const now = new Date();
-    
+
     switch (timePeriod) {
       case TimePeriod.ALL_TIME:
         return 0; // Beginning of time
-      
+
       case TimePeriod.YEARLY:
         return new Date(now.getFullYear(), 0, 1).getTime();
-      
+
       case TimePeriod.MONTHLY:
         return new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-      
+
       case TimePeriod.WEEKLY:
         const day = now.getDay();
         const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
         return new Date(now.getFullYear(), now.getMonth(), diff).getTime();
-      
+
       case TimePeriod.DAILY:
         return new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      
+
       default:
         return 0;
     }
@@ -381,7 +381,7 @@ export class ActivityTrackingService {
   async getLeaderboard(
     limit = 10,
     offset = 0,
-    timePeriod: TimePeriod = TimePeriod.ALL_TIME
+    timePeriod: TimePeriod = TimePeriod.ALL_TIME,
   ): Promise<LeaderboardEntry[]> {
     try {
       // Try to get from cache first
@@ -405,8 +405,8 @@ export class ActivityTrackingService {
 
       // Filter accounts by time period
       const filteredAccounts = accounts
-        .filter(account => account.value.lastPostTimestamp >= timePeriodStart)
-        .map(account => account.value);
+        .filter((account) => account.value.lastPostTimestamp >= timePeriodStart)
+        .map((account) => account.value);
 
       // Sort by post count (descending)
       const sortedAccounts = filteredAccounts.sort((a, b) => b.postCount - a.postCount);
@@ -414,7 +414,7 @@ export class ActivityTrackingService {
       // Cache the result
       await this.kvStore.set(cacheKey, {
         entries: sortedAccounts,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       // Return paginated result
@@ -437,7 +437,7 @@ export class ActivityTrackingService {
     platform: PlatformName,
     limit = 10,
     offset = 0,
-    timePeriod: TimePeriod = TimePeriod.ALL_TIME
+    timePeriod: TimePeriod = TimePeriod.ALL_TIME,
   ): Promise<PlatformLeaderboardEntry[]> {
     try {
       // Try to get from cache first
@@ -461,11 +461,11 @@ export class ActivityTrackingService {
 
       // Filter accounts by platform and time period
       const filteredAccounts = accounts
-        .filter(account => 
-          account.value.platform === platform && 
+        .filter((account) =>
+          account.value.platform === platform &&
           account.value.lastPostTimestamp >= timePeriodStart
         )
-        .map(account => account.value);
+        .map((account) => account.value);
 
       // Sort by post count (descending)
       const sortedAccounts = filteredAccounts.sort((a, b) => b.postCount - a.postCount);
@@ -473,7 +473,7 @@ export class ActivityTrackingService {
       // Cache the result
       await this.kvStore.set(cacheKey, {
         entries: sortedAccounts,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       // Return paginated result
@@ -495,7 +495,8 @@ export class ActivityTrackingService {
       const timePeriodStart = this.getTimePeriodStart(timePeriod);
 
       // Filter accounts by time period
-      return accounts.filter(account => account.value.lastPostTimestamp >= timePeriodStart).length;
+      return accounts.filter((account) => account.value.lastPostTimestamp >= timePeriodStart)
+        .length;
     } catch (error) {
       console.error('Error getting total accounts:', error);
       return 0;
@@ -510,15 +511,15 @@ export class ActivityTrackingService {
    */
   async getTotalPlatformAccounts(
     platform: PlatformName,
-    timePeriod: TimePeriod = TimePeriod.ALL_TIME
+    timePeriod: TimePeriod = TimePeriod.ALL_TIME,
   ): Promise<number> {
     try {
       const accounts = await this.kvStore.list<PlatformAccountActivity>(['near_account_platform']);
       const timePeriodStart = this.getTimePeriodStart(timePeriod);
 
       // Filter accounts by platform and time period
-      return accounts.filter(account => 
-        account.value.platform === platform && 
+      return accounts.filter((account) =>
+        account.value.platform === platform &&
         account.value.lastPostTimestamp >= timePeriodStart
       ).length;
     } catch (error) {

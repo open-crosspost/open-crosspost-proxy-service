@@ -432,13 +432,13 @@ export class TwitterPost implements PlatformPost {
       try {
         // Check if we already have this media file cached
         const cachedMediaId = await mediaCache.getCachedMediaId(mediaFile);
-        
+
         if (cachedMediaId) {
           console.log('Using cached media ID:', cachedMediaId);
           mediaIds.push(cachedMediaId);
           continue;
         }
-        
+
         // Upload the media using the TwitterMedia service
         const result = await this.twitterMedia.uploadMedia(userId, mediaFile);
 

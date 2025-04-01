@@ -104,12 +104,12 @@ export class PostController {
             signerId,
             platform,
             userId,
-            result.id // The post ID from the platform
+            result.id, // The post ID from the platform
           );
 
           // Add a small delay between posts to avoid spam detection
           if (i < request.targets.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, getPostDelay(platform)));
+            await new Promise((resolve) => setTimeout(resolve, getPostDelay(platform)));
           }
         } catch (error) {
           errors.push({

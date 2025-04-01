@@ -123,10 +123,11 @@ auth.get(
 
 // Post routes
 const post = new Hono();
-post.post('/',
+post.post(
+  '/',
   AuthMiddleware.validateNearSignature(),
   UsageRateLimitMiddleware.limitByNearAccount('post'),
-  (c) => postController.createPost(c)
+  (c) => postController.createPost(c),
 );
 post.post('/repost', AuthMiddleware.validateNearSignature(), (c) => postController.repost(c));
 post.post('/quote', AuthMiddleware.validateNearSignature(), (c) => postController.quotePost(c));
@@ -157,12 +158,23 @@ media.post(
   (c) => mediaController.updateMediaMetadata(c),
 );
 
-
 // Leaderboard routes
 const leaderboard = new Hono();
-leaderboard.get('/', AuthMiddleware.validateNearSignature(), (c) => leaderboardController.getLeaderboard(c));
-leaderboard.get('/:signerId', AuthMiddleware.validateNearSignature(), (c) => leaderboardController.getAccountActivity(c));
-leaderboard.get('/:signerId/posts', AuthMiddleware.validateNearSignature(), (c) => leaderboardController.getAccountPosts(c));
+leaderboard.get(
+  '/',
+  AuthMiddleware.validateNearSignature(),
+  (c) => leaderboardController.getLeaderboard(c),
+);
+leaderboard.get(
+  '/:signerId',
+  AuthMiddleware.validateNearSignature(),
+  (c) => leaderboardController.getAccountActivity(c),
+);
+leaderboard.get(
+  '/:signerId/posts',
+  AuthMiddleware.validateNearSignature(),
+  (c) => leaderboardController.getAccountPosts(c),
+);
 
 // Mount routes
 api.route('/post', post);
@@ -173,9 +185,10 @@ app.route('/auth', auth);
 
 // Usage rate limits (associated with near account)
 const usageRateLimit = new Hono();
-usageRateLimit.get('/:endpoint?',
+usageRateLimit.get(
+  '/:endpoint?',
   AuthMiddleware.validateNearSignature(),
-  (c) => rateLimitController.getUsageRateLimit(c)
+  (c) => rateLimitController.getUsageRateLimit(c),
 );
 api.route('/rate-limit', usageRateLimit);
 
@@ -186,7 +199,7 @@ const port = parseInt(Deno.env.get('PORT') || '8000');
 
 // Initialize usage rate limit middleware with configuration
 UsageRateLimitMiddleware.initialize({
-  maxPostsPerDay: 10 // Configurable limit for posts per day per NEAR account
+  maxPostsPerDay: 10, // Configurable limit for posts per day per NEAR account
 });
 
 console.log(`Starting server on port ${port}...`);

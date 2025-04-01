@@ -12,8 +12,8 @@ export const leaderboardPaths = {
       tags: ['Leaderboard'],
       security: [
         {
-          nearSignature: []
-        }
+          nearSignature: [],
+        },
       ],
       parameters: [
         {
@@ -24,8 +24,8 @@ export const leaderboardPaths = {
             type: 'integer',
             default: 10,
             minimum: 1,
-            maximum: 100
-          }
+            maximum: 100,
+          },
         },
         {
           name: 'offset',
@@ -34,8 +34,8 @@ export const leaderboardPaths = {
           schema: {
             type: 'integer',
             default: 0,
-            minimum: 0
-          }
+            minimum: 0,
+          },
         },
         {
           name: 'timeframe',
@@ -44,17 +44,17 @@ export const leaderboardPaths = {
           schema: {
             type: 'string',
             enum: Object.values(TimePeriod),
-            default: TimePeriod.ALL_TIME
-          }
+            default: TimePeriod.ALL_TIME,
+          },
         },
         {
           name: 'platform',
           in: 'query',
           description: 'Platform name for filtering',
           schema: {
-            type: 'string'
-          }
-        }
+            type: 'string',
+          },
+        },
       ],
       responses: {
         '200': {
@@ -62,23 +62,23 @@ export const leaderboardPaths = {
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/LeaderboardResponse'
-              }
-            }
-          }
+                $ref: '#/components/schemas/LeaderboardResponse',
+              },
+            },
+          },
         },
         '500': {
           description: 'Internal server error',
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/LeaderboardErrorResponse'
-              }
-            }
-          }
-        }
-      }
-    }
+                $ref: '#/components/schemas/LeaderboardErrorResponse',
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/activity/{signerId}': {
     get: {
@@ -87,8 +87,8 @@ export const leaderboardPaths = {
       tags: ['Leaderboard'],
       security: [
         {
-          nearSignature: []
-        }
+          nearSignature: [],
+        },
       ],
       parameters: [
         {
@@ -97,17 +97,17 @@ export const leaderboardPaths = {
           required: true,
           description: 'NEAR account ID',
           schema: {
-            type: 'string'
-          }
+            type: 'string',
+          },
         },
         {
           name: 'platform',
           in: 'query',
           description: 'Platform name for filtering',
           schema: {
-            type: 'string'
-          }
-        }
+            type: 'string',
+          },
+        },
       ],
       responses: {
         '200': {
@@ -115,33 +115,33 @@ export const leaderboardPaths = {
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/AccountActivityResponse'
-              }
-            }
-          }
+                $ref: '#/components/schemas/AccountActivityResponse',
+              },
+            },
+          },
         },
         '404': {
           description: 'Account activity not found',
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/LeaderboardErrorResponse'
-              }
-            }
-          }
+                $ref: '#/components/schemas/LeaderboardErrorResponse',
+              },
+            },
+          },
         },
         '500': {
           description: 'Internal server error',
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/LeaderboardErrorResponse'
-              }
-            }
-          }
-        }
-      }
-    }
+                $ref: '#/components/schemas/LeaderboardErrorResponse',
+              },
+            },
+          },
+        },
+      },
+    },
   },
   '/api/activity/{signerId}/posts': {
     get: {
@@ -150,8 +150,8 @@ export const leaderboardPaths = {
       tags: ['Leaderboard'],
       security: [
         {
-          nearSignature: []
-        }
+          nearSignature: [],
+        },
       ],
       parameters: [
         {
@@ -160,16 +160,16 @@ export const leaderboardPaths = {
           required: true,
           description: 'NEAR account ID',
           schema: {
-            type: 'string'
-          }
+            type: 'string',
+          },
         },
         {
           name: 'platform',
           in: 'query',
           description: 'Platform name for filtering',
           schema: {
-            type: 'string'
-          }
+            type: 'string',
+          },
         },
         {
           name: 'limit',
@@ -179,8 +179,8 @@ export const leaderboardPaths = {
             type: 'integer',
             default: 10,
             minimum: 1,
-            maximum: 100
-          }
+            maximum: 100,
+          },
         },
         {
           name: 'offset',
@@ -189,9 +189,9 @@ export const leaderboardPaths = {
           schema: {
             type: 'integer',
             default: 0,
-            minimum: 0
-          }
-        }
+            minimum: 0,
+          },
+        },
       ],
       responses: {
         '200': {
@@ -199,22 +199,22 @@ export const leaderboardPaths = {
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/AccountPostsResponse'
-              }
-            }
-          }
+                $ref: '#/components/schemas/AccountPostsResponse',
+              },
+            },
+          },
         },
         '500': {
           description: 'Internal server error',
           content: {
             'application/json': {
               schema: {
-                $ref: '#/components/schemas/LeaderboardErrorResponse'
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+                $ref: '#/components/schemas/LeaderboardErrorResponse',
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 };
