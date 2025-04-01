@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "borsh": "^2.0.0",
-    "borsher": "^3.6.0"
-  }
-}

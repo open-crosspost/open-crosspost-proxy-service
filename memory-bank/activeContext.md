@@ -55,6 +55,9 @@ now running on Deno Deploy.
 - **Refactored classes to use KV utilities**: Updated `TwitterAuth`, `TokenStorage`,
   `TokenAccessLogger`, and `UserProfileStorage` to use the new KV utility classes instead of direct
   KV access.
+- **Fixed NEAR authentication in production**: Fixed an issue with inconsistent imports of the
+  borsher library that was causing NEAR authentication to fail only in the Deno Deploy production
+  environment.
 
 ## Active Decisions
 

@@ -1,4 +1,4 @@
-import { BorshSchema } from 'borsher';
+import { BorshSchema } from 'npm:borsher';
 import { base58_to_binary } from 'npm:base58-js';
 import nacl from 'npm:tweetnacl';
 import { Env } from '../../../config/env.ts';
