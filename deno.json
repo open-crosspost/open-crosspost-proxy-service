@@ -12,6 +12,7 @@
   "imports": {
     "hono": "jsr:@hono/hono",
     "zod": "npm:zod",
+    "@hono/zod-openapi": "npm:@hono/zod-openapi",
     "twitter-api-v2": "npm:twitter-api-v2",
     "@twitter-api-v2/plugin-rate-limit": "npm:@twitter-api-v2/plugin-rate-limit",
     "@twitter-api-v2/plugin-token-refresher": "npm:@twitter-api-v2/plugin-token-refresher",
@@ -45,5 +46,6 @@
     "strictBindCallApply": true,
     "strictPropertyInitialization": true,
     "noImplicitThis": true
-  }
+  },
+  "nodeModulesDir": "auto"
 }

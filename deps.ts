@@ -10,8 +10,9 @@ export { cors } from 'npm:hono/cors';
 export { HTTPException } from 'npm:hono/http-exception';
 export type { Context, MiddlewareHandler, Next } from 'npm:hono';
 
-// Zod validation
-export * as z from 'zod';
+// Zod validation and OpenAPI
+export { z } from '@hono/zod-openapi';
+export { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 
 // Twitter API
 export { TwitterApi } from 'twitter-api-v2';
