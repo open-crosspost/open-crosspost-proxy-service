@@ -3,7 +3,16 @@ import { getEnv } from '../config/env.ts';
 import { ActivityTrackingService } from '../domain/services/activity-tracking.service.ts';
 import { PostService } from '../domain/services/post.service.ts';
 import { RateLimitService } from '../domain/services/rate-limit.service.ts';
-import { PlatformName } from '../types/platform.types.ts';
+import { ApiErrorCode, PlatformError } from '../infrastructure/platform/abstract/error-hierarchy.ts';
+import { TwitterError } from '../infrastructure/platform/twitter/twitter-error.ts';
+import {
+  createEnhancedApiResponse,
+  createEnhancedErrorResponse,
+  createErrorDetail,
+  createMultiStatusResponse,
+  createSuccessDetail
+} from '../types/enhanced-response.types.ts';
+import { Platform } from '../types/platform.types.ts';
 import {
   CreatePostRequest,
   DeletePostRequest,
@@ -45,8 +54,9 @@ export class PostController {
 
       const request = await c.req.json() as CreatePostRequest;
 
-      const results: Array<{ platform: PlatformName; userId: string; result: any }> = [];
-      const errors: Array<{ platform?: PlatformName; userId?: string; error: string }> = [];
+      // Initialize success and error arrays for multi-status response
+      const successResults: Array<ReturnType<typeof createSuccessDetail>> = [];
+      const errorDetails: Array<ReturnType<typeof createErrorDetail>> = [];
 
       // Initialize media cache for this operation
       const mediaCache = MediaCache.getInstance();
@@ -62,24 +72,34 @@ export class PostController {
             // Verify platform access
             await verifyPlatformAccess(signerId, platform, userId);
           } catch (error) {
-            errors.push({
-              platform,
-              userId,
-              error: error instanceof Error
-                ? error.message
-                : `No connected ${platform} account found for user ID ${userId}`,
-            });
+            // Create a platform error for unauthorized access
+            errorDetails.push(
+              createErrorDetail(
+                error instanceof Error
+                  ? error.message
+                  : `No connected ${platform} account found for user ID ${userId}`,
+                ApiErrorCode.UNAUTHORIZED,
+                platform,
+                userId,
+                true // Recoverable by connecting the account
+              )
+            );
             continue;
           }
 
           // Check rate limits before posting using the platform-agnostic method
           const canPost = await this.rateLimitService.canPerformAction(platform, 'post');
           if (!canPost) {
-            errors.push({
-              platform,
-              userId,
-              error: `Rate limit reached for ${platform}. Please try again later.`,
-            });
+            // Create a platform error for rate limiting
+            errorDetails.push(
+              createErrorDetail(
+                `Rate limit reached for ${platform}. Please try again later.`,
+                ApiErrorCode.RATE_LIMITED,
+                platform,
+                userId,
+                true // Recoverable by waiting
+              )
+            );
             continue;
           }
 
@@ -93,11 +113,19 @@ export class PostController {
             modifiedContent,
           );
 
-          results.push({
-            platform,
-            userId,
-            result,
-          });
+          // Add to success results
+          successResults.push(
+            createSuccessDetail(
+              platform,
+              userId,
+              {
+                postId: result.id,
+                postUrl: result.url || `https://twitter.com/i/web/status/${result.id}`, // Fallback URL format
+                createdAt: result.createdAt,
+                threadIds: result.threadIds,
+              }
+            )
+          );
 
           // Track the post for activity tracking
           await this.activityTrackingService.trackPost(
@@ -112,33 +140,98 @@ export class PostController {
             await new Promise((resolve) => setTimeout(resolve, getPostDelay(platform)));
           }
         } catch (error) {
-          errors.push({
-            platform: target.platform,
-            userId: target.userId,
-            error: error instanceof Error ? error.message : 'An unexpected error occurred',
-          });
+          // Handle platform-specific errors
+          if (error instanceof PlatformError) {
+            errorDetails.push(
+              createErrorDetail(
+                error.message,
+                error.code,
+                error.platform as any, // Type cast needed due to platform string vs enum
+                error.userId || target.userId,
+                error.recoverable,
+                error.details
+              )
+            );
+          }
+          // Handle Twitter-specific errors
+          else if (error instanceof TwitterError) {
+            errorDetails.push(
+              createErrorDetail(
+                error.message,
+                error.code,
+                Platform.TWITTER,
+                target.userId,
+                error.recoverable,
+                error.details
+              )
+            );
+          }
+          // Handle generic errors
+          else {
+            errorDetails.push(
+              createErrorDetail(
+                error instanceof Error ? error.message : 'An unexpected error occurred',
+                ApiErrorCode.PLATFORM_ERROR,
+                target.platform,
+                target.userId,
+                false
+              )
+            );
+          }
         }
       }
 
       // Clear the media cache after all posts are processed
       mediaCache.clearCache();
 
-      // Return the combined results
-      return c.json({
-        data: {
-          results,
-          errors: errors.length > 0 ? errors : undefined,
-        },
-      });
+      // Create a multi-status response
+      const response = createMultiStatusResponse(successResults, errorDetails);
+
+      // Determine appropriate status code
+      let statusCode = 200;
+      if (successResults.length === 0 && errorDetails.length > 0) {
+        // Complete failure - use the first error's status code
+        statusCode = 400; // Default to 400 Bad Request
+      } else if (successResults.length > 0 && errorDetails.length > 0) {
+        // Partial success - use 207 Multi-Status
+        statusCode = 207;
+      }
+
+      // Return the response with appropriate status code
+      c.status(statusCode as any);
+      return c.json(response);
     } catch (error) {
       console.error('Error creating post:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+
+      // Handle unexpected errors
+      if (error instanceof Error) {
+        c.status(500);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              ApiErrorCode.INTERNAL_ERROR,
+              undefined,
+              undefined,
+              false
+            ),
+          ])
+        );
+      }
+
+      // Handle unknown errors
+      c.status(500);
+      return c.json(
+        createEnhancedErrorResponse([
+          createErrorDetail(
+            'An unexpected error occurred',
+            ApiErrorCode.UNKNOWN_ERROR,
+            undefined,
+            undefined,
+            false
+          ),
+        ])
+      );
     }
   }
 
@@ -154,35 +247,109 @@ export class PostController {
 
       const body = await c.req.json() as RepostRequest;
 
-      // Verify platform access
-      await verifyPlatformAccess(signerId, body.platform, body.userId);
+      try {
+        // Verify platform access
+        await verifyPlatformAccess(signerId, body.platform, body.userId);
+      } catch (error) {
+        // Create a platform error for unauthorized access
+        c.status(401);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error instanceof Error
+                ? error.message
+                : `No connected ${body.platform} account found for user ID ${body.userId}`,
+              ApiErrorCode.UNAUTHORIZED,
+              body.platform,
+              body.userId,
+              true // Recoverable by connecting the account
+            ),
+          ])
+        );
+      }
 
       // Check rate limits before reposting
       const canRepost = await this.rateLimitService.canPerformAction(body.platform, 'retweet');
       if (!canRepost) {
-        return c.json({
-          error: {
-            type: 'rate_limit_exceeded',
-            message: `Rate limit reached for ${body.platform}. Please try again later.`,
-            status: 429,
-          },
-        }, 429);
+        c.status(429);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              `Rate limit reached for ${body.platform}. Please try again later.`,
+              ApiErrorCode.RATE_LIMITED,
+              body.platform,
+              body.userId,
+              true // Recoverable by waiting
+            ),
+          ])
+        );
       }
 
       // Repost the post
       const repostResult = await this.postService.repost(body.platform, body.userId, body.postId);
 
       // Return the result
-      return c.json({ data: repostResult });
+      return c.json(
+        createEnhancedApiResponse(
+          createSuccessDetail(
+            body.platform,
+            body.userId,
+            {
+              postId: repostResult.id,
+              success: repostResult.success,
+            }
+          )
+        )
+      );
     } catch (error) {
       console.error('Error reposting:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+
+      // Handle platform-specific errors
+      if (error instanceof PlatformError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              error.platform as any,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+      // Handle Twitter-specific errors
+      else if (error instanceof TwitterError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              Platform.TWITTER,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+
+      // Handle generic errors
+      c.status(500);
+      return c.json(
+        createEnhancedErrorResponse([
+          createErrorDetail(
+            error instanceof Error ? error.message : 'An unexpected error occurred',
+            ApiErrorCode.INTERNAL_ERROR,
+            undefined,
+            undefined,
+            false
+          ),
+        ])
+      );
     }
   }
 
@@ -198,19 +365,42 @@ export class PostController {
 
       const request = await c.req.json() as QuotePostRequest;
 
-      // Verify platform access
-      await verifyPlatformAccess(signerId, request.platform, request.userId);
+      try {
+        // Verify platform access
+        await verifyPlatformAccess(signerId, request.platform, request.userId);
+      } catch (error) {
+        // Create a platform error for unauthorized access
+        c.status(401);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error instanceof Error
+                ? error.message
+                : `No connected ${request.platform} account found for user ID ${request.userId}`,
+              ApiErrorCode.UNAUTHORIZED,
+              request.platform,
+              request.userId,
+              true // Recoverable by connecting the account
+            ),
+          ])
+        );
+      }
 
       // Check rate limits before quoting
       const canQuote = await this.rateLimitService.canPerformAction(request.platform, 'post');
       if (!canQuote) {
-        return c.json({
-          error: {
-            type: 'rate_limit_exceeded',
-            message: `Rate limit reached for ${request.platform}. Please try again later.`,
-            status: 429,
-          },
-        }, 429);
+        c.status(429);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              `Rate limit reached for ${request.platform}. Please try again later.`,
+              ApiErrorCode.RATE_LIMITED,
+              request.platform,
+              request.userId,
+              true // Recoverable by waiting
+            ),
+          ])
+        );
       }
 
       // Quote the post
@@ -222,16 +412,69 @@ export class PostController {
       );
 
       // Return the result
-      return c.json({ data: result });
+      return c.json(
+        createEnhancedApiResponse(
+          createSuccessDetail(
+            request.platform,
+            request.userId,
+            {
+              postId: result.id,
+              postUrl: result.url || `https://twitter.com/i/web/status/${result.id}`,
+              createdAt: result.createdAt,
+              quotedPostId: request.postId,
+            }
+          )
+        )
+      );
     } catch (error) {
       console.error('Error quoting post:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+
+      // Handle platform-specific errors
+      if (error instanceof PlatformError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              error.platform as any,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+      // Handle Twitter-specific errors
+      else if (error instanceof TwitterError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              Platform.TWITTER,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+
+      // Handle generic errors
+      c.status(500);
+      return c.json(
+        createEnhancedErrorResponse([
+          createErrorDetail(
+            error instanceof Error ? error.message : 'An unexpected error occurred',
+            ApiErrorCode.INTERNAL_ERROR,
+            undefined,
+            undefined,
+            false
+          ),
+        ])
+      );
     }
   }
 
@@ -247,8 +490,26 @@ export class PostController {
 
       const body = await c.req.json() as DeletePostRequest;
 
-      // Verify platform access
-      await verifyPlatformAccess(signerId, body.platform, body.userId);
+      try {
+        // Verify platform access
+        await verifyPlatformAccess(signerId, body.platform, body.userId);
+      } catch (error) {
+        // Create a platform error for unauthorized access
+        c.status(401);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error instanceof Error
+                ? error.message
+                : `No connected ${body.platform} account found for user ID ${body.userId}`,
+              ApiErrorCode.UNAUTHORIZED,
+              body.platform,
+              body.userId,
+              true // Recoverable by connecting the account
+            ),
+          ])
+        );
+      }
 
       // Delete the post
       const deleteResult = await this.postService.deletePost(
@@ -258,16 +519,67 @@ export class PostController {
       );
 
       // Return the result
-      return c.json({ data: deleteResult });
+      return c.json(
+        createEnhancedApiResponse(
+          createSuccessDetail(
+            body.platform,
+            body.userId,
+            {
+              postId: body.postId,
+              success: deleteResult.success,
+            }
+          )
+        )
+      );
     } catch (error) {
       console.error('Error deleting post:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+
+      // Handle platform-specific errors
+      if (error instanceof PlatformError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              error.platform as any,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+      // Handle Twitter-specific errors
+      else if (error instanceof TwitterError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              Platform.TWITTER,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+
+      // Handle generic errors
+      c.status(500);
+      return c.json(
+        createEnhancedErrorResponse([
+          createErrorDetail(
+            error instanceof Error ? error.message : 'An unexpected error occurred',
+            ApiErrorCode.INTERNAL_ERROR,
+            undefined,
+            undefined,
+            false
+          ),
+        ])
+      );
     }
   }
 
@@ -283,19 +595,42 @@ export class PostController {
 
       const request = await c.req.json() as ReplyToPostRequest;
 
-      // Verify platform access
-      await verifyPlatformAccess(signerId, request.platform, request.userId);
+      try {
+        // Verify platform access
+        await verifyPlatformAccess(signerId, request.platform, request.userId);
+      } catch (error) {
+        // Create a platform error for unauthorized access
+        c.status(401);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error instanceof Error
+                ? error.message
+                : `No connected ${request.platform} account found for user ID ${request.userId}`,
+              ApiErrorCode.UNAUTHORIZED,
+              request.platform,
+              request.userId,
+              true // Recoverable by connecting the account
+            ),
+          ])
+        );
+      }
 
       // Check rate limits before replying
       const canReply = await this.rateLimitService.canPerformAction(request.platform, 'post');
       if (!canReply) {
-        return c.json({
-          error: {
-            type: 'rate_limit_exceeded',
-            message: `Rate limit reached for ${request.platform}. Please try again later.`,
-            status: 429,
-          },
-        }, 429);
+        c.status(429);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              `Rate limit reached for ${request.platform}. Please try again later.`,
+              ApiErrorCode.RATE_LIMITED,
+              request.platform,
+              request.userId,
+              true // Recoverable by waiting
+            ),
+          ])
+        );
       }
 
       // Reply to the post
@@ -307,16 +642,69 @@ export class PostController {
       );
 
       // Return the result
-      return c.json({ data: result });
+      return c.json(
+        createEnhancedApiResponse(
+          createSuccessDetail(
+            request.platform,
+            request.userId,
+            {
+              postId: result.id,
+              postUrl: result.url || `https://twitter.com/i/web/status/${result.id}`,
+              createdAt: result.createdAt,
+              inReplyToId: request.postId,
+            }
+          )
+        )
+      );
     } catch (error) {
       console.error('Error replying to post:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+
+      // Handle platform-specific errors
+      if (error instanceof PlatformError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              error.platform as any,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+      // Handle Twitter-specific errors
+      else if (error instanceof TwitterError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              Platform.TWITTER,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+
+      // Handle generic errors
+      c.status(500);
+      return c.json(
+        createEnhancedErrorResponse([
+          createErrorDetail(
+            error instanceof Error ? error.message : 'An unexpected error occurred',
+            ApiErrorCode.INTERNAL_ERROR,
+            undefined,
+            undefined,
+            false
+          ),
+        ])
+      );
     }
   }
 
@@ -332,35 +720,109 @@ export class PostController {
 
       const body = await c.req.json() as LikePostRequest;
 
-      // Verify platform access
-      await verifyPlatformAccess(signerId, body.platform, body.userId);
+      try {
+        // Verify platform access
+        await verifyPlatformAccess(signerId, body.platform, body.userId);
+      } catch (error) {
+        // Create a platform error for unauthorized access
+        c.status(401);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error instanceof Error
+                ? error.message
+                : `No connected ${body.platform} account found for user ID ${body.userId}`,
+              ApiErrorCode.UNAUTHORIZED,
+              body.platform,
+              body.userId,
+              true // Recoverable by connecting the account
+            ),
+          ])
+        );
+      }
 
       // Check rate limits before liking
       const canLike = await this.rateLimitService.canPerformAction(body.platform, 'like');
       if (!canLike) {
-        return c.json({
-          error: {
-            type: 'rate_limit_exceeded',
-            message: `Rate limit reached for ${body.platform}. Please try again later.`,
-            status: 429,
-          },
-        }, 429);
+        c.status(429);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              `Rate limit reached for ${body.platform}. Please try again later.`,
+              ApiErrorCode.RATE_LIMITED,
+              body.platform,
+              body.userId,
+              true // Recoverable by waiting
+            ),
+          ])
+        );
       }
 
       // Like the post
       const likeResult = await this.postService.likePost(body.platform, body.userId, body.postId);
 
       // Return the result
-      return c.json({ data: likeResult });
+      return c.json(
+        createEnhancedApiResponse(
+          createSuccessDetail(
+            body.platform,
+            body.userId,
+            {
+              postId: body.postId,
+              success: likeResult.success,
+            }
+          )
+        )
+      );
     } catch (error) {
       console.error('Error liking post:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+
+      // Handle platform-specific errors
+      if (error instanceof PlatformError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              error.platform as any,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+      // Handle Twitter-specific errors
+      else if (error instanceof TwitterError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              Platform.TWITTER,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+
+      // Handle generic errors
+      c.status(500);
+      return c.json(
+        createEnhancedErrorResponse([
+          createErrorDetail(
+            error instanceof Error ? error.message : 'An unexpected error occurred',
+            ApiErrorCode.INTERNAL_ERROR,
+            undefined,
+            undefined,
+            false
+          ),
+        ])
+      );
     }
   }
 
@@ -376,19 +838,42 @@ export class PostController {
 
       const body = await c.req.json() as UnlikePostRequest;
 
-      // Verify platform access
-      await verifyPlatformAccess(signerId, body.platform, body.userId);
+      try {
+        // Verify platform access
+        await verifyPlatformAccess(signerId, body.platform, body.userId);
+      } catch (error) {
+        // Create a platform error for unauthorized access
+        c.status(401);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error instanceof Error
+                ? error.message
+                : `No connected ${body.platform} account found for user ID ${body.userId}`,
+              ApiErrorCode.UNAUTHORIZED,
+              body.platform,
+              body.userId,
+              true // Recoverable by connecting the account
+            ),
+          ])
+        );
+      }
 
       // Check rate limits before unliking
       const canUnlike = await this.rateLimitService.canPerformAction(body.platform, 'like');
       if (!canUnlike) {
-        return c.json({
-          error: {
-            type: 'rate_limit_exceeded',
-            message: `Rate limit reached for ${body.platform}. Please try again later.`,
-            status: 429,
-          },
-        }, 429);
+        c.status(429);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              `Rate limit reached for ${body.platform}. Please try again later.`,
+              ApiErrorCode.RATE_LIMITED,
+              body.platform,
+              body.userId,
+              true // Recoverable by waiting
+            ),
+          ])
+        );
       }
 
       // Unlike the post
@@ -399,16 +884,67 @@ export class PostController {
       );
 
       // Return the result
-      return c.json({ data: unlikeResult });
+      return c.json(
+        createEnhancedApiResponse(
+          createSuccessDetail(
+            body.platform,
+            body.userId,
+            {
+              postId: body.postId,
+              success: unlikeResult.success,
+            }
+          )
+        )
+      );
     } catch (error) {
       console.error('Error unliking post:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+
+      // Handle platform-specific errors
+      if (error instanceof PlatformError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              error.platform as any,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+      // Handle Twitter-specific errors
+      else if (error instanceof TwitterError) {
+        c.status(error.status as any);
+        return c.json(
+          createEnhancedErrorResponse([
+            createErrorDetail(
+              error.message,
+              error.code,
+              Platform.TWITTER,
+              error.userId,
+              error.recoverable,
+              error.details
+            ),
+          ])
+        );
+      }
+
+      // Handle generic errors
+      c.status(500);
+      return c.json(
+        createEnhancedErrorResponse([
+          createErrorDetail(
+            error instanceof Error ? error.message : 'An unexpected error occurred',
+            ApiErrorCode.INTERNAL_ERROR,
+            undefined,
+            undefined,
+            false
+          ),
+        ])
+      );
     }
   }
 }

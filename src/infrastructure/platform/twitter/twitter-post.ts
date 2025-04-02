@@ -466,18 +466,23 @@ export class TwitterPost implements PlatformPost {
 
     // Twitter API expects a tuple with 1-4 elements
     const ids = mediaIds.slice(0, 4);
-
+    
     // Cast to the specific tuple types that Twitter API expects
-    if (ids.length === 1) {
-      tweetData.media = { media_ids: [ids[0]] as [string] };
-    } else if (ids.length === 2) {
-      tweetData.media = { media_ids: [ids[0], ids[1]] as [string, string] };
-    } else if (ids.length === 3) {
-      tweetData.media = { media_ids: [ids[0], ids[1], ids[2]] as [string, string, string] };
-    } else if (ids.length === 4) {
-      tweetData.media = {
-        media_ids: [ids[0], ids[1], ids[2], ids[3]] as [string, string, string, string],
-      };
+    switch (ids.length) {
+      case 1:
+        tweetData.media = { media_ids: [ids[0]] as [string] };
+        break;
+      case 2:
+        tweetData.media = { media_ids: [ids[0], ids[1]] as [string, string] };
+        break;
+      case 3:
+        tweetData.media = { media_ids: [ids[0], ids[1], ids[2]] as [string, string, string] };
+        break;
+      case 4:
+        tweetData.media = { 
+          media_ids: [ids[0], ids[1], ids[2], ids[3]] as [string, string, string, string] 
+        };
+        break;
     }
   }
 }
