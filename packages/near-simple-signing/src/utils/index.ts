@@ -2,7 +2,7 @@
  * Utility functions for NEAR Simple Signing
  */
 
-import { ValidationResult } from '../types.js';
+import { ValidationResult } from '../types.ts';
 
 /**
  * Generate a nonce for signing

@@ -3,7 +3,7 @@
  * Types for API response payloads
  */
 
-import { ApiErrorCode, PlatformName } from '../common/index.js';
+import { ApiErrorCode, PlatformName } from '../common/index.ts';
 
 /**
  * Enhanced response metadata

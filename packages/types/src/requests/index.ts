@@ -3,7 +3,7 @@
  * Types for API request payloads
  */
 
-import { MediaContent, PlatformName, PostContent } from '../common/index.js';
+import { MediaContent, PlatformName, PostContent } from '../common/index.ts';
 
 /**
  * Base request interface with platform information

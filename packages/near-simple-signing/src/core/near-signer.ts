@@ -2,15 +2,15 @@
  * NearSigner class for generating NEAR wallet signatures
  */
 
-import * as nacl from 'tweetnacl';
-import * as bs58 from 'bs58';
+import * as nacl from 'npm:tweetnacl';
+import * as bs58 from 'npm:bs58';
 import {
   NearAuthData,
   NearAuthPayload,
   NearSignerOptions,
   SignatureResult,
   ValidationResult,
-} from '../types.js';
+} from '../types.ts';
 import {
   base64ToUint8Array,
   createAuthHeader,
@@ -18,7 +18,7 @@ import {
   stringToUint8Array,
   uint8ArrayToBase64,
   validateNonce,
-} from '../utils/index.js';
+} from '../utils/index.ts';
 
 /**
  * NearSigner class for generating NEAR wallet signatures

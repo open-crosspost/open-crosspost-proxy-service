@@ -1,12 +1,11 @@
-import { Context } from '../../deps.ts';
+import { Context, NearSimpleSigning, Types } from '../../deps.ts';
 import { getEnv } from '../config/env.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
-import {
-  NearAuthData,
-  nearAuthDataSchema,
-} from '../infrastructure/security/near-auth/near-auth.types.ts';
 import { ApiError, ErrorType } from '../middleware/errors.ts';
 import { PlatformName } from '../types/platform.types.ts';
+
+// Import types from the types package
+import { NearAuthData } from '../infrastructure/security/near-auth/near-auth.types.ts';
 
 /**
  * NEAR Authentication Utilities
@@ -40,31 +39,38 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
     throw new ApiError(ErrorType.VALIDATION, 'Invalid JSON in Authorization token', 400);
   }
 
-  // Validate with Zod schema
-  const validationResult = nearAuthDataSchema.safeParse(authObject);
-
-  if (!validationResult.success) {
+  // Validate required fields
+  if (!authObject.account_id || !authObject.public_key || !authObject.signature || 
+      !authObject.message || !authObject.nonce) {
     throw new ApiError(
       ErrorType.VALIDATION,
       'Missing required NEAR authentication data in token',
-      400,
-      undefined,
-      validationResult.error.format(),
+      400
     );
   }
 
   // Use validated data with defaults applied
   const authData = {
-    ...validationResult.data,
-    callback_url: validationResult.data.callback_url || c.req.url, // Use current URL as callback if not provided
+    ...authObject,
+    recipient: authObject.recipient || 'crosspost.near',
+    callback_url: authObject.callback_url || c.req.url, // Use current URL as callback if not provided
   };
 
-  // Initialize NEAR auth service
-  const env = getEnv();
-  const nearAuthService = new NearAuthService(env);
+  // Create a temporary NearSigner instance for validation
+  const tempSigner = new NearSimpleSigning.NearSigner({
+    networkId: 'mainnet', // This doesn't matter for validation
+    nodeUrl: 'https://rpc.mainnet.near.org', // This doesn't matter for validation
+    defaultRecipient: 'crosspost.near'
+  });
 
   // Validate signature
-  const result = await nearAuthService.validateNearAuth(authData);
+  const result = await tempSigner.validateSignature(
+    authData.signature,
+    authData.message,
+    authData.public_key,
+    authData.nonce,
+    authData.recipient
+  );
 
   if (!result.valid) {
     throw new ApiError(
@@ -74,12 +80,19 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
     );
   }
 
-  // The signerId is only present if validation is successful
-  const signerId = result.signerId;
-  if (!signerId) {
+  // The signerId is the account_id from the auth data
+  const signerId = authData.account_id;
+
+  // Initialize NEAR auth service to check authorization
+  const env = getEnv();
+  const nearAuthService = new NearAuthService(env);
+
+  // Check if the account is authorized
+  const isAuthorized = await nearAuthService.isNearAccountAuthorized(signerId);
+  if (!isAuthorized) {
     throw new ApiError(
       ErrorType.AUTHENTICATION,
-      'NEAR authentication did not return an account ID',
+      'NEAR account is not authorized',
       401,
     );
   }

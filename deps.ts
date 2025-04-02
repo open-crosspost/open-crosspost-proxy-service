@@ -4,6 +4,10 @@ export * as crypto from 'std/crypto';
 export * as http from 'std/http';
 export * as assert from 'std/assert';
 
+// Local packages
+export * as Types from './packages/types/src/index.ts';
+export * as NearSimpleSigning from './packages/near-simple-signing/src/index.ts';
+
 // Hono framework
 export { Hono } from 'npm:hono';
 export { cors } from 'npm:hono/cors';

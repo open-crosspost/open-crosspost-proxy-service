@@ -2,9 +2,13 @@
  * Platform Types
  * Defines constants and types for supported social media platforms
  */
+import { Types } from '../../deps.ts';
+
+// Re-export the PlatformName enum from the types package
+export type PlatformName = Types.PlatformName;
 
 /**
- * Enum for supported platforms
+ * Enum for supported platforms (for backward compatibility)
  */
 export enum Platform {
   TWITTER = 'twitter',
@@ -15,16 +19,10 @@ export enum Platform {
 }
 
 /**
- * Type for platform names
- * This allows for type-safe platform name usage
- */
-export type PlatformName = `${Platform}`;
-
-/**
  * Check if a string is a valid platform name
  * @param platform The platform name to check
  * @returns True if the platform is supported
  */
 export function isSupportedPlatform(platform: string): platform is PlatformName {
-  return Object.values(Platform).includes(platform as Platform);
+  return Object.values(Types.PlatformName).includes(platform as Types.PlatformName);
 }
