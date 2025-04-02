@@ -4,4 +4,7 @@
  */
 
 export * from './post.schemas.ts';
-// Add more schema exports as they are created
+export * from './auth.schemas.ts';
+export * from './media.schemas.ts';
+export * from './rate-limit.schemas.ts';
+export * from './leaderboard.schemas.ts';

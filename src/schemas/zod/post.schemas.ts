@@ -3,6 +3,7 @@ import { z } from '../../../deps.ts';
 /**
  * Post Schemas
  * Defines Zod schemas for post-related requests and responses with OpenAPI metadata
+ * Also exports TypeScript types derived from Zod schemas for type safety
  */
 
 // Media schema
@@ -280,3 +281,23 @@ export const UnlikePostResponseSchema = z.object({
     description: 'Response metadata'
   })
 }).openapi('UnlikePostResponse');
+
+// Export TypeScript types derived from Zod schemas
+export type Media = z.infer<typeof MediaSchema>;
+export type PostMetrics = z.infer<typeof PostMetricsSchema>;
+export type Post = z.infer<typeof PostSchema>;
+
+// Request types
+export type RepostRequest = z.infer<typeof RepostRequestSchema>;
+export type QuotePostRequest = z.infer<typeof QuotePostRequestSchema>;
+export type ReplyToPostRequest = z.infer<typeof ReplyToPostRequestSchema>;
+export type DeletePostRequest = z.infer<typeof DeletePostRequestSchema>;
+export type LikePostRequest = z.infer<typeof LikePostRequestSchema>;
+export type UnlikePostRequest = z.infer<typeof UnlikePostRequestSchema>;
+
+// Response types
+export type ResponseMeta = z.infer<typeof ResponseMetaSchema>;
+export type PostResponse = z.infer<typeof PostResponseSchema>;
+export type DeletePostResponse = z.infer<typeof DeletePostResponseSchema>;
+export type LikePostResponse = z.infer<typeof LikePostResponseSchema>;
+export type UnlikePostResponse = z.infer<typeof UnlikePostResponseSchema>;
