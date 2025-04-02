@@ -1,5 +1,8 @@
 import { Context } from '../../../deps.ts';
-import { createEnhancedApiResponse, createSuccessDetail } from '../../types/enhanced-response.types.ts';
+import {
+  createEnhancedApiResponse,
+  createSuccessDetail,
+} from '../../types/enhanced-response.types.ts';
 import { QuotePostRequest } from '../../types/post.types.ts';
 import { BasePostController } from './base.controller.ts';
 
@@ -50,9 +53,9 @@ export class QuoteController extends BasePostController {
               postUrl: result.url || `https://twitter.com/i/web/status/${result.id}`,
               createdAt: result.createdAt,
               quotedPostId: request.postId,
-            }
-          )
-        )
+            },
+          ),
+        ),
       );
     } catch (error) {
       this.handleError(error, c);

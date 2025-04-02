@@ -19,38 +19,38 @@ export enum ApiErrorCode {
   // General errors
   UNKNOWN_ERROR = 'UNKNOWN_ERROR',
   INTERNAL_ERROR = 'INTERNAL_ERROR',
-  
+
   // Authentication/Authorization errors
   UNAUTHORIZED = 'UNAUTHORIZED',
   FORBIDDEN = 'FORBIDDEN',
-  
+
   // Validation errors
   VALIDATION_ERROR = 'VALIDATION_ERROR',
   INVALID_REQUEST = 'INVALID_REQUEST',
-  
+
   // Rate limiting
   RATE_LIMITED = 'RATE_LIMITED',
-  
+
   // Resource errors
   NOT_FOUND = 'NOT_FOUND',
-  
+
   // Platform-specific errors
   PLATFORM_ERROR = 'PLATFORM_ERROR',
   PLATFORM_UNAVAILABLE = 'PLATFORM_UNAVAILABLE',
-  
+
   // Content errors
   CONTENT_POLICY_VIOLATION = 'CONTENT_POLICY_VIOLATION',
   DUPLICATE_CONTENT = 'DUPLICATE_CONTENT',
-  
+
   // Media errors
   MEDIA_UPLOAD_FAILED = 'MEDIA_UPLOAD_FAILED',
-  
+
   // Post errors
   POST_CREATION_FAILED = 'POST_CREATION_FAILED',
   THREAD_CREATION_FAILED = 'THREAD_CREATION_FAILED',
   POST_DELETION_FAILED = 'POST_DELETION_FAILED',
   POST_INTERACTION_FAILED = 'POST_INTERACTION_FAILED',
-  
+
   // Network errors
   NETWORK_ERROR = 'NETWORK_ERROR',
 }
@@ -69,7 +69,7 @@ export class ApiError extends BaseError {
     code: ApiErrorCode = ApiErrorCode.INTERNAL_ERROR,
     status: number = 500,
     details?: Record<string, any>,
-    recoverable: boolean = false
+    recoverable: boolean = false,
   ) {
     super(message);
     this.code = code;
@@ -87,7 +87,7 @@ export class ApiError extends BaseError {
       ApiErrorCode.VALIDATION_ERROR,
       400,
       details,
-      true
+      true,
     );
   }
 
@@ -100,7 +100,7 @@ export class ApiError extends BaseError {
       ApiErrorCode.UNAUTHORIZED,
       401,
       undefined,
-      true
+      true,
     );
   }
 
@@ -113,7 +113,7 @@ export class ApiError extends BaseError {
       ApiErrorCode.FORBIDDEN,
       403,
       undefined,
-      false
+      false,
     );
   }
 
@@ -126,33 +126,39 @@ export class ApiError extends BaseError {
       ApiErrorCode.NOT_FOUND,
       404,
       undefined,
-      false
+      false,
     );
   }
 
   /**
    * Create a rate limit error
    */
-  static rateLimited(message: string = 'Rate limit exceeded', details?: Record<string, any>): ApiError {
+  static rateLimited(
+    message: string = 'Rate limit exceeded',
+    details?: Record<string, any>,
+  ): ApiError {
     return new ApiError(
       message,
       ApiErrorCode.RATE_LIMITED,
       429,
       details,
-      true
+      true,
     );
   }
 
   /**
    * Create an internal server error
    */
-  static internal(message: string = 'Internal server error', details?: Record<string, any>): ApiError {
+  static internal(
+    message: string = 'Internal server error',
+    details?: Record<string, any>,
+  ): ApiError {
     return new ApiError(
       message,
       ApiErrorCode.INTERNAL_ERROR,
       500,
       details,
-      false
+      false,
     );
   }
 }
@@ -177,7 +183,7 @@ export class PlatformError extends BaseError {
     originalError?: unknown,
     details?: Record<string, any>,
     recoverable: boolean = false,
-    userId?: string
+    userId?: string,
   ) {
     super(message);
     this.platform = platform;
@@ -195,7 +201,7 @@ export class PlatformError extends BaseError {
   static unavailable(
     platform: string,
     message: string = 'Platform API is unavailable',
-    originalError?: unknown
+    originalError?: unknown,
   ): PlatformError {
     return new PlatformError(
       platform,
@@ -204,7 +210,7 @@ export class PlatformError extends BaseError {
       503,
       originalError,
       undefined,
-      true
+      true,
     );
   }
 
@@ -216,7 +222,7 @@ export class PlatformError extends BaseError {
     message: string = 'Rate limit exceeded',
     originalError?: unknown,
     details?: Record<string, any>,
-    userId?: string
+    userId?: string,
   ): PlatformError {
     return new PlatformError(
       platform,
@@ -226,7 +232,7 @@ export class PlatformError extends BaseError {
       originalError,
       details,
       true,
-      userId
+      userId,
     );
   }
 
@@ -238,7 +244,7 @@ export class PlatformError extends BaseError {
     message: string = 'Content violates platform policy',
     originalError?: unknown,
     details?: Record<string, any>,
-    userId?: string
+    userId?: string,
   ): PlatformError {
     return new PlatformError(
       platform,
@@ -248,7 +254,7 @@ export class PlatformError extends BaseError {
       originalError,
       details,
       false,
-      userId
+      userId,
     );
   }
 
@@ -260,7 +266,7 @@ export class PlatformError extends BaseError {
     message: string = 'Duplicate content',
     originalError?: unknown,
     details?: Record<string, any>,
-    userId?: string
+    userId?: string,
   ): PlatformError {
     return new PlatformError(
       platform,
@@ -270,7 +276,7 @@ export class PlatformError extends BaseError {
       originalError,
       details,
       true,
-      userId
+      userId,
     );
   }
 
@@ -282,7 +288,7 @@ export class PlatformError extends BaseError {
     message: string = 'Failed to upload media',
     originalError?: unknown,
     details?: Record<string, any>,
-    userId?: string
+    userId?: string,
   ): PlatformError {
     return new PlatformError(
       platform,
@@ -292,7 +298,7 @@ export class PlatformError extends BaseError {
       originalError,
       details,
       true,
-      userId
+      userId,
     );
   }
 
@@ -304,7 +310,7 @@ export class PlatformError extends BaseError {
     message: string = 'Failed to create post',
     originalError?: unknown,
     details?: Record<string, any>,
-    userId?: string
+    userId?: string,
   ): PlatformError {
     return new PlatformError(
       platform,
@@ -314,7 +320,7 @@ export class PlatformError extends BaseError {
       originalError,
       details,
       true,
-      userId
+      userId,
     );
   }
 
@@ -326,7 +332,7 @@ export class PlatformError extends BaseError {
     message: string = 'Failed to create thread',
     originalError?: unknown,
     details?: Record<string, any>,
-    userId?: string
+    userId?: string,
   ): PlatformError {
     return new PlatformError(
       platform,
@@ -336,7 +342,7 @@ export class PlatformError extends BaseError {
       originalError,
       details,
       true,
-      userId
+      userId,
     );
   }
 
@@ -347,7 +353,7 @@ export class PlatformError extends BaseError {
     platform: string,
     message: string = 'Network error',
     originalError?: unknown,
-    userId?: string
+    userId?: string,
   ): PlatformError {
     return new PlatformError(
       platform,
@@ -357,7 +363,7 @@ export class PlatformError extends BaseError {
       originalError,
       undefined,
       true,
-      userId
+      userId,
     );
   }
 
@@ -368,7 +374,7 @@ export class PlatformError extends BaseError {
     platform: string,
     message: string = 'Unauthorized',
     originalError?: unknown,
-    userId?: string
+    userId?: string,
   ): PlatformError {
     return new PlatformError(
       platform,
@@ -378,7 +384,7 @@ export class PlatformError extends BaseError {
       originalError,
       undefined,
       true,
-      userId
+      userId,
     );
   }
 }

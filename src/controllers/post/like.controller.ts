@@ -1,5 +1,8 @@
 import { Context } from '../../../deps.ts';
-import { createEnhancedApiResponse, createSuccessDetail } from '../../types/enhanced-response.types.ts';
+import {
+  createEnhancedApiResponse,
+  createSuccessDetail,
+} from '../../types/enhanced-response.types.ts';
 import { LikePostRequest } from '../../types/post.types.ts';
 import { BasePostController } from './base.controller.ts';
 
@@ -43,9 +46,9 @@ export class LikeController extends BasePostController {
             {
               postId: body.postId,
               success: likeResult.success,
-            }
-          )
-        )
+            },
+          ),
+        ),
       );
     } catch (error) {
       this.handleError(error, c);

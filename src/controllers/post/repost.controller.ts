@@ -1,5 +1,8 @@
 import { Context } from '../../../deps.ts';
-import { createEnhancedApiResponse, createSuccessDetail } from '../../types/enhanced-response.types.ts';
+import {
+  createEnhancedApiResponse,
+  createSuccessDetail,
+} from '../../types/enhanced-response.types.ts';
 import { RepostRequest } from '../../types/post.types.ts';
 import { BasePostController } from './base.controller.ts';
 
@@ -43,9 +46,9 @@ export class RepostController extends BasePostController {
             {
               postId: repostResult.id,
               success: repostResult.success,
-            }
-          )
-        )
+            },
+          ),
+        ),
       );
     } catch (error) {
       this.handleError(error, c);

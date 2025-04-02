@@ -3,8 +3,10 @@ import { getEnv } from '../../config/env.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
-import { ApiErrorCode, PlatformError } from '../../infrastructure/platform/abstract/error-hierarchy.ts';
-import { TwitterError } from '../../infrastructure/platform/twitter/twitter-error.ts';
+import {
+  ApiErrorCode,
+  PlatformError,
+} from '../../infrastructure/platform/abstract/error-hierarchy.ts';
 import {
   createEnhancedErrorResponse,
   createErrorDetail,
@@ -43,7 +45,7 @@ export abstract class BasePostController {
     signerId: string,
     platform: PlatformName,
     userId: string,
-    c: Context
+    c: Context,
   ): Promise<boolean> {
     try {
       await verifyPlatformAccess(signerId, platform, userId);
@@ -60,9 +62,9 @@ export abstract class BasePostController {
             ApiErrorCode.UNAUTHORIZED,
             platform,
             userId,
-            true // Recoverable by connecting the account
+            true, // Recoverable by connecting the account
           ),
-        ])
+        ]),
       );
       return false;
     }
@@ -80,7 +82,7 @@ export abstract class BasePostController {
     platform: PlatformName,
     userId: string,
     action: string,
-    c: Context
+    c: Context,
   ): Promise<boolean> {
     const canPerform = await this.rateLimitService.canPerformAction(platform, action);
     if (canPerform) {
@@ -95,9 +97,9 @@ export abstract class BasePostController {
           ApiErrorCode.RATE_LIMITED,
           platform,
           userId,
-          true // Recoverable by waiting
+          true, // Recoverable by waiting
         ),
-      ])
+      ]),
     );
     return false;
   }
@@ -113,11 +115,11 @@ export abstract class BasePostController {
     error: unknown,
     c: Context,
     platform?: PlatformName,
-    userId?: string
+    userId?: string,
   ): void {
     console.error(`Error in ${this.constructor.name}:`, error);
 
-    // Handle platform-specific errors
+    // Handle platform-specific errors (including TwitterError since it extends PlatformError)
     if (error instanceof PlatformError) {
       c.status(error.status as any);
       c.json(
@@ -128,27 +130,9 @@ export abstract class BasePostController {
             error.platform as any,
             error.userId,
             error.recoverable,
-            error.details
+            error.details,
           ),
-        ])
-      );
-      return;
-    }
-    
-    // Handle Twitter-specific errors
-    if (error instanceof TwitterError) {
-      c.status(error.status as any);
-      c.json(
-        createEnhancedErrorResponse([
-          createErrorDetail(
-            error.message,
-            error.code,
-            Platform.TWITTER,
-            error.userId,
-            error.recoverable,
-            error.details
-          ),
-        ])
+        ]),
       );
       return;
     }
@@ -162,9 +146,9 @@ export abstract class BasePostController {
           ApiErrorCode.INTERNAL_ERROR,
           platform,
           userId,
-          false
+          false,
         ),
-      ])
+      ]),
     );
   }
 }

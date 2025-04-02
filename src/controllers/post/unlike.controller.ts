@@ -1,5 +1,8 @@
 import { Context } from '../../../deps.ts';
-import { createEnhancedApiResponse, createSuccessDetail } from '../../types/enhanced-response.types.ts';
+import {
+  createEnhancedApiResponse,
+  createSuccessDetail,
+} from '../../types/enhanced-response.types.ts';
 import { UnlikePostRequest } from '../../types/post.types.ts';
 import { BasePostController } from './base.controller.ts';
 
@@ -47,9 +50,9 @@ export class UnlikeController extends BasePostController {
             {
               postId: body.postId,
               success: unlikeResult.success,
-            }
-          )
-        )
+            },
+          ),
+        ),
       );
     } catch (error) {
       this.handleError(error, c);

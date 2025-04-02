@@ -2,11 +2,14 @@
 
 ## Overview
 
-The application uses a hierarchical error handling system to provide consistent, informative, and developer-friendly error responses. The system includes standardized error codes, consistent response formats, and proper HTTP status codes.
+The application uses a hierarchical error handling system to provide consistent, informative, and
+developer-friendly error responses. The system includes standardized error codes, consistent
+response formats, and proper HTTP status codes.
 
 ## Error Hierarchy
 
-The error hierarchy is designed to provide a clear structure for different types of errors that can occur in the application:
+The error hierarchy is designed to provide a clear structure for different types of errors that can
+occur in the application:
 
 ```mermaid
 classDiagram
@@ -60,7 +63,8 @@ classDiagram
 
 ### BaseError
 
-The base error class that all other error classes extend from. It provides the basic structure for all errors in the application.
+The base error class that all other error classes extend from. It provides the basic structure for
+all errors in the application.
 
 ```typescript
 class BaseError extends Error {
@@ -107,7 +111,7 @@ class PlatformError extends BaseError {
     status = 500,
     userId?: string,
     recoverable = false,
-    details?: any
+    details?: any,
   ) {
     super(message, code, status, details);
     this.platform = platform;
@@ -119,7 +123,8 @@ class PlatformError extends BaseError {
 
 ### TwitterError
 
-Represents errors that are specific to the Twitter platform. It maps Twitter API errors to our standardized format.
+Represents errors that are specific to the Twitter platform. It maps Twitter API errors to our
+standardized format.
 
 ```typescript
 class TwitterError extends PlatformError {
@@ -127,11 +132,11 @@ class TwitterError extends PlatformError {
 
   constructor(
     error: ApiResponseError | ApiRequestError | ApiPartialResponseError,
-    userId?: string
+    userId?: string,
   ) {
     // Map Twitter error to our standardized format
     const { message, code, status, recoverable, details } = mapTwitterError(error);
-    
+
     super(
       message,
       code,
@@ -139,9 +144,9 @@ class TwitterError extends PlatformError {
       status,
       userId,
       recoverable,
-      details
+      details,
     );
-    
+
     this.originalError = error;
   }
 }
@@ -158,24 +163,24 @@ enum ApiErrorCode {
   INTERNAL_ERROR = 'INTERNAL_ERROR',
   VALIDATION_ERROR = 'VALIDATION_ERROR',
   NOT_FOUND = 'NOT_FOUND',
-  
+
   // Authentication errors
   UNAUTHORIZED = 'UNAUTHORIZED',
   FORBIDDEN = 'FORBIDDEN',
   TOKEN_EXPIRED = 'TOKEN_EXPIRED',
   TOKEN_INVALID = 'TOKEN_INVALID',
-  
+
   // Rate limiting errors
   RATE_LIMITED = 'RATE_LIMITED',
-  
+
   // Platform errors
   PLATFORM_ERROR = 'PLATFORM_ERROR',
   PLATFORM_UNAVAILABLE = 'PLATFORM_UNAVAILABLE',
-  
+
   // Content errors
   CONTENT_POLICY_VIOLATION = 'CONTENT_POLICY_VIOLATION',
   DUPLICATE_CONTENT = 'DUPLICATE_CONTENT',
-  
+
   // Media errors
   MEDIA_ERROR = 'MEDIA_ERROR',
   MEDIA_TOO_LARGE = 'MEDIA_TOO_LARGE',
@@ -296,7 +301,7 @@ The application includes specialized error handling for Twitter API errors:
 
 ```typescript
 function mapTwitterError(
-  error: ApiResponseError | ApiRequestError | ApiPartialResponseError
+  error: ApiResponseError | ApiRequestError | ApiPartialResponseError,
 ): {
   message: string;
   code: string;
@@ -337,7 +342,7 @@ function mapTwitterError(
     // Map specific Twitter error codes
     if (error.errors && error.errors.length > 0) {
       const twitterError = error.errors[0];
-      
+
       // Handle duplicate content
       if (error.hasErrorCode(187)) {
         return {
@@ -351,7 +356,7 @@ function mapTwitterError(
           },
         };
       }
-      
+
       // Handle content policy violations
       if (error.hasErrorCode(186)) {
         return {
@@ -365,7 +370,7 @@ function mapTwitterError(
           },
         };
       }
-      
+
       // Default Twitter API error
       return {
         message: twitterError.message || 'Twitter API error',
@@ -417,10 +422,17 @@ function mapTwitterError(
 
 ## Best Practices
 
-1. **Use Standardized Error Codes**: Always use the standardized error codes defined in `ApiErrorCode` for machine-readable error identification.
-2. **Include Detailed Error Information**: Always include detailed error information, including the error message, code, platform, user ID, and any additional details.
-3. **Indicate Recoverability**: Always indicate whether an error is recoverable (temporary/retryable) or not.
-4. **Use Appropriate HTTP Status Codes**: Always use appropriate HTTP status codes for different types of responses.
-5. **Preserve Original Error Details**: Always preserve the original error details for debugging purposes.
-6. **Handle Platform-Specific Errors**: Implement specialized error handling for platform-specific errors.
-7. **Use Multi-Status Responses**: Use multi-status responses for batch operations that may have partial success/failure.
+1. **Use Standardized Error Codes**: Always use the standardized error codes defined in
+   `ApiErrorCode` for machine-readable error identification.
+2. **Include Detailed Error Information**: Always include detailed error information, including the
+   error message, code, platform, user ID, and any additional details.
+3. **Indicate Recoverability**: Always indicate whether an error is recoverable
+   (temporary/retryable) or not.
+4. **Use Appropriate HTTP Status Codes**: Always use appropriate HTTP status codes for different
+   types of responses.
+5. **Preserve Original Error Details**: Always preserve the original error details for debugging
+   purposes.
+6. **Handle Platform-Specific Errors**: Implement specialized error handling for platform-specific
+   errors.
+7. **Use Multi-Status Responses**: Use multi-status responses for batch operations that may have
+   partial success/failure.

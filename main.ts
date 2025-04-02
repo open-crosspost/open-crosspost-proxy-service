@@ -10,21 +10,21 @@ import {
   AuthCallbackQuerySchema,
   AuthInitRequestSchema,
   NearAuthorizationRequestSchema,
-  PlatformParamSchema
+  PlatformParamSchema,
 } from './src/schemas/zod/auth.schemas.ts';
 import {
   AccountActivityParamsSchema,
   AccountActivityQuerySchema,
   AccountPostsParamsSchema,
   AccountPostsQuerySchema,
-  LeaderboardQuerySchema
+  LeaderboardQuerySchema,
 } from './src/schemas/zod/leaderboard.schemas.ts';
 import {
   MediaMetadataParamsSchema,
   MediaMetadataRequestSchema,
   MediaStatusParamsSchema,
   MediaStatusQuerySchema,
-  MediaUploadRequestSchema
+  MediaUploadRequestSchema,
 } from './src/schemas/zod/media.schemas.ts';
 import {
   DeletePostRequestSchema,
@@ -32,11 +32,9 @@ import {
   QuotePostRequestSchema,
   ReplyToPostRequestSchema,
   RepostRequestSchema,
-  UnlikePostRequestSchema
+  UnlikePostRequestSchema,
 } from './src/schemas/zod/post.schemas.ts';
-import {
-  RateLimitEndpointParamSchema
-} from './src/schemas/zod/rate-limit.schemas.ts';
+import { RateLimitEndpointParamSchema } from './src/schemas/zod/rate-limit.schemas.ts';
 
 // Import controllers
 import { AuthController } from './src/controllers/auth.controller.ts';
@@ -174,31 +172,31 @@ post.post(
   '/repost',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(RepostRequestSchema),
-  (c) => postControllers.repost.handle(c)
+  (c) => postControllers.repost.handle(c),
 );
 post.post(
   '/quote',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(QuotePostRequestSchema),
-  (c) => postControllers.quote.handle(c)
+  (c) => postControllers.quote.handle(c),
 );
 post.delete(
   '/:id',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(DeletePostRequestSchema),
-  (c) => postControllers.delete.handle(c)
+  (c) => postControllers.delete.handle(c),
 );
 post.post(
   '/reply',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(ReplyToPostRequestSchema),
-  (c) => postControllers.reply.handle(c)
+  (c) => postControllers.reply.handle(c),
 );
 post.post(
   '/like/:id',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(LikePostRequestSchema),
-  (c) => postControllers.like.handle(c)
+  (c) => postControllers.like.handle(c),
 );
 post.delete(
   '/like/:id',

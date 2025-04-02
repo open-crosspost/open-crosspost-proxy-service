@@ -34,7 +34,7 @@ export class TwitterError extends PlatformError {
     originalError?: unknown,
     details?: Record<string, any>,
     recoverable: boolean = false,
-    userId?: string
+    userId?: string,
   ) {
     super(
       Platform.TWITTER,
@@ -44,7 +44,7 @@ export class TwitterError extends PlatformError {
       originalError,
       details,
       recoverable,
-      userId
+      userId,
     );
   }
 
@@ -79,7 +79,7 @@ export class TwitterError extends PlatformError {
         error,
         undefined,
         false,
-        userId
+        userId,
       );
     }
 
@@ -91,7 +91,7 @@ export class TwitterError extends PlatformError {
       error,
       undefined,
       false,
-      userId
+      userId,
     );
   }
 
@@ -111,7 +111,7 @@ export class TwitterError extends PlatformError {
         requestError: error.requestError?.message,
       },
       true, // Network errors are typically recoverable
-      userId
+      userId,
     );
   }
 
@@ -121,7 +121,10 @@ export class TwitterError extends PlatformError {
    * @param userId Optional user ID associated with the error
    * @returns A TwitterError instance
    */
-  private static fromPartialResponseError(error: ApiPartialResponseError, userId?: string): TwitterError {
+  private static fromPartialResponseError(
+    error: ApiPartialResponseError,
+    userId?: string,
+  ): TwitterError {
     return new TwitterError(
       `Twitter API partial response error: ${error.message}`,
       ApiErrorCode.NETWORK_ERROR,
@@ -132,7 +135,7 @@ export class TwitterError extends PlatformError {
         rawContent: error.rawContent,
       },
       true, // Partial response errors are typically recoverable
-      userId
+      userId,
     );
   }
 
@@ -146,20 +149,19 @@ export class TwitterError extends PlatformError {
     // Extract Twitter error details
     const twitterErrors = error.errors || [];
     const firstError = twitterErrors[0];
-    
+
     // Handle different error formats (V1 vs V2)
     // V1 errors have code and message properties
     // V2 errors have a different structure
     let twitterErrorCode: number | undefined;
     let twitterErrorMessage: string = error.message;
-    
+
     if (firstError) {
       // Check if it's a V1 error (has code property)
       if ('code' in firstError && typeof firstError.code === 'number') {
         twitterErrorCode = firstError.code;
         twitterErrorMessage = firstError.message || error.message;
-      } 
-      // For V2 errors, extract relevant information
+      } // For V2 errors, extract relevant information
       else if ('type' in firstError) {
         twitterErrorMessage = firstError.detail || firstError.title || error.message;
         // Map V2 error types to our error codes if needed
@@ -180,15 +182,17 @@ export class TwitterError extends PlatformError {
           rateLimit: error.rateLimit,
         },
         true, // Rate limit errors are recoverable
-        userId
+        userId,
       );
     }
 
     // Check for authentication errors
-    if (error.isAuthError ||
+    if (
+      error.isAuthError ||
       twitterErrorCode === TwitterErrorCode.INVALID_OR_EXPIRED_TOKEN ||
       twitterErrorCode === TwitterErrorCode.UNABLE_TO_VERIFY_CREDENTIALS ||
-      twitterErrorCode === TwitterErrorCode.NOT_AUTHORIZED) {
+      twitterErrorCode === TwitterErrorCode.NOT_AUTHORIZED
+    ) {
       return new TwitterError(
         `Twitter authentication error: ${twitterErrorMessage}`,
         ApiErrorCode.UNAUTHORIZED,
@@ -199,7 +203,7 @@ export class TwitterError extends PlatformError {
           twitterMessage: twitterErrorMessage,
         },
         true, // Auth errors may be recoverable with token refresh
-        userId
+        userId,
       );
     }
 
@@ -215,7 +219,7 @@ export class TwitterError extends PlatformError {
           twitterMessage: twitterErrorMessage,
         },
         true, // Duplicate content can be fixed by modifying content
-        userId
+        userId,
       );
     }
 
@@ -231,7 +235,7 @@ export class TwitterError extends PlatformError {
           twitterMessage: twitterErrorMessage,
         },
         false, // Content policy violations are not recoverable
-        userId
+        userId,
       );
     }
 
@@ -247,7 +251,7 @@ export class TwitterError extends PlatformError {
           twitterMessage: twitterErrorMessage,
         },
         false, // Not found errors are not recoverable
-        userId
+        userId,
       );
     }
 
@@ -263,13 +267,19 @@ export class TwitterError extends PlatformError {
           twitterMessage: twitterErrorMessage,
         },
         false, // Account suspension is not recoverable
-        userId
+        userId,
       );
     }
 
     // Check for media errors
-    if ([TwitterErrorCode.MEDIA_ID_NOT_FOUND, TwitterErrorCode.MEDIA_TYPE_NOT_SUPPORTED,
-    TwitterErrorCode.MEDIA_TOO_LARGE, TwitterErrorCode.INVALID_MEDIA].includes(twitterErrorCode as TwitterErrorCode)) {
+    if (
+      [
+        TwitterErrorCode.MEDIA_ID_NOT_FOUND,
+        TwitterErrorCode.MEDIA_TYPE_NOT_SUPPORTED,
+        TwitterErrorCode.MEDIA_TOO_LARGE,
+        TwitterErrorCode.INVALID_MEDIA,
+      ].includes(twitterErrorCode as TwitterErrorCode)
+    ) {
       return new TwitterError(
         `Media upload failed: ${twitterErrorMessage}`,
         ApiErrorCode.MEDIA_UPLOAD_FAILED,
@@ -280,12 +290,16 @@ export class TwitterError extends PlatformError {
           twitterMessage: twitterErrorMessage,
         },
         true, // Media errors may be recoverable by adjusting media
-        userId
+        userId,
       );
     }
 
     // Check for Twitter service errors
-    if ([TwitterErrorCode.OVER_CAPACITY, TwitterErrorCode.INTERNAL_ERROR].includes(twitterErrorCode as TwitterErrorCode)) {
+    if (
+      [TwitterErrorCode.OVER_CAPACITY, TwitterErrorCode.INTERNAL_ERROR].includes(
+        twitterErrorCode as TwitterErrorCode,
+      )
+    ) {
       return new TwitterError(
         `Twitter service error: ${twitterErrorMessage}`,
         ApiErrorCode.PLATFORM_UNAVAILABLE,
@@ -296,7 +310,7 @@ export class TwitterError extends PlatformError {
           twitterMessage: twitterErrorMessage,
         },
         true, // Service errors are typically recoverable
-        userId
+        userId,
       );
     }
 
@@ -312,7 +326,7 @@ export class TwitterError extends PlatformError {
         twitterErrors: twitterErrors,
       },
       false, // Default to not recoverable
-      userId
+      userId,
     );
   }
 }

@@ -219,7 +219,7 @@ export interface MultiStatusResponse {
  */
 export function createEnhancedApiResponse<T>(
   data: T,
-  meta?: EnhancedApiResponse<T>['meta']
+  meta?: EnhancedApiResponse<T>['meta'],
 ): EnhancedApiResponse<T> {
   return {
     success: true,
@@ -234,7 +234,7 @@ export function createEnhancedApiResponse<T>(
  * @returns An enhanced error response
  */
 export function createEnhancedErrorResponse(
-  errors: ErrorDetail[]
+  errors: ErrorDetail[],
 ): EnhancedErrorResponse {
   return {
     success: false,
@@ -250,7 +250,7 @@ export function createEnhancedErrorResponse(
  */
 export function createMultiStatusResponse(
   results: SuccessDetail[],
-  errors: ErrorDetail[]
+  errors: ErrorDetail[],
 ): MultiStatusResponse {
   const total = results.length + errors.length;
   const succeeded = results.length;
@@ -286,7 +286,7 @@ export function createErrorDetail(
   platform?: PlatformName,
   userId?: string,
   recoverable: boolean = false,
-  details?: Record<string, any>
+  details?: Record<string, any>,
 ): ErrorDetail {
   return {
     status: 'error',
@@ -309,7 +309,7 @@ export function createErrorDetail(
 export function createSuccessDetail(
   platform: PlatformName,
   userId: string,
-  additionalData: Record<string, any> = {}
+  additionalData: Record<string, any> = {},
 ): SuccessDetail {
   return {
     platform,

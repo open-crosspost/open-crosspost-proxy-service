@@ -5,7 +5,7 @@ import {
   createEnhancedErrorResponse,
   createErrorDetail,
   createMultiStatusResponse,
-  createSuccessDetail
+  createSuccessDetail,
 } from '../../types/enhanced-response.types.ts';
 import { Platform } from '../../types/platform.types.ts';
 import { CreatePostRequest } from '../../types/post.types.ts';
@@ -57,8 +57,8 @@ export class CreateController extends BasePostController {
                 ApiErrorCode.UNAUTHORIZED,
                 platform,
                 userId,
-                true // Recoverable by connecting the account
-              )
+                true, // Recoverable by connecting the account
+              ),
             );
             continue;
           }
@@ -73,8 +73,8 @@ export class CreateController extends BasePostController {
                 ApiErrorCode.RATE_LIMITED,
                 platform,
                 userId,
-                true // Recoverable by waiting
-              )
+                true, // Recoverable by waiting
+              ),
             );
             continue;
           }
@@ -99,8 +99,8 @@ export class CreateController extends BasePostController {
                 postUrl: result.url || `https://twitter.com/i/web/status/${result.id}`, // Fallback URL format
                 createdAt: result.createdAt,
                 threadIds: result.threadIds,
-              }
-            )
+              },
+            ),
           );
 
           // Track the post for activity tracking
@@ -125,11 +125,10 @@ export class CreateController extends BasePostController {
                 Platform.TWITTER,
                 target.userId,
                 error.recoverable,
-                error.details
-              )
+                error.details,
+              ),
             );
-          }
-          // Handle generic errors
+          } // Handle generic errors
           else {
             errorDetails.push(
               createErrorDetail(
@@ -137,8 +136,8 @@ export class CreateController extends BasePostController {
                 ApiErrorCode.PLATFORM_ERROR,
                 target.platform,
                 target.userId,
-                false
-              )
+                false,
+              ),
             );
           }
         }
@@ -176,9 +175,9 @@ export class CreateController extends BasePostController {
               ApiErrorCode.INTERNAL_ERROR,
               undefined,
               undefined,
-              false
+              false,
             ),
-          ])
+          ]),
         );
       }
 
@@ -191,9 +190,9 @@ export class CreateController extends BasePostController {
             ApiErrorCode.UNKNOWN_ERROR,
             undefined,
             undefined,
-            false
+            false,
           ),
-        ])
+        ]),
       );
     }
   }

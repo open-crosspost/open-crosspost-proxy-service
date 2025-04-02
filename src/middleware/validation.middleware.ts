@@ -16,21 +16,21 @@ export class ValidationMiddleware {
       try {
         const body = await c.req.json();
         const result = schema.safeParse(body);
-        
+
         if (!result.success) {
           return c.json({
             error: 'Validation Error',
-            details: result.error.errors
+            details: result.error.errors,
           }, 400);
         }
-        
+
         // Store validated data in context
         c.set('validatedBody', result.data);
         await next();
       } catch (error) {
         return c.json({
           error: 'Invalid JSON',
-          message: error instanceof Error ? error.message : 'Failed to parse request body'
+          message: error instanceof Error ? error.message : 'Failed to parse request body',
         }, 400);
       }
     };
@@ -45,14 +45,14 @@ export class ValidationMiddleware {
     return async (c: Context, next: Next) => {
       const params = c.req.param();
       const result = schema.safeParse(params);
-      
+
       if (!result.success) {
         return c.json({
           error: 'Validation Error',
-          details: result.error.errors
+          details: result.error.errors,
         }, 400);
       }
-      
+
       // Store validated data in context
       c.set('validatedParams', result.data);
       await next();
@@ -68,14 +68,14 @@ export class ValidationMiddleware {
     return async (c: Context, next: Next) => {
       const query = c.req.query();
       const result = schema.safeParse(query);
-      
+
       if (!result.success) {
         return c.json({
           error: 'Validation Error',
-          details: result.error.errors
+          details: result.error.errors,
         }, 400);
       }
-      
+
       // Store validated data in context
       c.set('validatedQuery', result.data);
       await next();
