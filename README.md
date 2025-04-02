@@ -147,6 +147,118 @@ GET /api/media/:id/status          # Check media upload status
 For all endpoints and details, see the OpenAPI Specification available at `/openapi.json` when
 running the server.
 
+## SDK Packages
+
+We provide a set of SDK packages to make it easy to interact with the Crosspost API:
+
+### @crosspost/types
+
+Shared TypeScript type definitions for the Crosspost API ecosystem.
+
+```bash
+# Install
+bun add @crosspost/types
+```
+
+```typescript
+// Import types
+import { PostRequest, PostResponse, PlatformName } from '@crosspost/types';
+
+// Use types in your code
+const request: PostRequest = {
+  platform: 'twitter',
+  content: {
+    text: 'Hello, world!'
+  }
+};
+```
+
+### @crosspost/near-simple-signing
+
+NEAR wallet signature generation utility for Crosspost API authentication.
+
+```bash
+# Install
+bun add @crosspost/near-simple-signing
+```
+
+```typescript
+// Initialize the signer
+const signer = new NearSigner({
+  networkId: 'testnet',
+  nodeUrl: 'https://rpc.testnet.near.org',
+  walletUrl: 'https://wallet.testnet.near.org'
+});
+
+// Connect to NEAR wallet
+await signer.connect();
+
+// Generate a signature for authentication
+const authHeader = await signer.createAuthHeader('Hello, world!');
+```
+
+### @crosspost/sdk
+
+Main client SDK for interacting with the Crosspost API.
+
+```bash
+# Install
+bun add @crosspost/sdk
+```
+
+```typescript
+// Initialize the SDK
+const client = new CrosspostClient({
+  baseUrl: 'https://api.crosspost.example',
+  auth: {
+    type: 'near',
+    signer: signer
+  }
+});
+
+// Create a post on Twitter
+const response = await client.twitter.createPost({
+  content: {
+    text: 'Hello from Crosspost SDK!'
+  }
+});
+```
+
+## Development
+
+### SDK Development
+
+The SDK packages are located in the `packages` directory:
+
+```
+packages/
+  ├── types/            # Shared type definitions
+  ├── near-simple-signing/ # NEAR signature generation
+  └── sdk/              # Main API client
+```
+
+To work on the SDK packages:
+
+```bash
+# Install dependencies for all packages
+cd packages
+bun install
+
+# Build all packages
+bun run build
+
+# Run development mode
+bun run dev
+
+# Run tests
+bun run test
+```
+
+See the individual package READMEs for more details:
+- [@crosspost/types](./packages/types/README.md)
+- [@crosspost/near-simple-signing](./packages/near-simple-signing/README.md)
+- [@crosspost/sdk](./packages/sdk/README.md)
+
 ## Extending & Contributing
 
 This project uses a platform-agnostic design, making it easy to add support for additional social
@@ -154,6 +266,9 @@ media platforms beyond Twitter.
 
 Want to add support for LinkedIn, Mastodon, or another platform? Contributions are welcome! Just
 implement the platform interfaces in `src/infrastructure/platform/abstract/`.
+
+You can also contribute to the SDK packages by implementing additional platform clients or enhancing
+the existing functionality.
 
 ## License
 

@@ -1,0 +1,35 @@
+{
+  "name": "@crosspost/types",
+  "version": "0.1.0",
+  "description": "Shared type definitions for Crosspost API",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "clean": "rimraf dist",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "crosspost",
+    "types",
+    "api",
+    "social-media"
+  ],
+  "author": "Crosspost Team",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "rimraf": "^5.0.5",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

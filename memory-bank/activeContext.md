@@ -10,6 +10,8 @@ now running on Deno Deploy.
 
 ## Recent Changes
 
+- **Implemented comprehensive response schemas**: Created response schemas for all API endpoints with OpenAPI metadata, mirroring the existing request schemas. These schemas are organized in the `src/schemas/responses` directory and include post, auth, media, and rate limit responses.
+- **Created SDK architecture**: Designed and implemented a modular SDK architecture consisting of three separate packages: `@crosspost/types` for shared type definitions, `@crosspost/near-simple-signing` for NEAR signature generation, and `@crosspost/sdk` for the main API client.
 - **Completed migration from Cloudflare Workers to Deno Deploy**
 - Switched from itty-router to Hono for HTTP routing
 - Replaced Cloudflare KV with Deno KV for token storage
@@ -153,11 +155,16 @@ now running on Deno Deploy.
    - Configure alerting
    - Create health check endpoints
 
-5. **SDK Development**:
-   - Create client SDK for easy integration
-   - Generate TypeScript types from OpenAPI specification
-   - Implement client-side validation
-   - Add examples and documentation
+5. **SDK Development**: ✅
+   - ✅ Design SDK architecture (Completed)
+   - ✅ Create response schemas for API endpoints (Completed)
+   - ✅ Implement shared type definitions package (@crosspost/types) (Completed)
+   - ✅ Implement NEAR signature generation package (@crosspost/near-simple-signing) (Completed)
+   - ✅ Implement main API client package (@crosspost/sdk) (Completed)
+   - ✅ Update main README with SDK documentation (Completed)
+   - ⬜ Create comprehensive tests for SDK packages
+   - ⬜ Create additional examples and documentation
+   - ⬜ Publish packages to npm
 
 ## Current Challenges
 
