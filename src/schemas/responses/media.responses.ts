@@ -3,8 +3,8 @@
  */
 
 import { z } from 'zod';
-import { enhancedResponseSchema } from '../zod/index.js';
-import { platformSchema } from '../zod/common.schemas.js';
+import { enhancedResponseSchema } from '../zod/index.ts';
+import { platformSchema } from '../zod/common.schemas.ts';
 
 /**
  * Media upload response schema

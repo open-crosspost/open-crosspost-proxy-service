@@ -4,10 +4,10 @@
  */
 
 // Export common types
-export * from './common/index.ts';
+export * from './common/index';
 
 // Export request types
-export * from './requests/index.ts';
+export * from './requests/index';
 
 // Export response types
-export * from './responses/index.ts';
+export * from './responses/index';

@@ -3,8 +3,8 @@
  */
 
 import { z } from 'zod';
-import { enhancedResponseSchema, errorDetailSchema } from '../zod/index.js';
-import { platformSchema } from '../zod/common.schemas.js';
+import { enhancedResponseSchema, errorDetailSchema } from '../zod/index.ts';
+import { platformSchema } from '../zod/common.schemas.ts';
 
 /**
  * Media object schema

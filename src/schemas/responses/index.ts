@@ -3,7 +3,7 @@
  */
 
 // Export all response schemas
-export * from './auth.responses.js';
-export * from './media.responses.js';
-export * from './post.responses.js';
-export * from './rate-limit.responses.js';
+export * from './auth.responses.ts';
+export * from './media.responses.ts';
+export * from './post.responses.ts';
+export * from './rate-limit.responses.ts';

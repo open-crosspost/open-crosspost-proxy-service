@@ -17,6 +17,7 @@
       },
       "devDependencies": {
         "@types/node": "^20.10.5",
+        "denoify": "^1.6.17",
         "eslint": "^8.56.0",
         "rimraf": "^5.0.5",
         "tsup": "^8.0.1",
@@ -42,6 +43,7 @@
       "name": "@crosspost/types",
       "version": "0.1.0",
       "devDependencies": {
+        "denoify": "^1.6.17",
         "eslint": "^8.56.0",
         "rimraf": "^5.0.5",
         "tsup": "^8.0.1",
@@ -235,6 +237,8 @@
     "debug": ["debug@4.4.0", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-6WTZ/IxCY/T6BALoZHaE4ctp9xm+Z5kY/pzYaCHRFeyVhojxlrm+46y68HA6hr0TcwEssoxNiDEUJQjfPZ/RYA=="],
 
     "deep-is": ["deep-is@0.1.4", "", {}, "sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ=="],
+
+    "denoify": ["denoify@1.6.17", "", { "bin": { "denoify": "bin/main.js", "enable_short_npm_import_path": "bin/enable_short_npm_import_path.js", "remove_deno_dist_from_gitignore": "bin/remove_deno_dist_from_gitignore.js" } }, "sha512-yABGHDyssOywtxMhXYFA/aDiUSfoa/Y/lNGkX+m9wwswolXt2A/TK6rPIF/9mwFIQoZpiUrTLKWlg5dUVucBbA=="],
 
     "doctrine": ["doctrine@3.0.0", "", { "dependencies": { "esutils": "^2.0.2" } }, "sha512-yS+Q5i3hBf7GBkd4KG8a7eBNNWNGLTaEwwYWUijIYM7zrlYDM0BFXHjjPWlWZ1Rg7UaddZeIDmi9jF3HmqiQ2w=="],
 
