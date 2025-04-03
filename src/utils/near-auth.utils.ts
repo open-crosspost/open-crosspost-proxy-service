@@ -1,9 +1,20 @@
 import { Context, NearSimpleSigning } from '../../deps.ts';
 import { getEnv } from '../config/env.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
-import { ApiError, NearAuthData, PlatformName } from '@crosspost/types';
+import { ApiError, PlatformName } from '@crosspost/types';
 
-// Import types from the types package
+/**
+ * NEAR Authentication Data
+ */
+export interface NearAuthData {
+  account_id: string;
+  public_key: string;
+  signature: string;
+  message: string;
+  nonce: string;
+  recipient?: string;
+  callback_url?: string;
+}
 
 /**
  * NEAR Authentication Utilities

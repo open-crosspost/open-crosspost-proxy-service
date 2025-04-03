@@ -1,45 +1,34 @@
-import { Hono } from './deps.ts';
-import { getSecureEnv, isProduction } from './src/config/env.ts';
-import { AuthMiddleware } from './src/middleware/auth.middleware.ts';
-import { corsMiddleware } from './src/middleware/cors.middleware.ts';
-import { errorMiddleware } from './src/middleware/error.middleware.ts';
-import { UsageRateLimitMiddleware } from './src/middleware/usage-rate-limit.middleware.ts';
-import { PlatformMiddleware } from './src/middleware/supported-platforms.middleware.ts';
-import { ValidationMiddleware } from './src/middleware/validation.middleware.ts';
-import {
-  AuthCallbackQuerySchema,
-  AuthInitRequestSchema,
-  NearAuthorizationRequestSchema,
-  PlatformParamSchema,
-} from "@crosspost/types/mod.ts";
 import {
   AccountActivityParamsSchema,
   AccountActivityQuerySchema,
   AccountPostsParamsSchema,
   AccountPostsQuerySchema,
-  LeaderboardQuerySchema,
-} from '@crosspost/types/leaderboard.ts';
-import {
-  MediaMetadataParamsSchema,
-  MediaMetadataRequestSchema,
-  MediaStatusParamsSchema,
-  MediaStatusQuerySchema,
-  MediaUploadRequestSchema,
-} from '@crosspost/types/media.ts';
-import {
+  AuthCallbackQuerySchema,
+  AuthInitRequestSchema,
+  CreatePostRequestSchema,
   DeletePostRequestSchema,
+  LeaderboardQuerySchema,
   LikePostRequestSchema,
+  NearAuthorizationRequestSchema,
+  PlatformParamSchema,
   QuotePostRequestSchema,
+  RateLimitEndpointParamSchema,
   ReplyToPostRequestSchema,
   RepostRequestSchema,
   UnlikePostRequestSchema,
-} from '@crosspost/types/post.ts';
-import { RateLimitEndpointParamSchema } from '@crosspost/types/rate-limit.ts';
+} from "@crosspost/types";
+import { Hono } from './deps.ts';
+import { getSecureEnv, isProduction } from './src/config/env.ts';
+import { AuthMiddleware } from './src/middleware/auth.middleware.ts';
+import { corsMiddleware } from './src/middleware/cors.middleware.ts';
+import { errorMiddleware } from './src/middleware/error.middleware.ts';
+import { PlatformMiddleware } from './src/middleware/supported-platforms.middleware.ts';
+import { UsageRateLimitMiddleware } from './src/middleware/usage-rate-limit.middleware.ts';
+import { ValidationMiddleware } from './src/middleware/validation.middleware.ts';
 
 // Import controllers
 import { AuthController } from './src/controllers/auth.controller.ts';
 import { LeaderboardController } from './src/controllers/leaderboard.controller.ts';
-import { MediaController } from './src/controllers/media.controller.ts';
 import { postControllers } from './src/controllers/post/index.ts';
 import { RateLimitController } from './src/controllers/rate-limit.controller.ts';
 
@@ -53,7 +42,6 @@ app.use('*', corsMiddleware());
 // Initialize controllers
 const authController = new AuthController();
 const leaderboardController = new LeaderboardController();
-const mediaController = new MediaController();
 const rateLimitController = new RateLimitController();
 
 // Health check route
@@ -165,6 +153,7 @@ const post = new Hono();
 post.post(
   '/',
   AuthMiddleware.validateNearSignature(),
+  ValidationMiddleware.validateBody(CreatePostRequestSchema),
   UsageRateLimitMiddleware.limitByNearAccount('post'),
   (c) => postControllers.create.handle(c),
 );
@@ -205,29 +194,6 @@ post.delete(
   (c) => postControllers.unlike.handle(c),
 );
 
-// Media routes
-const media = new Hono();
-media.post(
-  '/upload',
-  AuthMiddleware.validateNearSignature(),
-  ValidationMiddleware.validateBody(MediaUploadRequestSchema),
-  (c) => mediaController.uploadMedia(c),
-);
-media.get(
-  '/status/:id',
-  AuthMiddleware.validateNearSignature(),
-  ValidationMiddleware.validateParams(MediaStatusParamsSchema),
-  ValidationMiddleware.validateQuery(MediaStatusQuerySchema),
-  (c) => mediaController.getMediaStatus(c),
-);
-media.post(
-  '/:id/metadata',
-  AuthMiddleware.validateNearSignature(),
-  ValidationMiddleware.validateParams(MediaMetadataParamsSchema),
-  ValidationMiddleware.validateBody(MediaMetadataRequestSchema),
-  (c) => mediaController.updateMediaMetadata(c),
-);
-
 // Leaderboard routes
 const leaderboard = new Hono();
 leaderboard.get(
@@ -253,7 +219,6 @@ leaderboard.get(
 
 // Mount routes
 api.route('/post', post);
-api.route('/media', media);
 api.route('/leaderboard', leaderboard);
 api.route('/activity', leaderboard);
 app.route('/auth', auth);

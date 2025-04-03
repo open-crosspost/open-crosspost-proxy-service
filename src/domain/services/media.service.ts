@@ -1,12 +1,11 @@
-import { MediaContent } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
+import { MediaContent } from '@crosspost/types';
+import { Env } from '../../config/env.ts';
 import {
   MediaStatusResult,
   MediaUploadResult,
   PlatformMedia,
 } from '../../infrastructure/platform/abstract/platform-media.interface.ts';
 import { TwitterMedia } from '../../infrastructure/platform/twitter/twitter-media.ts';
-import { Env } from '../../config/env.ts';
-import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 
 /**
  * Media Service

@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { EnhancedResponseSchema } from "./enhanced-response.ts";
+import { EnhancedResponseSchema } from "./response.ts";
 import { PlatformSchema } from "./common.ts";
 
 /**
@@ -13,8 +13,14 @@ import { PlatformSchema } from "./common.ts";
  */
 export const LeaderboardQuerySchema = z.object({
   timeframe: z.enum(['day', 'week', 'month', 'all']).optional().describe('Timeframe for the leaderboard'),
-  limit: z.number().min(1).max(100).optional().describe('Maximum number of results to return (1-100)'),
-  offset: z.number().min(0).optional().describe('Offset for pagination'),
+  limit: z.string().optional()
+    .transform((val) => val ? parseInt(val, 10) : undefined)
+    .pipe(z.number().min(1).max(100).optional())
+    .describe('Maximum number of results to return (1-100)'),
+  offset: z.string().optional()
+    .transform((val) => val ? parseInt(val, 10) : undefined)
+    .pipe(z.number().min(0).optional())
+    .describe('Offset for pagination'),
 }).describe('Leaderboard query');
 
 /**
@@ -105,8 +111,14 @@ export const AccountPostsParamsSchema = z.object({
  */
 export const AccountPostsQuerySchema = z.object({
   platform: z.string().optional().describe('Filter by platform (optional)'),
-  limit: z.number().min(1).max(100).optional().describe('Maximum number of results to return (1-100)'),
-  offset: z.number().min(0).optional().describe('Offset for pagination'),
+  limit: z.string().optional()
+    .transform((val) => val ? parseInt(val, 10) : undefined)
+    .pipe(z.number().min(1).max(100).optional())
+    .describe('Maximum number of results to return (1-100)'),
+  offset: z.string().optional()
+    .transform((val) => val ? parseInt(val, 10) : undefined)
+    .pipe(z.number().min(0).optional())
+    .describe('Offset for pagination'),
   type: z.enum(['post', 'repost', 'reply', 'quote', 'like', 'all']).optional().describe('Filter by post type (optional)'),
 }).describe('Account posts query');
 

@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { EnhancedResponseSchema } from "./enhanced-response.ts";
+import { EnhancedResponseSchema } from "./response.ts";
 import { PlatformSchema } from "./common.ts";
 
 /**

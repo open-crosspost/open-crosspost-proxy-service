@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { PlatformSchema } from "./common.ts";
-import { EnhancedResponseSchema } from "./enhanced-response.ts";
+import { EnhancedResponseSchema } from "./response.ts";
 
 /**
  * User profile schema

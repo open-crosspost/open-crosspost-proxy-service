@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { EnhancedResponseSchema } from "./enhanced-response.ts";
+import { EnhancedResponseSchema } from "./response.ts";
 import { PlatformSchema } from "./common.ts";
 
 // Platform parameter schema
@@ -15,10 +15,8 @@ export const PlatformParamSchema = z.object({
 
 // Auth initialization request schema
 export const AuthInitRequestSchema = z.object({
-  redirectUri: z.string().url().describe('URI to redirect to after authentication'),
-  scopes: z.array(z.string()).optional().describe('OAuth scopes to request'),
-  successUrl: z.string().url().describe('URL to redirect to on successful authentication'),
-  errorUrl: z.string().url().describe('URL to redirect to on authentication error'),
+  successUrl: z.string().url().optional().describe('URL to redirect to on successful authentication'),
+  errorUrl: z.string().url().optional().describe('URL to redirect to on authentication error'),
 }).describe('Auth initialization request');
 
 // Auth URL response schema

@@ -15,7 +15,7 @@ This refactoring will improve maintainability, ensure type safety, and provide a
 ## Recent Changes
 
 - **Refactoring types and schemas**: Currently refactoring the project to centralize schema and type definitions in the `packages/types` package, with TypeScript types derived from Zod schemas.
-- **Organized types and schemas**: Reorganized the types and schemas in the project to ensure consistency and maintainability. Moved enhanced response types from `src/types/enhanced-response.types.ts` to `packages/types/src/common/enhanced-response.ts`. Created utility functions for working with schemas in `src/schemas/utils.ts`. Added documentation explaining the relationship between types and schemas.
+- **Organized types and schemas**: Reorganized the types and schemas in the project to ensure consistency and maintainability. Moved enhanced response types from `src/types/response.types.ts` to `packages/types/src/common/response.ts`. Created utility functions for working with schemas in `src/schemas/utils.ts`. Added documentation explaining the relationship between types and schemas.
 - **Implemented comprehensive response schemas**: Created response schemas for all API endpoints with OpenAPI metadata, mirroring the existing request schemas. These schemas are organized in the `src/schemas/responses` directory and include post, auth, media, and rate limit responses.
 - **Created SDK architecture**: Designed and implemented a modular SDK architecture consisting of three separate packages: `@crosspost/types` for shared type definitions, `@crosspost/near-simple-signing` for NEAR signature generation, and `@crosspost/sdk` for the main API client.
 - **Completed migration from Cloudflare Workers to Deno Deploy**

@@ -6,7 +6,16 @@
 
 import { z } from "zod";
 import { PlatformSchema } from "./common.ts";
-import { EnhancedResponseSchema, ErrorDetailSchema } from "./enhanced-response.ts";
+import { EnhancedResponseSchema, ErrorDetailSchema } from "./response.ts";
+
+/**
+ * Media content schema
+ */
+export const MediaContentSchema = z.object({
+  data: z.union([z.string(), z.instanceof(Blob)]).describe('Media data as string or Blob'),
+  mimeType: z.string().optional().describe('Media MIME type'),
+  altText: z.string().optional().describe('Alt text for the media'),
+}).describe('Media content object');
 
 /**
  * Media schema
@@ -47,9 +56,7 @@ export const PostSchema = z.object({
  */
 export const PostContentSchema = z.object({
   text: z.string().optional().describe('Text content for the post'),
-  media: z.array(z.object({
-    id: z.string().describe('Media ID'),
-  })).optional().describe('Media attachments for the post'),
+  media: z.array(MediaContentSchema).optional().describe('Media attachments for the post'),
   platform: PlatformSchema.optional().describe('The platform to post to'),
   userId: z.string().optional().describe('User ID on the platform'),
   postId: z.string().optional().describe('ID of the post (for replies, quotes, etc.)'),
@@ -251,6 +258,7 @@ export const PostMultiStatusResponseSchema = z.object({
 
 // Derive TypeScript types from Zod schemas
 export type Media = z.infer<typeof MediaSchema>;
+export type MediaContent = z.infer<typeof MediaContentSchema>;
 export type PostMetrics = z.infer<typeof PostMetricsSchema>;
 export type Post = z.infer<typeof PostSchema>;
 export type PostContent = z.infer<typeof PostContentSchema>;

@@ -8,7 +8,7 @@ import { PlatformAuth } from '../abstract/platform-auth.interface.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
 import { TwitterClient } from './twitter-client.ts';
 import { TwitterProfile } from './twitter-profile.ts';
-import { Platform } from '../../../types/platform.types.ts';
+import { Platform } from '@crosspost/types';
 
 // Define the auth state structure
 interface AuthState {
@@ -107,8 +107,8 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
         codeVerifier,
         state,
         createdAt: Date.now(),
-        successUrl: successUrl || redirectUri, // Use redirect URI as fallback
-        errorUrl: errorUrl || (successUrl || redirectUri), // Use success URL or redirect URI as fallback
+        successUrl: successUrl, 
+        errorUrl: errorUrl || successUrl, // Use success URL as fallback
         signerId, // Store the NEAR account ID
       };
 

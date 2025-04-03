@@ -7,7 +7,7 @@
 export * from './common.ts';
 
 // Export enhanced response types and schemas
-export * from './enhanced-response.ts';
+export * from './response.ts';
 
 // Export error types
 export * from './errors/index.ts';
@@ -15,7 +15,6 @@ export * from './errors/index.ts';
 // Export domain-specific types and schemas
 export * from './auth.ts';
 export * from './post.ts';
-export * from './media.ts';
 export * from './rate-limit.ts';
 export * from './leaderboard.ts';
 export * from './user-profile.ts';

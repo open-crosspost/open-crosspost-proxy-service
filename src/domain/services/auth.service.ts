@@ -5,9 +5,8 @@ import { PlatformProfile } from '../../infrastructure/platform/abstract/platform
 import { TwitterAuth } from '../../infrastructure/platform/twitter/twitter-auth.ts';
 import { TwitterProfile } from '../../infrastructure/platform/twitter/twitter-profile.ts';
 import { TokenStorage, AuthToken } from '../../infrastructure/storage/auth-token-storage.ts';
-import { Platform, PlatformName } from '@crosspost/types';
+import { Platform, PlatformName, UserProfile } from '@crosspost/types';
 import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
-import { UserProfile } from '../../types/user-profile.types.ts';
 
 /**
  * Auth Service

@@ -53,7 +53,7 @@ export type Post = z.infer<typeof postSchema>;
 The enhanced response types provide a consistent format for API responses:
 
 ```typescript
-// packages/types/src/enhanced-response.ts
+// packages/types/src/response.ts
 import { z } from "zod";
 
 // Define the schema

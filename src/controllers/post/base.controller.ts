@@ -5,7 +5,7 @@ import {
   createEnhancedErrorResponse, 
   createErrorDetail,
   PlatformError
-} from '@crosspost/types/mod.ts';
+} from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { getEnv } from '../../config/env.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
