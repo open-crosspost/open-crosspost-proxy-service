@@ -1,3 +1,4 @@
+import { PlatformName, Platform } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
 import {
   DeleteResult,
@@ -7,8 +8,6 @@ import {
   PostResult,
 } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
 import { TwitterPost } from '../../infrastructure/platform/twitter/twitter-post.ts';
-import { Platform, PlatformName } from '../../types/platform.types.ts';
-import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
 
 /**
  * Post Service
@@ -177,37 +176,5 @@ export class PostService {
       console.error(`Error unliking post on ${platform}:`, error);
       throw error;
     }
-  }
-
-  /**
-   * Create a standard API response
-   * @param data The response data
-   * @param status The response status
-   * @returns A standard API response
-   */
-  createResponse(data: any): Response {
-    return new Response(JSON.stringify(createApiResponse(data)), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  /**
-   * Create an error response
-   * @param error The error object
-   * @param status The response status
-   * @returns An error response
-   */
-  createErrorResponse(error: any, status = 500): Response {
-    const errorMessage = error.message || 'An unexpected error occurred';
-    const errorType = error.type || 'INTERNAL_ERROR';
-
-    return new Response(
-      JSON.stringify(createErrorResponse(errorType, errorMessage, error.code, error.details)),
-      {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
   }
 }

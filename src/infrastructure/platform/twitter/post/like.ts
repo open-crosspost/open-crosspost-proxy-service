@@ -1,5 +1,4 @@
-import { ApiErrorCode } from '../../abstract/error-hierarchy.ts';
-import { LikeResult } from '../../abstract/platform-post.interface.ts';
+import { ApiErrorCode, LikeResult } from '@crosspost/types';
 import { TwitterError } from '../twitter-error.ts';
 import { TwitterPostBase } from './base.ts';
 

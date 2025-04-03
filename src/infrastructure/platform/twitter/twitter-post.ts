@@ -1,11 +1,4 @@
 import { Env } from '../../../config/env.ts';
-import {
-  DeleteResult,
-  LikeResult,
-  PlatformPost,
-  PostContent,
-  PostResult,
-} from '../abstract/platform-post.interface.ts';
 import { TwitterClient } from './twitter-client.ts';
 import { TwitterMedia } from './twitter-media.ts';
 import {
@@ -16,6 +9,8 @@ import {
   TwitterReplyPost,
   TwitterRepost,
 } from './post/index.ts';
+import { PlatformPost } from '../abstract/platform-post.interface.ts';
+import { DeleteResult, LikeResult, PostContent, PostResult } from '@crosspost/types';
 
 /**
  * Twitter Post

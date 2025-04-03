@@ -1,6 +1,5 @@
 import { ApiPartialResponseError, ApiRequestError, ApiResponseError } from 'twitter-api-v2';
-import { Platform } from '../../../types/platform.types.ts';
-import { ApiErrorCode, PlatformError } from '../abstract/error-hierarchy.ts';
+import { ApiErrorCode, Platform, PlatformError } from '@crosspost/types';
 
 /**
  * Twitter-specific error codes

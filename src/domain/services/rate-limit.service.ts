@@ -1,10 +1,6 @@
+import { Platform, PlatformName, RateLimitStatus } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
-import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
-import { Platform, PlatformName } from '../../types/platform.types.ts';
-import {
-  PlatformRateLimit,
-  RateLimitStatus,
-} from '../../infrastructure/platform/abstract/platform-rate-limit.interface.ts';
+import { PlatformRateLimit } from '../../infrastructure/platform/abstract/platform-rate-limit.interface.ts';
 import { TwitterRateLimit } from '../../infrastructure/platform/twitter/twitter-rate-limit.ts';
 
 /**
@@ -147,36 +143,5 @@ export class RateLimitService {
       console.error(`Error getting all rate limits for ${platform}:`, error);
       return {};
     }
-  }
-
-  /**
-   * Create a standard API response
-   * @param data The response data
-   * @returns A standard API response
-   */
-  createResponse(data: any): Response {
-    return new Response(JSON.stringify(createApiResponse(data)), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  /**
-   * Create an error response
-   * @param error The error object
-   * @param status The response status
-   * @returns An error response
-   */
-  createErrorResponse(error: any, status = 500): Response {
-    const errorMessage = error.message || 'An unexpected error occurred';
-    const errorType = error.type || 'INTERNAL_ERROR';
-
-    return new Response(
-      JSON.stringify(createErrorResponse(errorType, errorMessage, error.code, error.details)),
-      {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
   }
 }

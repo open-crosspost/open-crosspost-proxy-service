@@ -1,13 +1,13 @@
-import { ITwitterApiClientPlugin, TwitterApi } from 'twitter-api-v2';
-import { TwitterApiAutoTokenRefresher } from '@twitter-api-v2/plugin-token-refresher';
-import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
+import { PlatformError } from '@crosspost/types';
 import { TwitterApiCachePluginRedis } from '@twitter-api-v2/plugin-cache-redis';
+import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
+import { TwitterApiAutoTokenRefresher } from '@twitter-api-v2/plugin-token-refresher';
 import { Redis } from '@upstash/redis';
+import { ITwitterApiClientPlugin, TwitterApi } from 'twitter-api-v2';
+import { Env } from '../../../config/env.ts';
+import { AuthToken, TokenStorage, TokenType } from '../../storage/auth-token-storage.ts';
 import { BasePlatformClient } from '../abstract/base-platform-client.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
-import { PlatformError, PlatformErrorType } from '../abstract/platform-error.ts';
-import { TokenStorage, TokenType, TwitterTokens } from '../../storage/auth-token-storage.ts';
-import { Env } from '../../../config/env.ts';
 
 /**
  * Twitter Client
@@ -66,7 +66,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
         },
         onTokenUpdate: async (token) => {
           // Create new tokens object
-          const newTokens: TwitterTokens = {
+          const newTokens: AuthToken = {
             accessToken: token.accessToken,
             refreshToken: token.refreshToken || tokens.refreshToken, // Use old refresh token if new one isn't provided
             expiresAt: Date.now() + 7200 * 1000, // Twitter tokens typically expire in 2 hours
@@ -139,7 +139,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
     code: string,
     redirectUri: string,
     codeVerifier?: string,
-  ): Promise<TwitterTokens> {
+  ): Promise<AuthToken> {
     const client = new TwitterApi({
       clientId: this.env.TWITTER_CLIENT_ID,
       clientSecret: this.env.TWITTER_CLIENT_SECRET,
@@ -156,7 +156,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
     const { data: user } = await loggedClient.v2.me();
 
     // Create tokens object
-    const tokens: TwitterTokens = {
+    const tokens: AuthToken = {
       accessToken,
       refreshToken,
       expiresAt: Date.now() + expiresIn * 1000,
@@ -177,7 +177,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
    * @returns The new tokens from the platform
    * @throws PlatformError if the refresh fails
    */
-  async refreshPlatformToken(refreshToken: string): Promise<TwitterTokens> {
+  async refreshPlatformToken(refreshToken: string): Promise<AuthToken> {
     try {
       const client = new TwitterApi({
         clientId: this.env.TWITTER_CLIENT_ID,

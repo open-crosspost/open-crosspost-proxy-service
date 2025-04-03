@@ -67,37 +67,6 @@ export class MediaService {
   }
 
   /**
-   * Create a standard API response
-   * @param data The response data
-   * @returns A standard API response
-   */
-  createResponse(data: any): Response {
-    return new Response(JSON.stringify(createApiResponse(data)), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  /**
-   * Create an error response
-   * @param error The error object
-   * @param status The response status
-   * @returns An error response
-   */
-  createErrorResponse(error: any, status = 500): Response {
-    const errorMessage = error.message || 'An unexpected error occurred';
-    const errorType = error.type || 'INTERNAL_ERROR';
-
-    return new Response(
-      JSON.stringify(createErrorResponse(errorType, errorMessage, error.code, error.details)),
-      {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
-  }
-
-  /**
    * Parse media content from form data
    * @param formData The form data containing the media
    * @returns The media content

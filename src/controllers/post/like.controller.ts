@@ -1,9 +1,5 @@
+import { LikePostRequest, createEnhancedApiResponse, createSuccessDetail } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
-import {
-  createEnhancedApiResponse,
-  createSuccessDetail,
-} from '../../types/enhanced-response.types.ts';
-import { LikePostRequest } from '../../types/post.types.ts';
 import { BasePostController } from './base.controller.ts';
 
 /**

@@ -1,17 +1,16 @@
+import { 
+  ApiErrorCode, 
+  PlatformName,
+  createEnhancedApiResponse, 
+  createEnhancedErrorResponse, 
+  createErrorDetail,
+  PlatformError
+} from '@crosspost/types/mod.ts';
 import { Context } from '../../../deps.ts';
 import { getEnv } from '../../config/env.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
-import {
-  ApiErrorCode,
-  PlatformError,
-} from '../../infrastructure/platform/abstract/error-hierarchy.ts';
-import {
-  createEnhancedErrorResponse,
-  createErrorDetail,
-} from '../../types/enhanced-response.types.ts';
-import { Platform, PlatformName } from '../../types/platform.types.ts';
 import { MediaCache } from '../../utils/media-cache.utils.ts';
 import { verifyPlatformAccess } from '../../utils/near-auth.utils.ts';
 
@@ -54,15 +53,15 @@ export abstract class BasePostController {
       // Create a platform error for unauthorized access
       c.status(401);
       c.json(
-        createEnhancedErrorResponse([
+        createEnhancedApiResponse([
           createErrorDetail(
             error instanceof Error
               ? error.message
               : `No connected ${platform} account found for user ID ${userId}`,
             ApiErrorCode.UNAUTHORIZED,
+            true, // Recoverable by connecting the account
             platform,
             userId,
-            true, // Recoverable by connecting the account
           ),
         ]),
       );
@@ -95,9 +94,9 @@ export abstract class BasePostController {
         createErrorDetail(
           `Rate limit reached for ${platform}. Please try again later.`,
           ApiErrorCode.RATE_LIMITED,
+          true, // Recoverable by waiting
           platform,
           userId,
-          true, // Recoverable by waiting
         ),
       ]),
     );
@@ -119,7 +118,7 @@ export abstract class BasePostController {
   ): void {
     console.error(`Error in ${this.constructor.name}:`, error);
 
-    // Handle platform-specific errors (including TwitterError since it extends PlatformError)
+    // Handle platform-specific errors
     if (error instanceof PlatformError) {
       c.status(error.status as any);
       c.json(
@@ -127,9 +126,9 @@ export abstract class BasePostController {
           createErrorDetail(
             error.message,
             error.code,
+            error.recoverable,
             error.platform as any,
             error.userId,
-            error.recoverable,
             error.details,
           ),
         ]),
@@ -144,9 +143,9 @@ export abstract class BasePostController {
         createErrorDetail(
           error instanceof Error ? error.message : 'An unexpected error occurred',
           ApiErrorCode.INTERNAL_ERROR,
+          false,
           platform,
           userId,
-          false,
         ),
       ]),
     );

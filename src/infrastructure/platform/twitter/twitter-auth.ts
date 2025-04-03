@@ -2,7 +2,7 @@ import { TwitterApi } from 'twitter-api-v2';
 import { Env } from '../../../config/env.ts';
 import { linkAccountToNear } from '../../../utils/account-linking.utils.ts';
 import { KvStore } from '../../../utils/kv-store.utils.ts';
-import { TokenType, TwitterTokens } from '../../storage/auth-token-storage.ts';
+import { TokenType, AuthToken } from '../../storage/auth-token-storage.ts';
 import { BasePlatformAuth } from '../abstract/base-platform-auth.ts';
 import { PlatformAuth } from '../abstract/platform-auth.interface.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
@@ -137,7 +137,7 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
   async handleCallback(
     code: string,
     state: string,
-  ): Promise<{ userId: string; tokens: TwitterTokens; successUrl: string }> {
+  ): Promise<{ userId: string; tokens: AuthToken; successUrl: string }> {
     try {
       // Get the auth state from KV using KvStore utility
       const authState = await KvStore.get<AuthState>(['auth', state]);
@@ -169,7 +169,7 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
       await this.twitterProfile.fetchUserProfile(userId, true, loggedClient);
 
       // Create tokens object
-      const tokens: TwitterTokens = {
+      const tokens: AuthToken = {
         accessToken,
         refreshToken: refreshToken || '',
         expiresAt: Date.now() + expiresIn * 1000,

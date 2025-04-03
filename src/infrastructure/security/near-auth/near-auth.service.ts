@@ -1,7 +1,6 @@
 import { Env } from '../../../config/env.ts';
-import { PlatformName } from '../../../types/platform.types.ts';
+import { PlatformName } from '@crosspost/types';
 import { PrefixedKvStore } from '../../../utils/kv-store.utils.ts';
-import { NearAuthData } from './near-auth.types.ts';
 
 /**
  * NEAR Authentication Service

@@ -1,13 +1,21 @@
 /**
  * @crosspost/types
- * Shared TypeScript type definitions for the Crosspost API ecosystem
+ * Shared TypeScript type definitions and Zod schemas for the Crosspost API ecosystem
  */
 
-// Export common types
-export * from './common/index';
+// Export common types and schemas
+export * from './common.ts';
 
-// Export request types
-export * from './requests/index';
+// Export enhanced response types and schemas
+export * from './enhanced-response.ts';
 
-// Export response types
-export * from './responses/index';
+// Export error types
+export * from './errors/index.ts';
+
+// Export domain-specific types and schemas
+export * from './auth.ts';
+export * from './post.ts';
+export * from './media.ts';
+export * from './rate-limit.ts';
+export * from './leaderboard.ts';
+export * from './user-profile.ts';

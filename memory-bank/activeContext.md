@@ -2,14 +2,20 @@
 
 ## Current Work Focus
 
-The project has successfully migrated from Cloudflare Workers to Deno Deploy, improving
-compatibility with the twitter-api-v2 library. We've implemented a platform-agnostic architecture
-that makes it easier to adapt the service for other social media platforms beyond Twitter. The core
-infrastructure, authentication system, API endpoints, and middleware have been implemented and are
-now running on Deno Deploy.
+We are currently refactoring the project's types and schemas to follow a more centralized approach. The goal is to have a single source of truth for both TypeScript types and Zod schemas, with TypeScript types being derived from Zod schemas. This will ensure consistency between validation and type checking throughout the codebase.
+
+The refactoring involves:
+1. Moving all Zod schemas from `src/schemas` to the `packages/types/src` directory
+2. Organizing schemas by domain rather than by request/response
+3. Deriving TypeScript types from schemas using `z.infer<typeof schemaName>`
+4. Updating imports throughout the codebase to reference the new location of schemas and types
+
+This refactoring will improve maintainability, ensure type safety, and provide a clearer separation of concerns.
 
 ## Recent Changes
 
+- **Refactoring types and schemas**: Currently refactoring the project to centralize schema and type definitions in the `packages/types` package, with TypeScript types derived from Zod schemas.
+- **Organized types and schemas**: Reorganized the types and schemas in the project to ensure consistency and maintainability. Moved enhanced response types from `src/types/enhanced-response.types.ts` to `packages/types/src/common/enhanced-response.ts`. Created utility functions for working with schemas in `src/schemas/utils.ts`. Added documentation explaining the relationship between types and schemas.
 - **Implemented comprehensive response schemas**: Created response schemas for all API endpoints with OpenAPI metadata, mirroring the existing request schemas. These schemas are organized in the `src/schemas/responses` directory and include post, auth, media, and rate limit responses.
 - **Created SDK architecture**: Designed and implemented a modular SDK architecture consisting of three separate packages: `@crosspost/types` for shared type definitions, `@crosspost/near-simple-signing` for NEAR signature generation, and `@crosspost/sdk` for the main API client.
 - **Completed migration from Cloudflare Workers to Deno Deploy**
@@ -73,7 +79,14 @@ now running on Deno Deploy.
 
 ## Active Decisions
 
-1. **Deno Migration**: ✅ COMPLETED
+1. **Types and Schemas Refactoring**: 🔄 IN PROGRESS
+   - 🔄 Move schemas from `src/schemas` to `packages/types/src`
+   - 🔄 Organize schemas by domain rather than by request/response
+   - 🔄 Derive TypeScript types from schemas using `z.infer<typeof schemaName>`
+   - 🔄 Update imports throughout the codebase
+   - 🔄 Clean up deprecated files and directories
+
+2. **Deno Migration**: ✅ COMPLETED
    - ✅ Created compatibility tests for twitter-api-v2 with Deno
    - ✅ Verified compatibility of Twitter API plugins with Deno
    - ✅ Tested Deno KV for token storage
@@ -84,7 +97,7 @@ now running on Deno Deploy.
    - ✅ Implemented Hono for HTTP routing (replacing itty-router)
    - ✅ Updated build and deployment process for Deno Deploy
 
-2. **Platform Abstraction**:
+3. **Platform Abstraction**:
    - ✅ Created interfaces for platform-agnostic operations
    - ✅ Implemented Twitter-specific adapters
    - ✅ Designed for easy extension to other platforms
@@ -95,7 +108,7 @@ now running on Deno Deploy.
    - ✅ Standardized error handling across platform implementations
    - ✅ Clarified responsibilities between client and auth components
 
-3. **Authentication**:
+4. **Authentication**:
    - ✅ Implemented OAuth 2.0 flow with PKCE
    - ✅ Created secure token storage in Deno KV
    - ✅ Added token refresh and revocation
@@ -108,7 +121,7 @@ now running on Deno Deploy.
    - ✅ Standardized KV operations with utility classes
    - ⬜ Enhance security with proper key rotation
 
-4. **API Implementation**:
+5. **API Implementation**:
    - ✅ Implemented post creation and management
    - ✅ Added support for threads
    - ✅ Created media upload handling
@@ -118,7 +131,7 @@ now running on Deno Deploy.
    - ✅ Enhanced error handling with standardized formats and codes
    - ⬜ Enhance rate limit management with backoff strategies
 
-5. **Testing and Documentation**:
+6. **Testing and Documentation**:
    - ✅ Created OpenAPI documentation (updated NEAR auth/unauth endpoints for header auth)
    - ✅ Implemented request validation with Zod
    - ✅ Created KV structure documentation
@@ -127,20 +140,27 @@ now running on Deno Deploy.
 
 ## Next Steps
 
-1. **Testing Framework**:
+1. **Complete Types and Schemas Refactoring**:
+   - Finish migrating schemas to the types package
+   - Derive all TypeScript types from schemas
+   - Update all imports throughout the codebase
+   - Clean up deprecated files and directories
+   - Update documentation
+
+2. **Testing Framework**:
    - Create unit tests for core components
    - Implement integration tests for API endpoints
    - Set up end-to-end testing
    - Configure testing in Deno environment
    - Test platform-specific authentication routes
 
-2. **Deployment Pipeline**:
+3. **Deployment Pipeline**:
    - ✅ Set up Deno Deploy environment
    - ✅ Configure CI/CD pipeline for Deno
    - ✅ Create staging environment
    - ✅ Prepare for production deployment
 
-3. **Security Enhancements**:
+4. **Security Enhancements**:
    - ✅ Implemented versioned encryption for tokens
    - ✅ Added token access logging with PII redaction
    - ✅ Created secure environment configuration validation
@@ -149,13 +169,13 @@ now running on Deno Deploy.
    - ⬜ Implement circuit breaker pattern
    - ⬜ Add request size limits
 
-4. **Monitoring and Observability**:
+5. **Monitoring and Observability**:
    - Set up structured logging
    - Implement metrics collection
    - Configure alerting
    - Create health check endpoints
 
-5. **SDK Development**: ✅
+6. **SDK Development**: ✅
    - ✅ Design SDK architecture (Completed)
    - ✅ Create response schemas for API endpoints (Completed)
    - ✅ Implement shared type definitions package (@crosspost/types) (Completed)
@@ -168,23 +188,28 @@ now running on Deno Deploy.
 
 ## Current Challenges
 
-1. **Deno Compatibility**: ✅ RESOLVED
+1. **Types and Schemas Refactoring**:
+   - Ensuring all imports are correctly updated throughout the codebase
+   - Maintaining backward compatibility during the transition
+   - Ensuring proper organization of schemas by domain
+
+2. **Deno Compatibility**: ✅ RESOLVED
    - ✅ Successfully migrated all npm packages to Deno-compatible versions
    - ✅ Implemented compatibility layers where needed
    - ✅ Optimized performance for Deno environment
 
-2. **Storage Solutions**:
+3. **Storage Solutions**:
    - Deno KV is still in beta/unstable status
    - Limited storage capacity on free tier
    - ✅ Implemented proper encryption for sensitive data
    - ✅ Made token storage platform-specific for better organization
 
-3. **Testing Infrastructure**:
+4. **Testing Infrastructure**:
    - Need to set up comprehensive testing framework
    - Mock external dependencies for testing
    - Create test fixtures and helpers
 
-4. **Deployment Strategy**: ✅ COMPLETED
+5. **Deployment Strategy**: ✅ COMPLETED
    - ✅ Configured proper environment variables for Deno Deploy
    - ✅ Set up staging and production environments
    - ✅ Implemented rollback capability

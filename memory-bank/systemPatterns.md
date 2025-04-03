@@ -338,7 +338,45 @@ flowchart TD
     ServeResponse --> ReturnResponse
 ```
 
-### 11. OpenAPI Documentation Pattern
+### 11. Centralized Schema and Type Pattern
+
+The system implements a Centralized Schema and Type pattern that provides a single source of truth for both TypeScript types and Zod schemas. TypeScript types are derived from Zod schemas using `z.infer<typeof schemaName>`, ensuring consistency between validation and type checking.
+
+```mermaid
+flowchart TD
+    Schema[Zod Schema] --> DerivedType[TypeScript Type]
+    Schema --> Validation[Request Validation]
+    Schema --> Documentation[OpenAPI Documentation]
+    DerivedType --> TypeChecking[Static Type Checking]
+    DerivedType --> SDK[SDK Type Safety]
+    
+    subgraph "Types Package"
+        Schema
+        DerivedType
+    end
+    
+    subgraph "API Usage"
+        Validation
+        TypeChecking
+    end
+    
+    subgraph "SDK Usage"
+        SDK
+    end
+    
+    subgraph "Documentation"
+        Documentation
+    end
+```
+
+This pattern ensures:
+- Single source of truth for data models
+- Consistency between validation and type checking
+- Reduced maintenance overhead
+- Improved developer experience
+- Better type safety across the codebase
+
+### 12. OpenAPI Documentation Pattern
 
 The system generates and serves OpenAPI documentation for all endpoints, providing a
 self-documenting API.

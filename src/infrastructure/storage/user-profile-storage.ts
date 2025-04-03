@@ -1,6 +1,5 @@
 import { Env } from '../../config/env.ts';
-import { PlatformName } from '../../types/platform.types.ts';
-import { UserProfile } from '../../types/user-profile.types.ts';
+import { PlatformName, UserProfile } from '@crosspost/types';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 
 /**

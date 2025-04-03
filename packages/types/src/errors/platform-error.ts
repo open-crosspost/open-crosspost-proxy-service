@@ -1,3 +1,4 @@
+
 /**
  * Platform Error Types
  * Defines common error types for platform operations

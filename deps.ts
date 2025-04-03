@@ -5,7 +5,6 @@ export * as http from 'std/http';
 export * as assert from 'std/assert';
 
 // Local packages
-export * as Types from './packages/types/mod.ts';
 export * as NearSimpleSigning from './packages/near-simple-signing/mod.ts';
 
 // Hono framework
@@ -15,8 +14,7 @@ export { HTTPException } from 'npm:hono/http-exception';
 export type { Context, MiddlewareHandler, Next } from 'npm:hono';
 
 // Zod validation and OpenAPI
-export { z } from '@hono/zod-openapi';
-export { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+export { z } from "zod";
 
 // Twitter API
 export { TwitterApi } from 'twitter-api-v2';

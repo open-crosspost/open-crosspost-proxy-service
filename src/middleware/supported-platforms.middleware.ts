@@ -1,5 +1,14 @@
+import { Platform, PlatformName } from '@crosspost/types';
 import { Context, Next } from '../../deps.ts';
-import { isSupportedPlatform, PlatformName } from '../types/platform.types.ts';
+
+/**
+ * Check if a string is a valid platform name
+ * @param platform The platform name to check
+ * @returns True if the platform is supported
+ */
+export function isSupportedPlatform(platform: string): platform is PlatformName {
+  return Object.values(Platform).includes(platform as Platform);
+}
 
 /**
  * Platform Middleware

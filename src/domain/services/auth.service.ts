@@ -4,9 +4,8 @@ import { PlatformAuth } from '../../infrastructure/platform/abstract/platform-au
 import { PlatformProfile } from '../../infrastructure/platform/abstract/platform-profile.interface.ts';
 import { TwitterAuth } from '../../infrastructure/platform/twitter/twitter-auth.ts';
 import { TwitterProfile } from '../../infrastructure/platform/twitter/twitter-profile.ts';
-import { TokenStorage, TwitterTokens } from '../../infrastructure/storage/auth-token-storage.ts';
-import { Platform, PlatformName } from '../../types/platform.types.ts';
-import { createApiResponse, createErrorResponse } from '../../types/response.types.ts';
+import { TokenStorage, AuthToken } from '../../infrastructure/storage/auth-token-storage.ts';
+import { Platform, PlatformName } from '@crosspost/types';
 import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
 import { UserProfile } from '../../types/user-profile.types.ts';
 
@@ -122,7 +121,7 @@ export class AuthService {
     platform: PlatformName,
     code: string,
     state: string,
-  ): Promise<{ userId: string; tokens: TwitterTokens; successUrl: string }> {
+  ): Promise<{ userId: string; tokens: AuthToken; successUrl: string }> {
     try {
       const platformAuth = this.getPlatformAuth(platform);
       return await platformAuth.handleCallback(code, state);
@@ -138,7 +137,7 @@ export class AuthService {
    * @param userId The user ID whose token should be refreshed
    * @returns The new tokens
    */
-  async refreshToken(platform: PlatformName, userId: string): Promise<TwitterTokens> {
+  async refreshToken(platform: PlatformName, userId: string): Promise<AuthToken> {
     try {
       const platformAuth = this.getPlatformAuth(platform);
       return await platformAuth.refreshToken(userId);
@@ -207,18 +206,6 @@ export class AuthService {
   }
 
   /**
-   * Create a standard API response
-   * @param data The response data
-   * @returns A standard API response
-   */
-  createResponse(data: any): Response {
-    return new Response(JSON.stringify(createApiResponse(data)), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  /**
    * Get a user's profile
    * @param platform The platform name (e.g., Platform.TWITTER)
    * @param userId The user ID to get the profile for
@@ -237,24 +224,5 @@ export class AuthService {
       console.error('Error getting user profile:', error);
       return null;
     }
-  }
-
-  /**
-   * Create an error response
-   * @param error The error object
-   * @param status The response status
-   * @returns An error response
-   */
-  createErrorResponse(error: any, status = 500): Response {
-    const errorMessage = error.message || 'An unexpected error occurred';
-    const errorType = error.type || 'INTERNAL_ERROR';
-
-    return new Response(
-      JSON.stringify(createErrorResponse(errorType, errorMessage, error.code, error.details)),
-      {
-        status,
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
   }
 }

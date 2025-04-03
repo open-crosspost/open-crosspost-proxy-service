@@ -1,16 +1,13 @@
-import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.ts';
-import {
-  ApiError,
+import { 
+  createEnhancedErrorResponse, 
+  createErrorDetail, 
+  ErrorDetail,
   ApiErrorCode,
   BaseError,
-  PlatformError,
-} from '../infrastructure/platform/abstract/error-hierarchy.ts';
-import {
-  createEnhancedErrorResponse,
-  createErrorDetail,
-  createMultiStatusResponse,
-  ErrorDetail,
-} from '../types/enhanced-response.types.ts';
+  ApiError,
+  PlatformError
+} from '@crosspost/types';
+import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.ts';
 
 /**
  * Error middleware for Hono
@@ -31,9 +28,9 @@ export const errorMiddleware = (): MiddlewareHandler => {
             createErrorDetail(
               err.message,
               ApiErrorCode.UNKNOWN_ERROR,
-              undefined,
-              undefined,
               false,
+              undefined,
+              undefined,
             ),
           ]),
         );
@@ -47,9 +44,9 @@ export const errorMiddleware = (): MiddlewareHandler => {
             createErrorDetail(
               err.message,
               err.code,
-              undefined,
-              undefined,
               err.recoverable,
+              undefined,
+              undefined,
               err.details,
             ),
           ]),
@@ -64,9 +61,9 @@ export const errorMiddleware = (): MiddlewareHandler => {
             createErrorDetail(
               err.message,
               err.code,
+              err.recoverable,
               err.platform as any, // Type cast needed due to platform string vs enum
               err.userId,
-              err.recoverable,
               err.details,
             ),
           ]),
@@ -92,9 +89,9 @@ export const errorMiddleware = (): MiddlewareHandler => {
           createErrorDetail(
             e.message,
             e.code,
+            e.recoverable,
             e.platform as any, // Type cast needed due to platform string vs enum
             e.userId,
-            e.recoverable,
             e.details,
           )
         );
@@ -109,9 +106,9 @@ export const errorMiddleware = (): MiddlewareHandler => {
             createErrorDetail(
               err.message,
               ApiErrorCode.UNKNOWN_ERROR,
-              undefined,
-              undefined,
               false,
+              undefined,
+              undefined,
             ),
           ]),
           500,
@@ -125,9 +122,9 @@ export const errorMiddleware = (): MiddlewareHandler => {
             createErrorDetail(
               err.message || 'An unexpected error occurred',
               ApiErrorCode.INTERNAL_ERROR,
-              undefined,
-              undefined,
               false,
+              undefined,
+              undefined,
             ),
           ]),
           500,
@@ -140,9 +137,9 @@ export const errorMiddleware = (): MiddlewareHandler => {
           createErrorDetail(
             'An unexpected error occurred',
             ApiErrorCode.UNKNOWN_ERROR,
-            undefined,
-            undefined,
             false,
+            undefined,
+            undefined,
           ),
         ]),
         500,

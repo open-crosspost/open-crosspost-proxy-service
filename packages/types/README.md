@@ -66,6 +66,49 @@ function handleResponse(response: CreatePostResponse) {
 - `ApiErrorCode` - Error codes returned by the API
 - `ApiError` - Error structure returned by the API
 
+### Enhanced Response Types
+
+- `EnhancedApiResponse<T>` - Standard response format with metadata
+- `EnhancedErrorResponse` - Error response format
+- `ErrorDetail` - Detailed error information
+- `SuccessDetail` - Success information for multi-status responses
+- `MultiStatusResponse` - Response format for operations with partial success/failure
+
+#### Helper Functions
+
+- `createEnhancedApiResponse` - Create a standard response
+- `createEnhancedErrorResponse` - Create an error response
+- `createErrorDetail` - Create detailed error information
+- `createSuccessDetail` - Create success information
+- `createMultiStatusResponse` - Create a multi-status response
+
+Example usage:
+
+```typescript
+import { 
+  createEnhancedApiResponse, 
+  createErrorDetail, 
+  ApiErrorCode 
+} from "@crosspost/types";
+
+// Success response
+const response = createEnhancedApiResponse({
+  id: "123",
+  text: "Hello, world!"
+});
+
+// Error response
+const errorResponse = createEnhancedErrorResponse([
+  createErrorDetail(
+    "Post not found", 
+    ApiErrorCode.NOT_FOUND,
+    "twitter",
+    "user123",
+    false
+  )
+]);
+```
+
 ### Request Types
 
 - Authentication requests

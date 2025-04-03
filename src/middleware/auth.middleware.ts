@@ -1,6 +1,6 @@
+import { ApiError, ApiErrorCode } from '@crosspost/types';
 import { Context, MiddlewareHandler, Next } from '../../deps.ts';
 import { extractAndValidateNearAuth } from '../utils/near-auth.utils.ts';
-import { ApiError, ErrorType } from './errors.ts';
 
 /**
  * Authentication middleware for Hono
@@ -26,7 +26,7 @@ export class AuthMiddleware {
           throw error;
         }
         throw new ApiError(
-          ErrorType.AUTHENTICATION,
+          ApiErrorCode.FORBIDDEN,
           'NEAR authentication failed',
           401,
         );

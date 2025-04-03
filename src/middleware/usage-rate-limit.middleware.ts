@@ -1,7 +1,6 @@
 import { Context, MiddlewareHandler, Next } from '../../deps.ts';
+import { ApiError } from '@crosspost/types';
 import { PrefixedKvStore } from '../utils/kv-store.utils.ts';
-import { ApiError, ErrorType } from './errors.ts';
-import { getEnv } from '../config/env.ts';
 
 /**
  * Configuration for NEAR account rate limiting

@@ -1,11 +1,9 @@
-import { Context, NearSimpleSigning, Types } from '../../deps.ts';
+import { Context, NearSimpleSigning } from '../../deps.ts';
 import { getEnv } from '../config/env.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
-import { ApiError, ErrorType } from '../middleware/errors.ts';
-import { PlatformName } from '../types/platform.types.ts';
+import { ApiError, NearAuthData, PlatformName } from '@crosspost/types';
 
 // Import types from the types package
-import { NearAuthData } from '../infrastructure/security/near-auth/near-auth.types.ts';
 
 /**
  * NEAR Authentication Utilities

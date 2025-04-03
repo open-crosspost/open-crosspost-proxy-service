@@ -4,10 +4,10 @@ import {
   MediaUploadResult,
   PlatformMedia,
 } from '../abstract/platform-media.interface.ts';
-import { MediaContent } from '../abstract/platform-post.interface.ts';
 import { TwitterClient } from './twitter-client.ts';
 import { Env } from '../../../config/env.ts';
 import { Buffer } from 'node:buffer';
+import { MediaContent } from '@crosspost/types';
 
 // Media upload limitations
 const MEDIA_LIMITS = {

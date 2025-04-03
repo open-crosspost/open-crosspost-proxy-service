@@ -4,7 +4,7 @@ import {
   ActivityTrackingService,
   TimePeriod,
 } from '../domain/services/activity-tracking.service.ts';
-import { PlatformName } from '../types/platform.types.ts';
+import { PlatformName } from '@crosspost/types';
 
 /**
  * Leaderboard Controller

@@ -1,9 +1,5 @@
+import { QuotePostRequest, createEnhancedApiResponse, createSuccessDetail } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
-import {
-  createEnhancedApiResponse,
-  createSuccessDetail,
-} from '../../types/enhanced-response.types.ts';
-import { QuotePostRequest } from '../../types/post.types.ts';
 import { BasePostController } from './base.controller.ts';
 
 /**

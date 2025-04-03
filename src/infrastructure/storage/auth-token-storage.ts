@@ -6,10 +6,7 @@ export enum TokenType {
   OAUTH2 = 'oauth2',
 }
 
-/**
- * Twitter Tokens interface
- */
-export interface TwitterTokens {
+export interface AuthToken {
   accessToken: string;
   refreshToken?: string;
   tokenSecret?: string;
@@ -19,7 +16,7 @@ export interface TwitterTokens {
 }
 
 import { Env } from '../../config/env.ts';
-import { PlatformName } from '../../types/platform.types.ts';
+import { PlatformName } from '@crosspost/types';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { TokenAccessLogger, TokenOperation } from '../security/token-access-logger.ts';
 
@@ -49,7 +46,7 @@ export class TokenStorage {
    * @returns The user's tokens
    * @throws Error if tokens are not found
    */
-  async getTokens(userId: string, platform: PlatformName): Promise<TwitterTokens> {
+  async getTokens(userId: string, platform: PlatformName): Promise<AuthToken> {
     try {
       // Use platform-specific key with PrefixedKvStore
       const encryptedTokens = await this.tokenStore.get<string>([platform, userId]);
@@ -85,7 +82,7 @@ export class TokenStorage {
    * @param tokens The tokens to save
    * @param platform The platform name (e.g., 'twitter')
    */
-  async saveTokens(userId: string, tokens: TwitterTokens, platform: PlatformName): Promise<void> {
+  async saveTokens(userId: string, tokens: AuthToken, platform: PlatformName): Promise<void> {
     try {
       // Encrypt the tokens
       const encryptedTokens = await this.encryptTokens(tokens);
@@ -167,7 +164,7 @@ export class TokenStorage {
    * @param tokens The tokens to encrypt
    * @returns The encrypted tokens
    */
-  private async encryptTokens(tokens: TwitterTokens): Promise<string> {
+  private async encryptTokens(tokens: AuthToken): Promise<string> {
     try {
       // Get the encryption key bytes
       const rawKeyData = new TextEncoder().encode(this.encryptionKey);
@@ -227,7 +224,7 @@ export class TokenStorage {
    * @param encryptedTokens The encrypted tokens
    * @returns The decrypted tokens
    */
-  private async decryptTokens(encryptedTokens: string): Promise<TwitterTokens> {
+  private async decryptTokens(encryptedTokens: string): Promise<AuthToken> {
     try {
       // Get the encryption key bytes
       const rawKeyData = new TextEncoder().encode(this.encryptionKey);

@@ -1,6 +1,6 @@
 import { Env } from '../../../config/env.ts';
 import { PlatformClient } from './platform-client.interface.ts';
-import { PlatformError, PlatformErrorType } from './platform-error.ts';
+import { PlatformError, PlatformErrorType } from '@crosspost/types';
 
 /**
  * Base Platform Client

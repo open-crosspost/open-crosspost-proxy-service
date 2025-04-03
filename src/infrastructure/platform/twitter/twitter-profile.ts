@@ -1,9 +1,9 @@
 import { TwitterApi } from 'twitter-api-v2';
 import { Env } from '../../../config/env.ts';
-import { UserProfile } from '../../../types/user-profile.types.ts';
 import { PlatformProfile } from '../abstract/platform-profile.interface.ts';
 import { UserProfileStorage } from '../../storage/user-profile-storage.ts';
 import { TwitterClient } from './twitter-client.ts';
+import { UserProfile } from '@crosspost/types';
 
 /**
  * Twitter Profile

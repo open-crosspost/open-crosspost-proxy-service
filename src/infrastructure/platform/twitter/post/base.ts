@@ -1,8 +1,8 @@
 import { SendTweetV2Params } from 'twitter-api-v2';
 import { MediaCache } from '../../../../utils/media-cache.utils.ts';
-import { MediaContent } from '../../abstract/platform-post.interface.ts';
 import { TwitterClient } from '../twitter-client.ts';
 import { TwitterMedia } from '../twitter-media.ts';
+import { MediaContent } from '@crosspost/types';
 
 /**
  * Base class for Twitter post operations

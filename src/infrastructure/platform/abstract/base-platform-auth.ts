@@ -1,10 +1,10 @@
 import { Env } from '../../../config/env.ts';
-import { PlatformName } from '../../../types/platform.types.ts';
+import { PlatformName } from '@crosspost/types';
 import { PrefixedKvStore } from '../../../utils/kv-store.utils.ts';
 import { TokenStorage } from '../../storage/auth-token-storage.ts';
 import { PlatformAuth } from './platform-auth.interface.ts';
 import { PlatformClient } from './platform-client.interface.ts';
-import { PlatformError, PlatformErrorType } from './platform-error.ts';
+import { PlatformError, PlatformErrorType } from '@crosspost/types';
 
 /**
  * Base Platform Auth

@@ -1,9 +1,9 @@
 import { Context } from '../../deps.ts';
+import { PlatformName } from '@crosspost/types';
 import { Env, getEnv } from '../config/env.ts';
 import { DEFAULT_CONFIG } from '../config/index.ts';
 import { AuthService } from '../domain/services/auth.service.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
-import { PlatformName } from '../types/platform.types.ts';
 import { unlinkAccountFromNear } from '../utils/account-linking.utils.ts';
 import { extractAndValidateNearAuth } from '../utils/near-auth.utils.ts';
 

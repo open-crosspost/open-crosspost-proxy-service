@@ -11,21 +11,21 @@ import {
   AuthInitRequestSchema,
   NearAuthorizationRequestSchema,
   PlatformParamSchema,
-} from './src/schemas/zod/auth.schemas.ts';
+} from "@crosspost/types/mod.ts";
 import {
   AccountActivityParamsSchema,
   AccountActivityQuerySchema,
   AccountPostsParamsSchema,
   AccountPostsQuerySchema,
   LeaderboardQuerySchema,
-} from './src/schemas/zod/leaderboard.schemas.ts';
+} from '@crosspost/types/leaderboard.ts';
 import {
   MediaMetadataParamsSchema,
   MediaMetadataRequestSchema,
   MediaStatusParamsSchema,
   MediaStatusQuerySchema,
   MediaUploadRequestSchema,
-} from './src/schemas/zod/media.schemas.ts';
+} from '@crosspost/types/media.ts';
 import {
   DeletePostRequestSchema,
   LikePostRequestSchema,
@@ -33,8 +33,8 @@ import {
   ReplyToPostRequestSchema,
   RepostRequestSchema,
   UnlikePostRequestSchema,
-} from './src/schemas/zod/post.schemas.ts';
-import { RateLimitEndpointParamSchema } from './src/schemas/zod/rate-limit.schemas.ts';
+} from '@crosspost/types/post.ts';
+import { RateLimitEndpointParamSchema } from '@crosspost/types/rate-limit.ts';
 
 // Import controllers
 import { AuthController } from './src/controllers/auth.controller.ts';

@@ -12,8 +12,5 @@ export * from './auth/index.js';
 // Export platform-specific clients
 export * from './platforms/index.js';
 
-// Export error types
-export * from './errors/index.js';
-
-// Re-export types from @crosspost/types
+// Re-export types from @crosspost/types (including error types)
 export * from '@crosspost/types';

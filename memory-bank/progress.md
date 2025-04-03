@@ -1,6 +1,6 @@
 # Social Media API Proxy Progress
 
-## Project Status: Post-Migration Phase
+## Project Status: Post-Migration and Refactoring Phase
 
 The project has successfully migrated from Cloudflare Workers to Deno Deploy, improving
 compatibility with the twitter-api-v2 library. We've implemented a platform-agnostic architecture
@@ -8,11 +8,16 @@ that makes it easier to adapt the service for other social media platforms beyon
 infrastructure, authentication system, API endpoints, and middleware have been implemented and are
 now running on Deno Deploy.
 
+We have also completed a major refactoring of the types and schemas system, implementing a centralized approach where TypeScript types are derived from Zod schemas. This ensures consistency between validation and type checking throughout the codebase.
+
 ## What Works
 
 - ✅ Project documentation and architecture design
 - ✅ Comprehensive response schemas with OpenAPI metadata
 - ✅ SDK architecture design and implementation
+- ✅ Types and schemas organization with clear separation of concerns
+- ✅ Enhanced response types moved to @crosspost/types package
+- ✅ Schema utilities for working with Zod schemas
 - ✅ Memory bank setup with comprehensive project context
 - ✅ Deno project initialization
 - ✅ TypeScript configuration
@@ -223,6 +228,7 @@ now running on Deno Deploy.
 - ✅ KV utility refactoring (Partially completed - NearAuthService still needs updating)
 - ✅ Enhanced error handling system (Completed)
 - ✅ Response schemas for API endpoints (Completed)
+- ✅ Types and schemas organization (Completed)
 - ✅ SDK architecture design (Completed)
 - ✅ Shared type definitions package (@crosspost/types) (Completed)
 - ✅ NEAR signature generation package (@crosspost/near-simple-signing) (Completed)

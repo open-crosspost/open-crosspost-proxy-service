@@ -1,16 +1,8 @@
+import { ApiErrorCode, createEnhancedErrorResponse, createErrorDetail, createMultiStatusResponse, CreatePostRequest, createSuccessDetail, PlatformName } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
-import { ApiErrorCode } from '../../infrastructure/platform/abstract/error-hierarchy.ts';
 import { TwitterError } from '../../infrastructure/platform/twitter/twitter-error.ts';
-import {
-  createEnhancedErrorResponse,
-  createErrorDetail,
-  createMultiStatusResponse,
-  createSuccessDetail,
-} from '../../types/enhanced-response.types.ts';
-import { Platform } from '../../types/platform.types.ts';
-import { CreatePostRequest } from '../../types/post.types.ts';
-import { addContentVariation, getPostDelay } from '../../utils/spam-detection.utils.ts';
 import { verifyPlatformAccess } from '../../utils/near-auth.utils.ts';
+import { addContentVariation, getPostDelay } from '../../utils/spam-detection.utils.ts';
 import { BasePostController } from './base.controller.ts';
 
 /**
@@ -55,9 +47,9 @@ export class CreateController extends BasePostController {
                   ? error.message
                   : `No connected ${platform} account found for user ID ${userId}`,
                 ApiErrorCode.UNAUTHORIZED,
+                true, // Recoverable by connecting the account
                 platform,
                 userId,
-                true, // Recoverable by connecting the account
               ),
             );
             continue;
@@ -71,9 +63,9 @@ export class CreateController extends BasePostController {
               createErrorDetail(
                 `Rate limit reached for ${platform}. Please try again later.`,
                 ApiErrorCode.RATE_LIMITED,
+                true, // Recoverable by waiting
                 platform,
                 userId,
-                true, // Recoverable by waiting
               ),
             );
             continue;
@@ -122,9 +114,9 @@ export class CreateController extends BasePostController {
               createErrorDetail(
                 error.message,
                 error.code,
-                Platform.TWITTER,
-                target.userId,
                 error.recoverable,
+                'twitter' as PlatformName,
+                target.userId,
                 error.details,
               ),
             );
@@ -134,9 +126,9 @@ export class CreateController extends BasePostController {
               createErrorDetail(
                 error instanceof Error ? error.message : 'An unexpected error occurred',
                 ApiErrorCode.PLATFORM_ERROR,
+                false,
                 target.platform,
                 target.userId,
-                false,
               ),
             );
           }
@@ -173,9 +165,9 @@ export class CreateController extends BasePostController {
             createErrorDetail(
               error.message,
               ApiErrorCode.INTERNAL_ERROR,
-              undefined,
-              undefined,
               false,
+              undefined,
+              undefined,
             ),
           ]),
         );
@@ -188,9 +180,9 @@ export class CreateController extends BasePostController {
           createErrorDetail(
             'An unexpected error occurred',
             ApiErrorCode.UNKNOWN_ERROR,
-            undefined,
-            undefined,
             false,
+            undefined,
+            undefined,
           ),
         ]),
       );

@@ -1,6 +1,6 @@
 import { Env } from '../config/env.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
-import { PlatformName } from '../types/platform.types.ts';
+import { PlatformName } from '@crosspost/types';
 
 /**
  * Account Linking Utilities
