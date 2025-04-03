@@ -2,29 +2,13 @@
 
 ## Overview
 
-The Crosspost API now includes a comprehensive SDK architecture that consists of three separate packages:
+The Crosspost API includes a comprehensive SDK architecture that consists of three separate packages:
 
 1. **@crosspost/types** - Shared type definitions
 2. **@crosspost/near-simple-signing** - NEAR signature generation utility
 3. **@crosspost/sdk** - Main API client SDK
 
 This architecture provides a modular approach to interacting with the Crosspost API, allowing developers to use only the components they need.
-
-## Response Schemas
-
-We've implemented comprehensive response schemas in the backend that mirror the existing request schemas. These schemas:
-
-- Define the structure of API responses
-- Include OpenAPI metadata for documentation
-- Export TypeScript types for use in both backend and frontend
-- Support the enhanced error handling system
-
-Response schemas are organized in the `src/schemas/responses` directory and include:
-
-- `post.responses.ts` - Post-related response schemas
-- `auth.responses.ts` - Authentication-related response schemas
-- `media.responses.ts` - Media-related response schemas
-- `rate-limit.responses.ts` - Rate limit-related response schemas
 
 ## Package: @crosspost/types
 
@@ -35,12 +19,14 @@ This package contains shared TypeScript type definitions used across the Crosspo
 ```
 @crosspost/types/
 ├── src/
-│   ├── common/
-│   │   └── index.ts       # Common types (PlatformName, ApiErrorCode, etc.)
-│   ├── requests/
-│   │   └── index.ts       # Request types
-│   ├── responses/
-│   │   └── index.ts       # Response types
+│   ├── auth.ts            # Auth-related types and schemas
+│   ├── post.ts            # Post-related types and schemas
+│   ├── media.ts           # Media-related types and schemas
+│   ├── leaderboard.ts     # Leaderboard-related types and schemas
+│   ├── rate-limit.ts      # Rate limit-related types and schemas
+│   ├── common.ts          # Common types and schemas
+│   ├── response.ts        # Response types and schemas
+│   ├── errors/            # Error types and schemas
 │   └── index.ts           # Main entry point
 ├── package.json
 ├── tsconfig.json
@@ -50,6 +36,7 @@ This package contains shared TypeScript type definitions used across the Crosspo
 ### Key Features
 
 - TypeScript interfaces for all request/response types
+- Zod schemas for runtime validation
 - Shared enums and constants
 - Error type definitions
 - No runtime dependencies, pure type definitions
@@ -166,11 +153,3 @@ const response = await client.twitter.createPost({
 3. **Maintainability**: Easier to update and maintain each package independently
 4. **Type Safety**: Shared types ensure consistency between backend and frontend
 5. **Flexibility**: Users can choose which components they need
-
-## Next Steps
-
-1. Implement comprehensive testing for all packages
-2. Add more platform-specific clients (Mastodon, LinkedIn, Facebook)
-3. Create example applications demonstrating SDK usage
-4. Publish packages to npm
-5. Create detailed documentation for each package

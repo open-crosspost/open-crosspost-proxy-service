@@ -8,7 +8,6 @@
 | ------------------ | --------------------------------- | ------------------------------------------------------- |
 | Compute Platform   | Deno Deploy                       | Edge runtime for JavaScript/TypeScript applications     |
 | Primary Storage    | Deno KV                           | Built-in key-value storage for tokens and configuration |
-| Database           | Upstash Redis                     | External database for structured data storage           |
 | Secrets Management | Deno Deploy Environment Variables | Secure storage for API credentials                      |
 
 ### Development Technologies
@@ -30,11 +29,8 @@
 | twitter-api-v2                         | Twitter API communication library            |
 | @twitter-api-v2/plugin-token-refresher | Token refresh handling for Twitter API       |
 | @twitter-api-v2/plugin-rate-limit      | Rate limit tracking for Twitter API          |
-| @twitter-api-v2/plugin-cache-redis     | Redis-based caching for API requests         |
-| @upstash/redis                         | Redis client for caching                     |
 | jose                                   | JWT handling and cryptographic operations    |
 | zod                                    | Type validation and schema definition        |
-| openapi3-ts                            | OpenAPI specification utilities              |
 | bs58                                   | Base58 encoding/decoding for NEAR signatures |
 
 ## Development Setup
@@ -42,8 +38,7 @@
 ### Prerequisites
 
 1. Deno (latest version)
-2. Deno Deploy account
-3. Social media platform developer accounts with API credentials
+2. Social media platform developer accounts with API credentials
 
 ### Local Development Environment
 
@@ -82,8 +77,6 @@ The project uses the following environment variables, which should be configured
 | ALLOWED_ORIGINS          | Comma-separated list of allowed CORS origins               |
 | API_KEYS                 | JSON string of valid API keys and their associated origins |
 | ENVIRONMENT              | Current environment (development, staging, production)     |
-| UPSTASH_REDIS_REST_URL   | Upstash Redis REST URL for caching                         |
-| UPSTASH_REDIS_REST_TOKEN | Upstash Redis REST token for authentication                |
 
 ## Technical Constraints
 
@@ -102,10 +95,6 @@ The project uses the following environment variables, which should be configured
    - 100MB storage limit on free tier
    - Eventually consistent replication
    - 4KB maximum key size, 64KB maximum value size
-5. **npm Compatibility Limitations**:
-   - Some npm packages may not work perfectly
-   - Node.js built-in modules need compatibility layer
-   - Performance impact when using npm packages
 
 ### Platform API Constraints
 
@@ -129,27 +118,15 @@ The project uses the following environment variables, which should be configured
 1. **Edge Deployment**:
    - Leverage Deno Deploy's global network for low-latency responses
    - Distributed execution across Deno Deploy's edge network
-2. **Caching Strategy**:
-   - Upstash Redis for caching API responses
-   - Automatic cache invalidation based on rate limit reset times
-   - Cache immutable responses
-   - Use appropriate cache headers
-   - Implement stale-while-revalidate pattern where appropriate
-3. **Efficient Token Storage**:
+2. **Efficient Token Storage**:
    - Use Deno KV for token storage
    - Implement proper encryption for sensitive data
    - Minimize KV operations with batching where possible
-4. **Multi-level Rate Limiting**:
-   - Continue using TwitterApiRateLimitPlugin for tracking Twitter rate limits
+3. **Multi-level Rate Limiting**:
+   - Use TwitterApiRateLimitPlugin for tracking Twitter rate limits
    - Implement custom rate limiting for the API
-   - Use Upstash Redis for distributed rate limit tracking
    - Apply per-endpoint and per-user rate limits
    - Implement backoff strategies
-5. **npm Compatibility Optimization**:
-   - Use direct Deno imports where possible
-   - Minimize npm dependencies to reduce compatibility issues
-   - Cache npm dependencies for better performance
-   - Monitor performance impact of npm compatibility layer
 
 ## Security Considerations
 
@@ -163,7 +140,6 @@ The project uses the following environment variables, which should be configured
    - Secure environment configuration validation
    - Never expose tokens to clients
 2. **API Key Management**:
-   - Store API keys securely in external database (Upstash Redis)
    - Support key rotation and revocation
    - Implement key scoping for limited permissions
    - Track API key usage
@@ -183,58 +159,6 @@ The project uses the following environment variables, which should be configured
    - Leverage Deno's permissions model for enhanced security
    - Use least privilege principle for file and network access
    - Explicitly declare required permissions
-
-## Monitoring and Observability
-
-### Approach
-
-1. **Logging Strategy**:
-   - Structured logging format with Deno's logger
-   - Different log levels (error, warn, info, debug)
-   - PII redaction in logs (implemented for token access logs)
-   - Token access audit logging for security operations
-   - Deno Deploy logs integration
-   - Potential integration with external logging services
-2. **Metrics Collection**:
-   - Request counts and latencies via Deno Deploy analytics
-   - Custom metrics collection
-   - Error rates tracking
-   - Rate limit usage monitoring
-   - Token refresh operation tracking
-   - API key usage analytics
-3. **Alerting**:
-   - Integration with external alerting services
-   - High error rate alerts
-   - Rate limit approaching alerts
-   - Token refresh failure alerts
-   - Unusual traffic pattern alerts
-
-## Deployment Pipeline
-
-### Approach
-
-1. **CI/CD Integration**:
-   - GitHub Actions for automated testing and deployment
-   - Deno-specific GitHub Actions for deployment to Deno Deploy
-   - Environment-specific configurations (staging and production)
-   - Automatic deployment to staging on push to main branch
-   - Manual deployment to production with confirmation step
-   - Automated testing before deployment
-   - Automated rollbacks on failure
-2. **Testing Strategy**:
-   - Deno's built-in testing framework
-   - Unit tests for core functionality
-   - Integration tests for API endpoints
-   - Mock platform APIs for testing
-   - End-to-end tests in staging environment
-3. **Deployment Process**:
-   - Git-based deployments through GitHub Actions
-   - Automatic deployment to staging on push to main branch
-   - Manual deployment to production with confirmation step
-   - Comprehensive testing before deployment (format, lint, unit tests)
-   - Staging environment for pre-production testing
-   - Production deployment with rollback capability
-   - Environment-specific configuration through Deno Deploy
 
 ## API Design
 

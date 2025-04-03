@@ -1,10 +1,10 @@
 # Types and Schemas Organization
 
-This document outlines the organization of types and schemas in the Crosspost project after the refactoring.
+This document outlines the organization of types and schemas in the Crosspost project.
 
 ## Overview
 
-The project now uses a centralized approach for type safety and validation:
+The project uses a centralized approach for type safety and validation:
 
 1. **Zod Schemas**: Defined in the `packages/types/src` directory, these provide runtime validation of API requests and responses.
 2. **TypeScript Types**: Derived from Zod schemas using `z.infer<typeof schemaName>`, these provide static type checking during development.
@@ -13,7 +13,7 @@ This approach ensures that types and schemas are always in sync, as the TypeScri
 
 ## Types Package (`packages/types`)
 
-The types package is now the single source of truth for both Zod schemas and TypeScript types. It's organized by domain rather than by request/response:
+The types package is the single source of truth for both Zod schemas and TypeScript types. It's organized by domain rather than by request/response:
 
 ```
 packages/types/src/
@@ -24,8 +24,12 @@ packages/types/src/
 ├── leaderboard.ts          # Leaderboard schemas and derived types
 ├── rate-limit.ts           # Rate limit schemas and derived types
 ├── common.ts               # Common schemas and types
-├── error.ts                # Error schemas and types
-└── enhanced-response.ts    # Enhanced response schemas and types
+├── response.ts             # Response schemas and types
+└── errors/                 # Error schemas and types
+    ├── index.ts            # Error exports
+    ├── api-error.ts        # API error schemas and types
+    ├── base-error.ts       # Base error schemas and types
+    └── platform-error.ts   # Platform error schemas and types
 ```
 
 ### Schema and Type Definition
@@ -33,19 +37,25 @@ packages/types/src/
 Each domain file contains both the Zod schemas and the derived TypeScript types:
 
 ```typescript
-// packages/types/src/post.ts
+// packages/types/src/auth.ts
 import { z } from "zod";
+import { EnhancedResponseSchema } from "./response.ts";
+import { PlatformSchema } from "./common.ts";
 
-// Define the Zod schema
-export const postSchema = z.object({
-  id: z.string(),
-  text: z.string(),
-  createdAt: z.string(),
-  // other properties...
-});
+// Platform parameter schema
+export const PlatformParamSchema = z.object({
+  platform: z.string().describe('Social media platform'),
+}).describe('Platform parameter');
 
-// Derive the TypeScript type
-export type Post = z.infer<typeof postSchema>;
+// Auth initialization request schema
+export const AuthInitRequestSchema = z.object({
+  successUrl: z.string().url().optional().describe('URL to redirect to on successful authentication'),
+  errorUrl: z.string().url().optional().describe('URL to redirect to on authentication error'),
+}).describe('Auth initialization request');
+
+// Derive TypeScript types from Zod schemas
+export type PlatformParam = z.infer<typeof PlatformParamSchema>;
+export type AuthInitRequest = z.infer<typeof AuthInitRequestSchema>;
 ```
 
 ### Enhanced Response Types
@@ -57,7 +67,7 @@ The enhanced response types provide a consistent format for API responses:
 import { z } from "zod";
 
 // Define the schema
-export const enhancedResponseSchema = <T extends z.ZodTypeAny>(schema: T) => 
+export const EnhancedResponseSchema = <T extends z.ZodTypeAny>(schema: T) => 
   z.object({
     success: z.boolean(),
     data: schema,
@@ -75,37 +85,45 @@ export type EnhancedApiResponse<T> = {
     pagination?: { ... };
   };
 };
-
-// Helper functions
-export function createEnhancedApiResponse<T>(data: T, meta?: any): EnhancedApiResponse<T> {
-  // implementation...
-}
 ```
 
 ## API Usage
 
-The API now imports schemas and types from the types package:
+The API imports schemas and types from the types package:
 
 ### Validation Middleware
 
-The validation middleware uses the schemas from the types package:
-
 ```typescript
 // src/middleware/validation.middleware.ts
-import { postSchema } from '@crosspost/types/deno_dist/post.ts';
+import { AuthInitRequestSchema } from '@crosspost/types/deno_dist/auth.ts';
 
-// Use postSchema for validation
+// Use schema for validation
+const result = AuthInitRequestSchema.safeParse(request.body);
+if (!result.success) {
+  return c.json({ error: result.error }, 400);
+}
 ```
 
 ### Controllers
 
-Controllers use the derived types from the types package:
-
 ```typescript
-// src/controllers/post.controller.ts
-import { Post, createEnhancedApiResponse } from '@crosspost/types/deno_dist/post.ts';
+// src/controllers/auth.controller.ts
+import { AuthInitRequest, AuthUrlResponse } from '@crosspost/types/deno_dist/auth.ts';
 
-// Use Post type and helper functions
+// Use types for type safety
+const handleAuthInit = async (c: Context): Promise<Response> => {
+  const body: AuthInitRequest = await c.req.json();
+  // Implementation...
+  const response: AuthUrlResponse = {
+    success: true,
+    data: {
+      url: authUrl,
+      state,
+      platform
+    }
+  };
+  return c.json(response);
+};
 ```
 
 ## SDK Usage
@@ -113,17 +131,19 @@ import { Post, createEnhancedApiResponse } from '@crosspost/types/deno_dist/post
 The SDK uses the derived types from the types package:
 
 ```typescript
-// packages/sdk/src/post.ts
-import { Post } from '@crosspost/types';
+// packages/sdk/src/platforms/twitter-client.ts
+import { PostCreateRequest, PostResponse } from '@crosspost/types';
 
-export async function createPost(post: Post): Promise<Post> {
-  // implementation...
+export class TwitterClient {
+  async createPost(request: PostCreateRequest): Promise<PostResponse> {
+    // Implementation...
+  }
 }
 ```
 
-## Benefits of the New Approach
+## Benefits of This Approach
 
-1. **Single Source of Truth**: The types package is the single source of truth for both types and validation schemas. This eliminates the risk of divergence.
+1. **Single Source of Truth**: The types package is the single source of truth for both types and validation schemas.
 
 2. **Type Safety**: Both the API and SDK benefit from type safety, reducing the risk of runtime errors.
 
@@ -144,41 +164,3 @@ export async function createPost(post: Post): Promise<Post> {
 4. **Add descriptions to schemas**: Use `.describe()` to add descriptions to schema properties for better documentation.
 
 5. **Export both schemas and types**: Export both the Zod schemas and the derived TypeScript types.
-
-6. **Use helper functions**: Create and export helper functions for common operations.
-
-7. **Keep imports clean**: Import only what you need from the types package.
-
-## Migration Status
-
-The migration to the new approach is complete. All schemas have been moved from `src/schemas` to `packages/types/src`, and all types are now derived from these schemas. The old files have been removed, and all imports have been updated to reference the new location.
-
-## Example: Auth Domain
-
-```typescript
-// packages/types/src/auth.ts
-import { z } from "zod";
-import { platformSchema } from "./common.ts";
-
-// Auth URL request schema
-export const authInitRequestSchema = z.object({
-  redirectUri: z.string().url().describe('Redirect URI after authentication'),
-  scopes: z.array(z.string()).describe('OAuth scopes to request'),
-  successUrl: z.string().url().describe('URL to redirect to on success'),
-  errorUrl: z.string().url().describe('URL to redirect to on error'),
-});
-
-// Derive the type
-export type AuthInitRequest = z.infer<typeof authInitRequestSchema>;
-
-// Auth URL response schema
-export const authUrlResponseSchema = z.object({
-  url: z.string().describe('Authentication URL to redirect the user to'),
-  state: z.string().describe('State parameter for CSRF protection'),
-  platform: platformSchema,
-});
-
-// Derive the type
-export type AuthUrlResponse = z.infer<typeof authUrlResponseSchema>;
-
-// More schemas and types...

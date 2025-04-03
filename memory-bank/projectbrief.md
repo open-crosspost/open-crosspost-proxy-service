@@ -27,7 +27,7 @@ social media platforms in the future.
    - Encrypt sensitive data at rest and in transit
    - Implement proper rate limiting (both platform API and client-side)
    - Enforce strict CORS policies for client applications
-   - Optimize for global edge distribution
+   - Optimize for performance
 
 4. **Reliability & Monitoring**
    - Implement circuit breaking for platform APIs
@@ -40,7 +40,6 @@ social media platforms in the future.
 - **Deno**: Runtime, package manager, and development environment
 - **Deno Deploy**: Edge runtime for JavaScript/TypeScript applications
 - **Deno KV**: Built-in key-value storage for tokens and configuration
-- **Upstash Redis**: External database for structured data storage
 - **TypeScript**: Primary development language
 - **Hono**: HTTP framework for routing
 - **twitter-api-v2**: Twitter API communication
@@ -68,41 +67,3 @@ social media platforms in the future.
 7. Maintain high availability and performance
 8. Properly log and monitor all operations
 9. Support multiple social media platforms through a unified interface
-
-## Implementation Status
-
-The project has progressed from the initial implementation phase to a reorganization phase. We've
-implemented a platform-agnostic architecture that makes it easier to adapt the service for other
-social media platforms beyond Twitter. The core infrastructure, authentication system, API
-endpoints, and middleware have been implemented. The project is currently being migrated from
-Cloudflare Workers to Deno Deploy.
-
-### Completed Components
-
-- Core project structure and routing
-- Authentication flow with OAuth 2.0
-- Token storage and management
-- Post creation, retrieval, and management
-- Media upload handling
-- Like functionality
-- Error handling middleware
-- CORS handling
-- Platform abstraction interfaces
-- Twitter-specific implementations
-- NEAR wallet signature-based authentication
-
-### In Progress
-
-- Migration from Cloudflare Workers to Deno Deploy
-- Comprehensive testing
-- Rate limiting implementation
-- Monitoring and logging
-- Documentation
-
-## Next Steps
-
-1. Complete migration to Deno Deploy
-2. Implement comprehensive testing framework
-3. Enhance security features
-4. Set up monitoring and observability
-5. Prepare for deployment to production

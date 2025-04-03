@@ -1,30 +1,5 @@
 # Social Media API Proxy System Patterns
 
-## System Architecture
-
-The Social Media API Proxy follows a serverless architecture pattern using Deno Deploy as the
-compute platform. This architecture provides global distribution, high availability, and automatic
-scaling without managing traditional server infrastructure. The system is designed to be
-platform-agnostic, with Twitter as the initial implementation.
-
-```mermaid
-flowchart TD
-    Client[Client Application] <--> Worker[Deno Deploy]
-    Worker <--> Platform[Social Media Platform APIs]
-    Worker <--> KV[Deno KV]
-    Worker <--> Redis[Upstash Redis]
-    
-    subgraph "Deno Deploy Edge Network"
-        Worker
-        KV
-    end
-    
-    subgraph "External Services"
-        Platform
-        Redis
-    end
-```
-
 ## Core Design Patterns
 
 ### 1. Platform Abstraction Pattern
@@ -51,12 +26,6 @@ flowchart TD
     Post --> TwitterPost[Twitter Post]
     Media --> TwitterMedia[Twitter Media]
     Profile --> TwitterProfile[Twitter Profile]
-    
-    Auth --> LinkedInAuth[LinkedIn Auth]
-    Client --> LinkedInClient[LinkedIn Client]
-    Post --> LinkedInPost[LinkedIn Post]
-    Media --> LinkedInMedia[LinkedIn Media]
-    Profile --> LinkedInProfile[LinkedIn Profile]
 ```
 
 Each platform interface has a specific responsibility:
@@ -67,23 +36,9 @@ Each platform interface has a specific responsibility:
 - **PlatformMedia**: Manages media uploads and attachments
 - **PlatformProfile**: Manages user profile operations
 
-### 2. API Gateway Pattern
+### 2. Authentication Patterns
 
-The Worker acts as an API Gateway, providing a unified interface to various social media APIs while
-handling cross-cutting concerns like authentication, rate limiting, and logging.
-
-```mermaid
-flowchart LR
-    Client[Client] --> Gateway[API Gateway]
-    Gateway --> Auth[Authentication]
-    Gateway --> Rate[Rate Limiting]
-    Gateway --> Log[Logging]
-    Gateway --> Platform[Platform APIs]
-```
-
-### 3. Authentication Patterns
-
-#### 3.1 Platform-Specific OAuth Proxy Pattern
+#### 2.1 Platform-Specific OAuth Proxy Pattern
 
 The system implements a platform-specific OAuth Proxy pattern, handling the complete OAuth flow with
 social media platforms through platform-specific routes while providing a simplified authentication
@@ -91,7 +46,6 @@ interface to clients.
 
 ```mermaid
 sequenceDiagram
-    participant Client
     participant Client
     participant Proxy
     participant Platform
@@ -120,15 +74,7 @@ The platform-specific routes follow this pattern:
 - `/auth/{platform}/revoke` - Revoke tokens for a specific platform
 - `/auth/{platform}/status` - Check token status for a specific platform
 
-This approach:
-
-- Makes the platform explicit in the URL
-- Allows for platform-specific implementations
-- Maintains a consistent pattern
-- Simplifies routing logic
-- Makes it easier to add new platforms
-
-#### 3.2 NEAR Wallet Signature Authentication Pattern
+#### 2.2 NEAR Wallet Signature Authentication Pattern
 
 The system supports authentication using NEAR wallet signatures, allowing users to authenticate and
 authorize actions using their NEAR wallet.
@@ -161,106 +107,41 @@ This pattern enables:
 - Cross-platform actions authorized by a single signature
 - Decentralized identity management
 
-### 4. API Key Management Pattern
+### 3. Centralized Schema and Type Pattern
 
-A dedicated API Key Management system handles the creation, validation, rotation, and revocation of
-API keys for client applications.
-
-```mermaid
-flowchart TD
-    Request[API Request] --> ExtractKey[Extract API Key]
-    ExtractKey --> ValidateKey[Validate API Key]
-    ValidateKey --> CheckValid{Valid Key?}
-    CheckValid -->|No| RejectRequest[Reject Request]
-    CheckValid -->|Yes| CheckScope{Has Required Scope?}
-    CheckScope -->|No| RejectRequest
-    CheckScope -->|Yes| TrackUsage[Track Key Usage]
-    TrackUsage --> ProcessRequest[Process Request]
-    
-    Admin[Admin Request] --> KeyManagement[API Key Management]
-    KeyManagement --> CreateKey[Create Key]
-    KeyManagement --> RevokeKey[Revoke Key]
-    KeyManagement --> RotateKey[Rotate Key]
-    KeyManagement --> ListKeys[List Keys]
-```
-
-### 5. Circuit Breaker Pattern
-
-To handle potential API outages or rate limiting, the system implements a Circuit Breaker pattern to
-prevent cascading failures.
-
-```mermaid
-stateDiagram-v2
-    [*] --> Closed
-    Closed --> Open: Failure Threshold Exceeded
-    Open --> HalfOpen: Timeout Period Elapsed
-    HalfOpen --> Closed: Success
-    HalfOpen --> Open: Failure
-```
-
-### 6. KV Utility Pattern
-
-The system implements a KV Utility pattern that provides a standardized interface for interacting
-with Deno KV, with error handling, prefixed keys, and other utilities.
+The system implements a Centralized Schema and Type pattern that provides a single source of truth for both TypeScript types and Zod schemas. TypeScript types are derived from Zod schemas using `z.infer<typeof schemaName>`, ensuring consistency between validation and type checking.
 
 ```mermaid
 flowchart TD
-    Component[Application Component] --> KvStore[KvStore Utility]
-    Component --> PrefixedKvStore[PrefixedKvStore Utility]
+    Schema[Zod Schema] --> DerivedType[TypeScript Type]
+    Schema --> Validation[Request Validation]
+    Schema --> Documentation[OpenAPI Documentation]
+    DerivedType --> TypeChecking[Static Type Checking]
+    DerivedType --> SDK[SDK Type Safety]
     
-    KvStore --> DenoKv[Deno KV]
-    PrefixedKvStore --> KvStore
+    subgraph "Types Package"
+        Schema
+        DerivedType
+    end
     
-    KvStore --> ErrorHandling[Error Handling]
-    KvStore --> Transactions[Transaction Support]
+    subgraph "API Usage"
+        Validation
+        TypeChecking
+    end
     
-    PrefixedKvStore --> PrefixManagement[Prefix Management]
-```
-
-The KV Utility pattern includes:
-
-- **KvStore**: Static utility class for direct KV operations
-- **PrefixedKvStore**: Instance-based utility for working with prefixed keys
-- **Error handling**: Standardized error handling for all KV operations
-- **Transaction support**: Simplified transaction handling
-
-This pattern ensures:
-
-- Consistent error handling across all KV operations
-- Simplified key management with prefixes
-- Reduced code duplication
-- Improved maintainability
-- Standardized approach to KV access
-
-### 7. Platform-Specific Token Manager Pattern
-
-A dedicated Token Manager handles secure storage, retrieval, and refresh of OAuth tokens with
-platform-specific separation.
-
-```mermaid
-flowchart TD
-    Request[API Request] --> TokenManager[Token Manager]
-    TokenManager --> ExtractPlatform[Extract Platform]
-    TokenManager --> PrefixedKvStore[PrefixedKvStore]
-    PrefixedKvStore --> PlatformKey[Platform-Specific Key]
-    PlatformKey --> Valid{Token Valid?}
-    Valid -->|Yes| UseToken[Use Token]
-    Valid -->|No| Refresh[Refresh Token]
-    Refresh --> Platform[Platform API]
-    Platform --> UpdateToken[Update Token in KV with Platform Key]
-    UpdateToken --> UseToken
+    subgraph "SDK Usage"
+        SDK
+    end
 ```
 
 This pattern ensures:
+- Single source of truth for data models
+- Consistency between validation and type checking
+- Reduced maintenance overhead
+- Improved developer experience
+- Better type safety across the codebase
 
-- Clear separation of tokens by platform
-- No cross-platform token conflicts
-- Improved security through isolation
-- Better organization of token storage
-- Support for multiple platforms per user
-- Standardized KV access through KvStore utilities
-
-### 8. Base Platform Classes Pattern
+### 4. Base Platform Classes Pattern
 
 The system implements a Base Platform Classes pattern that provides common functionality for
 platform-specific implementations.
@@ -290,410 +171,35 @@ This pattern ensures:
 - Easier implementation of new platforms
 - Improved maintainability
 
-### 9. Multi-level Rate Limit Pattern
+### 5. KV Utility Pattern
 
-A comprehensive Rate Limit Manager tracks and enforces rate limits at multiple levels: platform API
-limits, global service limits, per-API key limits, and per-user limits.
-
-```mermaid
-flowchart TD
-    Request[API Request] --> GlobalLimit[Check Global Limits]
-    GlobalLimit --> KeyLimit[Check API Key Limits]
-    KeyLimit --> UserLimit[Check User Limits]
-    UserLimit --> EndpointLimit[Check Endpoint Limits]
-    EndpointLimit --> PlatformLimit[Check Platform API Limits]
-    
-    PlatformLimit --> Allowed{Allowed?}
-    Allowed -->|Yes| CacheCheck{Cache Hit?}
-    Allowed -->|No| QueueOrReject[Queue or Reject]
-    
-    CacheCheck -->|Yes| ServeFromCache[Serve Cached Response]
-    CacheCheck -->|No| ProcessRequest[Process Request]
-    
-    ProcessRequest --> UpdateLimits[Update Rate Limit Counters]
-    ProcessRequest --> CacheResponse[Cache Response]
-    
-    ServeFromCache --> ReturnResponse[Return Response]
-    CacheResponse --> ReturnResponse
-```
-
-### 10. Cache-Aside Pattern
-
-The system implements a Cache-Aside pattern using Redis for caching API responses, reducing
-duplicate API calls and improving performance.
+The system implements a KV Utility pattern that provides a standardized interface for interacting
+with Deno KV, with error handling, prefixed keys, and other utilities.
 
 ```mermaid
 flowchart TD
-    Request[API Request] --> CheckCache[Check Cache]
-    CheckCache --> CacheHit{Cache Hit?}
+    Component[Application Component] --> KvStore[KvStore Utility]
+    Component --> PrefixedKvStore[PrefixedKvStore Utility]
     
-    CacheHit -->|Yes| ServeCache[Serve from Cache]
-    CacheHit -->|No| CallAPI[Call Platform API]
+    KvStore --> DenoKv[Deno KV]
+    PrefixedKvStore --> KvStore
     
-    CallAPI --> StoreCache[Store in Cache]
-    StoreCache --> SetExpiry[Set Expiry Based on Rate Limit]
-    SetExpiry --> ServeResponse[Serve API Response]
+    KvStore --> ErrorHandling[Error Handling]
+    KvStore --> Transactions[Transaction Support]
     
-    ServeCache --> ReturnResponse[Return Response]
-    ServeResponse --> ReturnResponse
+    PrefixedKvStore --> PrefixManagement[Prefix Management]
 ```
 
-### 11. Centralized Schema and Type Pattern
+The KV Utility pattern includes:
 
-The system implements a Centralized Schema and Type pattern that provides a single source of truth for both TypeScript types and Zod schemas. TypeScript types are derived from Zod schemas using `z.infer<typeof schemaName>`, ensuring consistency between validation and type checking.
-
-```mermaid
-flowchart TD
-    Schema[Zod Schema] --> DerivedType[TypeScript Type]
-    Schema --> Validation[Request Validation]
-    Schema --> Documentation[OpenAPI Documentation]
-    DerivedType --> TypeChecking[Static Type Checking]
-    DerivedType --> SDK[SDK Type Safety]
-    
-    subgraph "Types Package"
-        Schema
-        DerivedType
-    end
-    
-    subgraph "API Usage"
-        Validation
-        TypeChecking
-    end
-    
-    subgraph "SDK Usage"
-        SDK
-    end
-    
-    subgraph "Documentation"
-        Documentation
-    end
-```
-
-This pattern ensures:
-- Single source of truth for data models
-- Consistency between validation and type checking
-- Reduced maintenance overhead
-- Improved developer experience
-- Better type safety across the codebase
-
-### 12. OpenAPI Documentation Pattern
-
-The system generates and serves OpenAPI documentation for all endpoints, providing a
-self-documenting API.
-
-```mermaid
-flowchart TD
-    CodeFirst[Code-First Approach] --> TypeDefinitions[Type Definitions]
-    TypeDefinitions --> SchemaGeneration[Schema Generation]
-    SchemaGeneration --> OpenAPISpec[OpenAPI Specification]
-    
-    OpenAPISpec --> Documentation[API Documentation]
-    OpenAPISpec --> ClientGeneration[Client SDK Generation]
-    OpenAPISpec --> Validation[Request/Response Validation]
-```
-
-## Component Relationships
-
-### Core Components
-
-```mermaid
-classDiagram
-    class KvStore {
-        <<utility>>
-        +getInstance()
-        +get(key)
-        +set(key, value, options)
-        +delete(key)
-        +list(prefix, options)
-        +withTransaction(fn)
-    }
-    
-    class PrefixedKvStore {
-        -prefix: Deno.KvKey
-        +get(subKey)
-        +set(subKey, value, options)
-        +delete(subKey)
-        +list(subPrefix, options)
-    }
-    
-    class PlatformError {
-        <<error>>
-        +type: PlatformErrorType
-        +message: string
-        +originalError?: unknown
-        +statusCode?: number
-        +tokenExpired()
-        +invalidToken()
-        +rateLimited()
-        +permissionDenied()
-        +networkError()
-        +authenticationFailed()
-        +apiError()
-        +unknown()
-    }
-    
-    class BasePlatformClient {
-        <<abstract>>
-        #env: Env
-        +initialize()
-        +getClientForUser()
-        +getAuthUrl()
-        +exchangeCodeForToken()
-        +refreshPlatformToken()
-        +revokePlatformToken()
-        #handleApiError()
-    }
-    
-    class BasePlatformAuth {
-        <<abstract>>
-        #env: Env
-        #platform: PlatformName
-        #tokenStorage: TokenStorage
-        #kvStore: PrefixedKvStore
-        +initializeAuth()
-        +getAuthState()
-        +handleCallback()
-        +refreshToken()
-        +revokeToken()
-        +getPlatformClient()
-        #handleAuthError()
-    }
-    class Router {
-        +route(request)
-    }
-    
-    class AuthController {
-        +initializeAuth(c, platform)
-        +handleCallback(c, platform)
-        +refreshToken(c, platform)
-        +revokeToken(c, platform)
-        +hasValidTokens(c, platform)
-        +listConnectedAccounts(c)
-    }
-    
-    class PostController {
-        +createPost()
-        +repost()
-        +quotePost()
-        +deletePost()
-        +likePost()
-        +unlikePost()
-        +replyToPost()
-    }
-    
-    class MediaController {
-        +uploadMedia()
-        +getMediaStatus()
-        +updateMediaMetadata()
-    }
-    
-    class RateLimitController {
-        +getRateLimitStatus()
-        +getAllRateLimits()
-    }
-    
-    class AuthService {
-        +platformAuthMap: Map<string, PlatformAuth>
-        +getPlatformAuth(platform)
-        +initializeAuth(platform, signerId, redirectUri, scopes, successUrl, errorUrl)
-        +handleCallback(platform, code, state)
-        +refreshToken(platform, userId)
-        +revokeToken(platform, userId)
-        +hasValidTokens(platform, userId)
-        +listConnectedAccounts()
-    }
-    
-    class PostService {
-        +createPost()
-        +repost()
-        +quotePost()
-        +deletePost()
-        +replyToPost()
-        +likePost()
-        +unlikePost()
-    }
-    
-    class MediaService {
-        +uploadMedia()
-        +getMediaStatus()
-        +updateMediaMetadata()
-    }
-    
-    class RateLimitService {
-        +getRateLimitStatus()
-        +getAllRateLimits()
-        +checkRateLimit()
-        +updateRateLimitCounters()
-    }
-    
-    class PlatformClient {
-        <<interface>>
-        +initialize()
-        +getClientForUser()
-        +getAuthUrl()
-        +exchangeCodeForToken()
-        +refreshPlatformToken()
-        +revokePlatformToken()
-    }
-    
-    class PlatformAuth {
-        <<interface>>
-        +initializeAuth()
-        +getAuthState()
-        +handleCallback()
-        +refreshToken()
-        +revokeToken()
-        +getPlatformClient()
-    }
-    
-    class PlatformPost {
-        <<interface>>
-        +createPost()
-        +repost()
-        +quotePost()
-        +deletePost()
-        +replyToPost()
-        +likePost()
-        +unlikePost()
-    }
-    
-    class PlatformMedia {
-        <<interface>>
-        +uploadMedia()
-        +getMediaStatus()
-        +updateMediaMetadata()
-    }
-    
-    class PlatformProfile {
-        <<interface>>
-        +getUserProfile()
-        +fetchUserProfile()
-        +createUserProfile()
-    }
-    
-    class TwitterClient {
-        +initialize()
-        +getClientForUser()
-        +getAuthUrl()
-        +exchangeCodeForToken()
-        +refreshPlatformToken()
-        +revokePlatformToken()
-        +getRateLimitStatus()
-        +isRateLimited()
-        +isRateLimitObsolete()
-    }
-    
-    class TwitterAuth {
-        +initializeAuth()
-        +getAuthState()
-        +handleCallback()
-        +getPlatformClient()
-    }
-    
-    class TwitterPost {
-        +createPost()
-        +repost()
-        +quotePost()
-        +deletePost()
-        +replyToPost()
-        +likePost()
-        +unlikePost()
-    }
-    
-    class TwitterMedia {
-        +uploadMedia()
-        +getMediaStatus()
-        +updateMediaMetadata()
-    }
-    
-    class TwitterProfile {
-        +getUserProfile()
-        +fetchUserProfile()
-        +createUserProfile()
-    }
-    
-    class TokenStorage {
-        -tokenStore: PrefixedKvStore
-        -encryptionKey: string
-        -logger: TokenAccessLogger
-        +getTokens(userId, platform)
-        +saveTokens(userId, tokens, platform)
-        +deleteTokens(userId, platform)
-        +hasTokens(userId, platform)
-        -encryptTokens()
-        -decryptTokens()
-    }
-    
-    class AuthMiddleware {
-        +validateApiKey()
-        +validateNearSignature()
-    }
-    
-    class CorsMiddleware {
-        +handleCors()
-        +addCorsHeaders()
-    }
-    
-    class ErrorMiddleware {
-        +handleErrors()
-    }
-    
-    class RateLimitMiddleware {
-        +checkRateLimits()
-        +updateRateLimitCounters()
-    }
-    
-    Router --> AuthController
-    Router --> PostController
-    Router --> MediaController
-    Router --> RateLimitController
-    
-    AuthController --> AuthService
-    PostController --> PostService
-    MediaController --> MediaService
-    RateLimitController --> RateLimitService
-    
-    AuthService --> PlatformAuth
-    PostService --> PlatformPost
-    MediaService --> PlatformMedia
-    
-    KvStore <-- PrefixedKvStore
-    
-    BasePlatformClient <|-- TwitterClient
-    BasePlatformAuth <|-- TwitterAuth
-    
-    PlatformClient <|.. BasePlatformClient
-    PlatformAuth <|.. BasePlatformAuth
-    
-    PlatformPost <|-- TwitterPost
-    PlatformMedia <|-- TwitterMedia
-    PlatformProfile <|-- TwitterProfile
-    
-    BasePlatformClient --> PlatformError
-    BasePlatformAuth --> PlatformError
-    
-    BasePlatformAuth --> TokenStorage
-    BasePlatformAuth --> PrefixedKvStore
-    
-    TokenStorage --> PrefixedKvStore
-    
-    TwitterAuth --> TwitterClient
-    TwitterPost --> TwitterClient
-    TwitterMedia --> TwitterClient
-    TwitterProfile --> TwitterClient
-    
-    AuthService --> TokenStorage
-    AuthService --> PlatformProfile
-    
-    Router --> AuthMiddleware
-    Router --> CorsMiddleware
-    Router --> ErrorMiddleware
-    Router --> RateLimitMiddleware
-```
+- **KvStore**: Static utility class for direct KV operations
+- **PrefixedKvStore**: Instance-based utility for working with prefixed keys
+- **Error handling**: Standardized error handling for all KV operations
+- **Transaction support**: Simplified transaction handling
 
 ## Data Flow Patterns
 
-### NEAR Account Authorization/Unauthorization Flow
+### NEAR Account Authorization Flow
 
 ```mermaid
 flowchart TD
@@ -725,28 +231,6 @@ flowchart TD
     end
 ```
 
-### Platform Authentication Flow (Initiation)
-
-```mermaid
-flowchart TD
-    Start[POST /auth/{platform}/login Request] --> ValidateNearSig[Validate NEAR Signature]
-    ValidateNearSig --> CheckNearAuth{NEAR Account Authorized?}
-    CheckNearAuth -- Yes --> SelectPlatform[Select Platform]
-    CheckNearAuth -- No --> Return403[Return 403 Error]
-
-    SelectPlatform --> GenerateState[Generate State]
-    GenerateState --> StoreState[Store State in KV (with Success/Error URLs)]
-    StoreState --> BuildURL[Build Platform-Specific Auth URL]
-    BuildURL --> ReturnURL[Return Auth URL to Client]
-
-    Callback[GET /auth/{platform}/callback] --> ValidateState[Validate State from KV]
-    ValidateState --> ExchangeCode[Exchange Code for Tokens]
-    ExchangeCode --> StoreTokens[Store Tokens in KV]
-    StoreTokens --> LinkAccount[Link Platform Account to NEAR Account]
-    LinkAccount --> RetrieveSuccessURL[Retrieve Success URL from State]
-    RetrieveSuccessURL --> RedirectClient[Redirect Client to Success URL]
-```
-
 ### Post Creation Flow
 
 ```mermaid
@@ -765,52 +249,6 @@ flowchart TD
     
     CreatePost --> HandleResponse[Handle Response]
     HandleResponse --> ReturnResponse[Return Response]
-```
-
-### Thread Creation Flow
-
-```mermaid
-flowchart TD
-    Start[API Request] --> ValidateSignature[Validate NEAR Signature]
-    ValidateSignature --> ExtractAccount[Extract NEAR Account]
-    ExtractAccount --> GetTokens[Retrieve Tokens]
-    GetTokens --> ParseBody[Parse Request Body]
-    ParseBody --> IsThread{Is Thread?}
-    
-    IsThread -->|Yes| ProcessThread[Process Thread Content]
-    IsThread -->|No| ProcessSinglePost[Process Single Post]
-    
-    ProcessThread --> ProcessMedia[Process Media for Each Post]
-    ProcessSinglePost --> ProcessMedia
-    
-    ProcessMedia --> CreateThread{Is Thread?}
-    CreateThread -->|Yes| PostThread[Post Thread]
-    CreateThread -->|No| PostSingle[Post Single Post]
-    
-    PostThread --> ReturnResponse[Return Response]
-    PostSingle --> ReturnResponse
-```
-
-### Media Upload Flow
-
-```mermaid
-flowchart TD
-    Start[Media Upload] --> ValidateMedia[Validate Media]
-    ValidateMedia --> CheckSize{Large File?}
-    
-    CheckSize -->|Yes| InitChunked[Initialize Chunked Upload]
-    CheckSize -->|No| SimpleUpload[Simple Upload]
-    
-    InitChunked --> UploadChunks[Upload Chunks]
-    UploadChunks --> FinalizeUpload[Finalize Upload]
-    
-    SimpleUpload --> CheckType{Is Video?}
-    FinalizeUpload --> CheckType
-    
-    CheckType -->|Yes| WaitProcessing[Wait for Processing]
-    CheckType -->|No| ReturnMediaId[Return Media ID]
-    
-    WaitProcessing --> ReturnMediaId
 ```
 
 ## Error Handling Patterns
@@ -835,17 +273,3 @@ flowchart TD
     RetryOrFail --> ReturnError
     ReturnDetails --> ReturnError
     LogAndAlert --> ReturnError
-```
-
-## Deployment Patterns
-
-```mermaid
-flowchart TD
-    Code[Code Changes] --> CI[CI Pipeline]
-    CI --> Lint[Lint and Format]
-    Lint --> Tests[Run Tests]
-    Tests --> Build[Build]
-    Build --> DeployStaging[Deploy to Staging]
-    DeployStaging --> StagingTests[Run Staging Tests]
-    StagingTests --> DeployProd[Deploy to Production]
-```
