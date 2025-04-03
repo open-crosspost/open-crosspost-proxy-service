@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 /**
  * NearSigner class for generating NEAR wallet signatures
  * Compatible with both Node.js and Deno environments
@@ -5,16 +6,16 @@
 
 // Use environment-specific imports
 // For Node.js (will be transformed for Deno)
-import nacl from 'tweetnacl';
-import bs58 from 'bs58';
-import * as borsh from 'borsh';
+import nacl from 'npm:tweetnacl@1.0.3';
+import bs58 from 'npm:bs58@5.0.0';
+import * as borsh from 'npm:borsh@2.0.0';
 import {
   NearAuthData,
   NearAuthPayload,
   NearSignerOptions,
   SignatureResult,
   ValidationResult,
-} from '../types';
+} from '../types.ts';
 import {
   base64ToUint8Array,
   createAuthHeader,
@@ -22,7 +23,7 @@ import {
   stringToUint8Array,
   uint8ArrayToBase64,
   validateNonce,
-} from '../utils/index';
+} from '../utils/index.ts';
 
 /**
  * Environment detection
@@ -297,7 +298,7 @@ export class NearSigner {
       // Node.js environment
       try {
         // Try to use Node.js crypto module
-        const nodeCrypto = await import('node:crypto');
+        const nodeCrypto = await import('node:node:crypto');
         const hash = nodeCrypto.createHash('sha256');
         // Use Uint8Array directly instead of Buffer
         hash.update(new Uint8Array(payload));

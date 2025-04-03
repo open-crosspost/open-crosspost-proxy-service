@@ -1,87 +1,84 @@
 # @crosspost/types
 
-Shared TypeScript type definitions for the Crosspost API ecosystem.
+Shared type definitions for the Crosspost API ecosystem.
 
 ## Overview
 
 This package contains TypeScript type definitions used across the Crosspost API ecosystem, including:
 
+- Common types (PlatformName, ApiErrorCode, etc.)
 - Request types for all API endpoints
 - Response types for all API endpoints
-- Common types shared between frontend and backend
-- Platform-specific types
-- Error types
 
 ## Installation
 
+### Node.js / npm
+
 ```bash
+# Using npm
 npm install @crosspost/types
-# or
+
+# Using yarn
 yarn add @crosspost/types
-# or
+
+# Using pnpm
 pnpm add @crosspost/types
-# or
+
+# Using bun
 bun add @crosspost/types
+```
+
+### Deno
+
+```typescript
+// Import from JSR
+import { PlatformName } from "@crosspost/types";
+
+// Or import directly from GitHub
+import { PlatformName } from "https://raw.githubusercontent.com/your-org/crosspost/main/packages/types/mod.ts";
 ```
 
 ## Usage
 
-Import the types you need in your TypeScript code:
-
 ```typescript
-import { 
-  PostRequest, 
-  PostResponse, 
-  PlatformName,
-  ErrorDetail 
-} from '@crosspost/types';
+import { PlatformName, CreatePostRequest, CreatePostResponse } from "@crosspost/types";
 
 // Use the types in your code
-const request: PostRequest = {
-  platform: 'twitter',
+const platform: PlatformName = "twitter";
+
+const request: CreatePostRequest = {
   content: {
-    text: 'Hello, world!'
+    text: "Hello, world!"
   }
 };
 
-// Type-safe response handling
-function handleResponse(response: PostResponse) {
-  if (response.success) {
-    console.log(`Post created with ID: ${response.data.id}`);
-  } else {
-    console.error('Error creating post:', response.errors);
-  }
+// Type checking for responses
+function handleResponse(response: CreatePostResponse) {
+  console.log(`Post created with ID: ${response.id}`);
 }
 ```
 
-## Type Categories
-
-### Request Types
-
-Types for API request payloads:
-
-- `AuthRequest` - Authentication requests
-- `PostRequest` - Post creation requests
-- `MediaUploadRequest` - Media upload requests
-- etc.
-
-### Response Types
-
-Types for API response payloads:
-
-- `AuthResponse` - Authentication responses
-- `PostResponse` - Post creation responses
-- `MediaUploadResponse` - Media upload responses
-- etc.
+## Available Types
 
 ### Common Types
 
-Shared types used across the API:
-
 - `PlatformName` - Supported social media platforms
-- `ErrorDetail` - Standardized error format
-- `EnhancedApiResponse` - Base response format
-- etc.
+- `ApiErrorCode` - Error codes returned by the API
+- `ApiError` - Error structure returned by the API
+
+### Request Types
+
+- Authentication requests
+- Post creation and management requests
+- Media upload requests
+- Rate limit requests
+
+### Response Types
+
+- Authentication responses
+- Post creation and management responses
+- Media upload responses
+- Rate limit responses
 
 ## License
 

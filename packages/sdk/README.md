@@ -4,44 +4,49 @@ SDK for interacting with the Crosspost API.
 
 ## Overview
 
-This SDK provides a simple way to interact with the Crosspost API, allowing you to:
+This package provides a client for interacting with the Crosspost API, allowing you to easily integrate social media posting capabilities into your applications. The SDK is designed to be flexible and easy to use, with support for multiple authentication methods and platforms.
 
-- Authenticate with social media platforms
-- Create, read, update, and delete posts
-- Upload and manage media
-- Monitor rate limits
-- Handle errors gracefully
+## Features
+
+- Unified client for all supported platforms
+- Authentication with NEAR wallet signatures or API keys
+- Platform-specific clients (Twitter, with more to come)
+- Type-safe request/response handling
+- Comprehensive error handling
 
 ## Installation
 
 ```bash
+# Using npm
 npm install @crosspost/sdk
-# or
+
+# Using yarn
 yarn add @crosspost/sdk
-# or
+
+# Using pnpm
 pnpm add @crosspost/sdk
-# or
+
+# Using bun
 bun add @crosspost/sdk
 ```
 
 ## Usage
 
-### Basic Setup
+### Initializing the SDK
 
 ```typescript
 import { CrosspostClient } from '@crosspost/sdk';
 import { NearSigner } from '@crosspost/near-simple-signing';
 
-// Initialize the NEAR signer
+// Initialize with NEAR wallet signature authentication
 const signer = new NearSigner({
   networkId: 'testnet',
   nodeUrl: 'https://rpc.testnet.near.org',
   walletUrl: 'https://wallet.testnet.near.org'
 });
 
-// Connect to NEAR wallet and get account
+// Connect to NEAR wallet (browser environment)
 await signer.connect();
-const account = await signer.getAccount();
 
 // Initialize the SDK with the NEAR signer
 const client = new CrosspostClient({
@@ -51,85 +56,57 @@ const client = new CrosspostClient({
     signer: signer
   }
 });
+
+// Or initialize with API key authentication
+const apiKeyClient = new CrosspostClient({
+  baseUrl: 'https://api.crosspost.example',
+  auth: {
+    type: 'apiKey',
+    apiKey: 'your-api-key'
+  }
+});
 ```
 
-### Creating a Post
+### Using the Twitter Client
 
 ```typescript
-import { PlatformName } from '@crosspost/types';
-
-// Create a post on Twitter
-const response = await client.twitter.createPost({
+// Create a post
+const createPostResponse = await client.twitter.createPost({
   content: {
     text: 'Hello from Crosspost SDK!'
   }
 });
 
-console.log(`Post created with ID: ${response.data.id}`);
+console.log(`Post created with ID: ${createPostResponse.id}`);
 
 // Create a post with media
-const mediaResponse = await client.twitter.uploadMedia({
-  media: {
-    data: imageBlob, // File or Blob
-    mimeType: 'image/jpeg',
-    altText: 'A beautiful sunset'
-  }
-});
-
-const postWithMediaResponse = await client.twitter.createPost({
+const createPostWithMediaResponse = await client.twitter.createPost({
   content: {
-    text: 'Check out this sunset!',
-    media: [{ id: mediaResponse.data.mediaId }]
+    text: 'Check out this image!',
+    media: [
+      {
+        type: 'image',
+        url: 'https://example.com/image.jpg'
+      }
+    ]
   }
 });
-```
 
-### Creating a Thread
-
-```typescript
-const threadResponse = await client.twitter.createPost({
-  content: [
-    {
-      text: 'This is the first post in a thread!'
-    },
-    {
-      text: 'This is the second post in the thread.'
-    },
-    {
-      text: 'And this is the final post in the thread.'
-    }
-  ]
-});
-
-console.log(`Thread created with ${threadResponse.data.length} posts`);
-```
-
-### Interacting with Posts
-
-```typescript
 // Like a post
 await client.twitter.likePost({
   postId: '1234567890'
 });
 
-// Repost/Retweet
+// Repost a post
 await client.twitter.repost({
   postId: '1234567890'
 });
 
-// Quote post
-await client.twitter.quotePost({
-  postId: '1234567890',
-  content: {
-    text: 'Check out this post!'
-  }
-});
-
 // Reply to a post
-await client.twitter.replyToPost({
+await client.twitter.reply({
   postId: '1234567890',
   content: {
-    text: 'Great post!'
+    text: 'This is a reply!'
   }
 });
 
@@ -142,6 +119,8 @@ await client.twitter.deletePost({
 ### Error Handling
 
 ```typescript
+import { CrosspostClient, ApiError } from '@crosspost/sdk';
+
 try {
   const response = await client.twitter.createPost({
     content: {
@@ -149,16 +128,39 @@ try {
     }
   });
   
-  console.log(`Post created with ID: ${response.data.id}`);
+  console.log(`Post created with ID: ${response.id}`);
 } catch (error) {
-  if (error.code === 'RATE_LIMITED') {
-    console.error('Rate limit exceeded. Try again later.');
-  } else if (error.code === 'UNAUTHORIZED') {
-    console.error('Authentication failed. Please reconnect your account.');
+  if (error instanceof ApiError) {
+    console.error(`API Error: ${error.message}`);
+    console.error(`Error Code: ${error.code}`);
+    console.error(`Status: ${error.status}`);
   } else {
-    console.error('An error occurred:', error.message);
+    console.error(`Unexpected error: ${error.message}`);
   }
 }
+```
+
+### Using with NEAR Authentication Data Directly
+
+If you already have NEAR authentication data (e.g., from a previous signature), you can use it directly:
+
+```typescript
+import { CrosspostClient } from '@crosspost/sdk';
+
+const client = new CrosspostClient({
+  baseUrl: 'https://api.crosspost.example',
+  auth: {
+    type: 'near',
+    authData: {
+      account_id: 'example.testnet',
+      public_key: 'ed25519:8hSHprDq2StXwMtNd43wDTXQYsjXcD4MJxUTvwtnmM4T',
+      signature: 'base64-encoded-signature',
+      message: 'message-that-was-signed',
+      nonce: 'nonce-used-for-signing',
+      recipient: 'crosspost.near'
+    }
+  }
+});
 ```
 
 ## API Reference
@@ -167,43 +169,32 @@ try {
 
 The main client for interacting with the Crosspost API.
 
-#### Constructor Options
+#### Constructor
 
 ```typescript
-interface CrosspostClientOptions {
-  baseUrl: string;
-  auth: {
-    type: 'near';
-    signer: NearSigner;
-  } | {
-    type: 'apiKey';
-    key: string;
-  };
-  defaultPlatform?: PlatformName;
-  timeout?: number;
-  retries?: number;
-}
+constructor(options: CrosspostClientOptions)
 ```
 
-#### Platform Clients
+Options:
+- `baseUrl`: Base URL of the Crosspost API
+- `auth`: Authentication configuration (NEAR or API key)
+- `fetch`: Custom fetch implementation (optional)
 
-- `twitter` - Twitter-specific client
-- `mastodon` - Mastodon-specific client (coming soon)
-- `linkedin` - LinkedIn-specific client (coming soon)
-- `facebook` - Facebook-specific client (coming soon)
+#### Properties
 
-Each platform client provides methods for interacting with the platform's API:
+- `twitter`: Twitter client for interacting with Twitter API
 
-- `createPost(request)` - Create a post
-- `repost(request)` - Repost/retweet a post
-- `quotePost(request)` - Quote a post
-- `replyToPost(request)` - Reply to a post
-- `likePost(request)` - Like a post
-- `unlikePost(request)` - Unlike a post
-- `deletePost(request)` - Delete a post
-- `uploadMedia(request)` - Upload media
-- `getMediaStatus(request)` - Get media status
-- `updateMediaMetadata(request)` - Update media metadata
+### Platform Clients
+
+#### Twitter Client
+
+- `createPost(params)`: Create a new post
+- `repost(params)`: Repost an existing post
+- `quotePost(params)`: Quote an existing post
+- `reply(params)`: Reply to an existing post
+- `likePost(params)`: Like a post
+- `unlikePost(params)`: Unlike a post
+- `deletePost(params)`: Delete a post
 
 ## License
 

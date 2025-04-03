@@ -9,10 +9,15 @@
     "sdk"
   ],
   "scripts": {
-    "build": "bun run build:types && bun run build:near-simple-signing && bun run build:sdk",
-    "build:types": "cd types && bun run build",
-    "build:near-simple-signing": "cd near-simple-signing && bun run build",
-    "build:sdk": "cd sdk && bun run build",
+    "build": "bun run build:node",
+    "build:node": "bun run build:node:types && bun run build:node:near-simple-signing && bun run build:node:sdk",
+    "build:node:types": "cd types && bun run build:node",
+    "build:node:near-simple-signing": "cd near-simple-signing && bun run build:node",
+    "build:node:sdk": "cd sdk && bun run build:node",
+    "build:deno": "bun run build:deno:types && bun run build:deno:near-simple-signing",
+    "build:deno:types": "cd types && bun run build:deno",
+    "build:deno:near-simple-signing": "cd near-simple-signing && bun run build:deno",
+    "build:all": "bun run build:node && bun run build:deno",
     "clean": "bun run clean:types && bun run clean:near-simple-signing && bun run clean:sdk",
     "clean:types": "cd types && bun run clean",
     "clean:near-simple-signing": "cd near-simple-signing && bun run clean",
@@ -28,7 +33,8 @@
     "typecheck": "bun run typecheck:types && bun run typecheck:near-simple-signing && bun run typecheck:sdk",
     "typecheck:types": "cd types && bun run typecheck",
     "typecheck:near-simple-signing": "cd near-simple-signing && bun run typecheck",
-    "typecheck:sdk": "cd sdk && bun run typecheck"
+    "typecheck:sdk": "cd sdk && bun run typecheck",
+    "prepublishOnly": "bun run clean && bun run build:all"
   },
   "keywords": [
     "crosspost",

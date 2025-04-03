@@ -5,8 +5,8 @@ export * as http from 'std/http';
 export * as assert from 'std/assert';
 
 // Local packages
-export * as Types from './packages/types/src/index.ts';
-export * as NearSimpleSigning from './packages/near-simple-signing/src/index.ts';
+export * as Types from './packages/types/mod.ts';
+export * as NearSimpleSigning from './packages/near-simple-signing/mod.ts';
 
 // Hono framework
 export { Hono } from 'npm:hono';
@@ -35,6 +35,3 @@ export * as jose from 'jose';
 
 // OpenAPI
 export * as openapi from 'openapi3-ts';
-
-// Base58 encoding/decoding
-export { default as base58 } from 'bs58';

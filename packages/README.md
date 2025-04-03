@@ -1,103 +1,138 @@
-# Crosspost API SDK Monorepo
+# Crosspost API SDK
 
-This monorepo contains the SDK packages for the Crosspost API.
+This monorepo contains the SDK packages for interacting with the Crosspost API.
 
 ## Packages
 
-- [@crosspost/types](./types) - Shared TypeScript type definitions
-- [@crosspost/near-simple-signing](./near-simple-signing) - NEAR wallet signature generation utility
-- [@crosspost/sdk](./sdk) - Main API client SDK
+| Package | Description | npm | JSR |
+|---------|-------------|-----|-----|
+| [@crosspost/types](./types) | Shared type definitions | ✅ | ✅ |
+| [@crosspost/near-simple-signing](./near-simple-signing) | NEAR wallet signature generation utility | ✅ | ✅ |
+| [@crosspost/sdk](./sdk) | Main API client SDK | ✅ | ❌ |
+
+## Installation
+
+### Node.js / npm
+
+```bash
+# Install all packages
+npm install @crosspost/sdk @crosspost/near-simple-signing @crosspost/types
+
+# Or install individual packages
+npm install @crosspost/sdk
+npm install @crosspost/near-simple-signing
+npm install @crosspost/types
+```
+
+### Deno
+
+```typescript
+// Import from JSR
+import { NearSigner } from "@crosspost/near-simple-signing";
+import { PlatformName } from "@crosspost/types";
+
+// Or import directly from GitHub
+import { NearSigner } from "https://raw.githubusercontent.com/your-org/crosspost/main/packages/near-simple-signing/mod.ts";
+import { PlatformName } from "https://raw.githubusercontent.com/your-org/crosspost/main/packages/types/mod.ts";
+```
+
+## Usage Example
+
+```typescript
+import { CrosspostClient } from '@crosspost/sdk';
+import { NearSigner } from '@crosspost/near-simple-signing';
+import { CreatePostRequest } from '@crosspost/types';
+
+// Initialize the NEAR signer
+const signer = new NearSigner({
+  networkId: 'testnet',
+  nodeUrl: 'https://rpc.testnet.near.org',
+  walletUrl: 'https://wallet.testnet.near.org'
+});
+
+// Connect to NEAR wallet (browser environment)
+await signer.connect();
+
+// Initialize the SDK with the NEAR signer
+const client = new CrosspostClient({
+  baseUrl: 'https://api.crosspost.example',
+  auth: {
+    type: 'near',
+    signer: signer
+  }
+});
+
+// Create a post
+const request: CreatePostRequest = {
+  content: {
+    text: 'Hello from Crosspost SDK!'
+  }
+};
+
+const response = await client.twitter.createPost(request);
+console.log(`Post created with ID: ${response.id}`);
+```
 
 ## Development
 
-### Prerequisites
-
-- [Bun](https://bun.sh/) - Fast JavaScript runtime and package manager
-
-### Setup
+### Building
 
 ```bash
-# Install dependencies for all packages
-bun install
+# Build all packages for Node.js
+npm run build:node
+
+# Build packages for Deno
+npm run build:deno
+
+# Build all packages for all environments
+npm run build:all
 ```
 
-### Build
+### Testing
 
 ```bash
-# Build all packages
-bun run build
+# Run tests for all packages
+npm test
 
-# Build a specific package
-bun run build:types
-bun run build:near-simple-signing
-bun run build:sdk
+# Run tests for a specific package
+npm run test:types
+npm run test:near-simple-signing
+npm run test:sdk
 ```
 
-### Development Mode
-
-```bash
-# Run development mode for all packages
-bun run dev
-
-# Run development mode for a specific package
-bun run dev:types
-bun run dev:near-simple-signing
-bun run dev:sdk
-```
-
-### Lint
+### Linting
 
 ```bash
 # Lint all packages
-bun run lint
+npm run lint
 
 # Lint a specific package
-bun run lint:types
-bun run lint:near-simple-signing
-bun run lint:sdk
+npm run lint:types
+npm run lint:near-simple-signing
+npm run lint:sdk
 ```
 
-### Type Check
+## Publishing
+
+### npm
 
 ```bash
-# Type check all packages
-bun run typecheck
+# Publish all packages to npm
+npm run publish
 
-# Type check a specific package
-bun run typecheck:types
-bun run typecheck:near-simple-signing
-bun run typecheck:sdk
+# Publish a specific package to npm
+cd types && npm publish
+cd near-simple-signing && npm publish
+cd sdk && npm publish
 ```
 
-### Clean
+### JSR (Deno)
 
 ```bash
-# Clean all packages
-bun run clean
-
-# Clean a specific package
-bun run clean:types
-bun run clean:near-simple-signing
-bun run clean:sdk
+# Publish to JSR
+cd types && deno publish
+cd near-simple-signing && deno publish
 ```
-
-## Package Dependencies
-
-The packages have the following dependencies:
-
-```
-@crosspost/sdk
-  ├── @crosspost/types
-  └── @crosspost/near-simple-signing
-```
-
-## Usage
-
-See the individual package READMEs for usage instructions:
-
-- [@crosspost/types README](./types/README.md)
-- [@crosspost/near-simple-signing README](./near-simple-signing/README.md)
-- [@crosspost/sdk README](./sdk/README.md)
 
 ## License
 
