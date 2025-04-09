@@ -72,10 +72,15 @@ The NEAR wallet integration provides a secure way to authenticate users:
    - Fixed type issues with `StatusCode` in controllers and middleware
    - Still need to address remaining TypeScript errors in auth middleware, usage rate limit middleware, and near-auth utils
 
-4. **Testing Framework**:
-   - Create unit tests for core components
-   - Implement integration tests for API endpoints (focusing on SDK testing).
-   - Set up end-to-end testing
+4. **Testing Framework**: 🔄 IN PROGRESS
+   - Created Twitter API mock implementation based on node-twitter-v2 docs
+   - Next steps for testing:
+     - Create unit tests for Twitter platform implementations (post, media, auth)
+     - Implement controller tests using the Twitter API mock
+     - Create integration tests for API endpoints using the mock
+     - Set up end-to-end testing with the SDK against the proxy
+     - Implement test fixtures for common test scenarios
+     - Create test helpers for authentication and request simulation
 
 5. **Documentation**:
    - Update API documentation
