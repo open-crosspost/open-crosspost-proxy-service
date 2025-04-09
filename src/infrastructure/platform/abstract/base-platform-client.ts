@@ -1,6 +1,7 @@
 import { Env } from '../../../config/env.ts';
 import { PlatformClient } from './platform-client.interface.ts';
-import { PlatformError, PlatformErrorType } from '@crosspost/types';
+import { ApiErrorCode, PlatformError, PlatformName } from '@crosspost/types';
+import type { StatusCode } from 'hono/utils/http-status'; // Import StatusCode
 
 /**
  * Base Platform Client
@@ -11,7 +12,7 @@ export abstract class BasePlatformClient implements PlatformClient {
    * Create a new base platform client
    * @param env Environment configuration
    */
-  constructor(protected env: Env) {}
+  constructor(protected env: Env, protected platform: PlatformName) {}
 
   /**
    * Initialize the client with necessary credentials
@@ -76,10 +77,11 @@ export abstract class BasePlatformClient implements PlatformClient {
   protected handleApiError(error: unknown, context = ''): never {
     console.error(`API Error ${context ? `(${context})` : ''}:`, error);
 
-    // Default error message
-    let message = 'An unknown error occurred';
-    let type = PlatformErrorType.UNKNOWN;
-    let statusCode: number | undefined = undefined;
+    // Default error message, code, status, and recoverability
+    let message = 'An unknown API error occurred';
+    let apiErrorCode: ApiErrorCode = ApiErrorCode.UNKNOWN_ERROR;
+    let recoverable = false;
+    let status: number | undefined = 500; // Default to 500 Internal Server Error
 
     // Extract error details if available
     if (error instanceof Error) {
@@ -92,9 +94,9 @@ export abstract class BasePlatformClient implements PlatformClient {
 
       // Check for status code
       if (typeof err.status === 'number') {
-        statusCode = err.status;
+        status = err.status;
       } else if (typeof err.statusCode === 'number') {
-        statusCode = err.statusCode;
+        status = err.statusCode;
       }
 
       // Check for error message
@@ -106,31 +108,53 @@ export abstract class BasePlatformClient implements PlatformClient {
         message = err.error.message;
       }
 
-      // Determine error type based on status code and error content
-      if (statusCode !== undefined && (statusCode === 401 || statusCode === 403)) {
-        // Check for token-related errors
-        if (
-          err.data?.error === 'invalid_token' ||
-          err.data?.error === 'invalid_request' ||
-          err.code === 'invalid_grant' ||
-          message.includes('token') ||
-          message.includes('unauthorized')
-        ) {
-          type = PlatformErrorType.INVALID_TOKEN;
-        } else {
-          type = PlatformErrorType.PERMISSION_DENIED;
+      // Determine ApiErrorCode based on status code and error content
+      if (status !== undefined) {
+        if (status === 401 || status === 403) {
+           // Check for specific token/auth errors vs general permission errors
+           if (
+             err.data?.error === 'invalid_token' ||
+             err.data?.error === 'invalid_request' ||
+             err.code === 'invalid_grant' ||
+             message.includes('token') ||
+             message.includes('unauthorized')
+           ) {
+             apiErrorCode = ApiErrorCode.UNAUTHORIZED;
+             // recoverable might be true if refresh is possible, but default to false here
+           } else {
+             apiErrorCode = ApiErrorCode.FORBIDDEN; // General permission denied
+             recoverable = false;
+           }
+        } else if (status === 429) {
+          apiErrorCode = ApiErrorCode.RATE_LIMITED;
+          recoverable = true;
+        } else if (status === 404) {
+          apiErrorCode = ApiErrorCode.NOT_FOUND;
+          recoverable = false;
+        } else if (status >= 500) {
+          apiErrorCode = ApiErrorCode.PLATFORM_UNAVAILABLE; // Or PLATFORM_ERROR? Let's use UNAVAILABLE for 5xx
+          recoverable = true; // Server errors might be temporary
         }
-      } else if (statusCode !== undefined && statusCode === 429) {
-        type = PlatformErrorType.RATE_LIMITED;
-      } else if (statusCode !== undefined && statusCode >= 500) {
-        type = PlatformErrorType.API_ERROR;
-      } else if (
+        // Add other status code mappings if needed (e.g., 400 for validation)
+      } else if ( // Check for network errors if status is not available
         err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT'
       ) {
-        type = PlatformErrorType.NETWORK_ERROR;
+        apiErrorCode = ApiErrorCode.NETWORK_ERROR;
+        recoverable = true;
+        status = 502; // Set a default status for network errors
       }
     }
 
-    throw new PlatformError(type, message, error, statusCode);
+    // Throw PlatformError using ApiErrorCode
+    throw new PlatformError(
+      message,
+      this.platform,
+      apiErrorCode,
+      recoverable,
+      error, // Original error
+      status as StatusCode | undefined, // Pass status, cast needed
+      undefined, // userId
+      undefined // details
+    );
   }
 }

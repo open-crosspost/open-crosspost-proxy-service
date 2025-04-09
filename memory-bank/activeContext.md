@@ -65,15 +65,22 @@ The NEAR wallet integration provides a secure way to authenticate users:
    - Improve error recovery for token operations
    - Implement token expiry management
 
-3. **Testing Framework**:
+3. **Error Handling Consolidation**: 🔄 IN PROGRESS
+   - Consolidating around `@crosspost/types` error system
+   - Removed `PlatformErrorType` enum and replaced with `ApiErrorCode`
+   - Updated `PlatformError` constructor calls to use new signature
+   - Fixed type issues with `StatusCode` in controllers and middleware
+   - Still need to address remaining TypeScript errors in auth middleware, usage rate limit middleware, and near-auth utils
+
+4. **Testing Framework**:
    - Create unit tests for core components
-   - Implement integration tests for API endpoints
+   - Implement integration tests for API endpoints (focusing on SDK testing).
    - Set up end-to-end testing
 
-4. **Documentation**:
+5. **Documentation**:
    - Update API documentation
    - Create comprehensive SDK usage examples
-   - Document error handling strategies
+   - Document the consolidated error handling strategy
 
 ## Current Challenges
 
@@ -91,3 +98,11 @@ The NEAR wallet integration provides a secure way to authenticate users:
    - Setting up comprehensive testing framework
    - Creating test fixtures and helpers
    - Mocking external dependencies
+
+4. **TypeScript Errors & Error Handling**: 🔄 IN PROGRESS
+   - Made significant progress on consolidating error systems around `@crosspost/types`
+   - Fixed several TypeScript errors related to error handling
+   - Remaining issues include:
+     - String literals being used where `ApiErrorCode` enum values are expected
+     - `ErrorType` references that need to be replaced with `ApiErrorCode`
+     - Build errors in Deno distribution files related to importing from `hono/utils/http-status`

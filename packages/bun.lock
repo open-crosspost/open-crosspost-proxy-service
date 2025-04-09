@@ -43,6 +43,7 @@
       "name": "@crosspost/types",
       "version": "0.1.0",
       "dependencies": {
+        "hono": "^4.7.6",
         "zod": "^3.24.2",
       },
       "devDependencies": {
@@ -302,6 +303,8 @@
     "graphemer": ["graphemer@1.4.0", "", {}, "sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag=="],
 
     "has-flag": ["has-flag@4.0.0", "", {}, "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ=="],
+
+    "hono": ["hono@4.7.6", "", {}, "sha512-564rVzELU+9BRqqx5k8sT2NFwGD3I3Vifdb6P7CmM6FiarOSY+fDC+6B+k9wcCb86ReoayteZP2ki0cRLN1jbw=="],
 
     "ignore": ["ignore@5.3.2", "", {}, "sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g=="],
 

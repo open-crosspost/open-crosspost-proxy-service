@@ -1,9 +1,9 @@
 import { ApiErrorCode, createEnhancedErrorResponse, createErrorDetail, createMultiStatusResponse, CreatePostRequest, createSuccessDetail, PlatformName } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
-import { TwitterError } from '../../infrastructure/platform/twitter/twitter-error.ts';
 import { verifyPlatformAccess } from '../../utils/near-auth.utils.ts';
 import { addContentVariation, getPostDelay } from '../../utils/spam-detection.utils.ts';
 import { BasePostController } from './base.controller.ts';
+import { StatusCode } from 'npm:hono/utils/http-status';
 
 /**
  * Create Post Controller
@@ -40,17 +40,19 @@ export class CreateController extends BasePostController {
             // Verify platform access
             await verifyPlatformAccess(signerId, platform, userId);
           } catch (error) {
-            // Create a platform error for unauthorized access
+            // Create a standardized error for unauthorized access
+            const accessError = error instanceof Error
+              ? error
+              : new Error(`No connected ${platform} account found for user ID ${userId}`);
+              
             errorDetails.push(
               createErrorDetail(
-                error instanceof Error
-                  ? error.message
-                  : `No connected ${platform} account found for user ID ${userId}`,
+                accessError.message,
                 ApiErrorCode.UNAUTHORIZED,
                 true, // Recoverable by connecting the account
                 platform,
-                userId,
-              ),
+                userId
+              )
             );
             continue;
           }
@@ -58,15 +60,17 @@ export class CreateController extends BasePostController {
           // Check rate limits before posting using the platform-agnostic method
           const canPost = await this.rateLimitService.canPerformAction(platform, 'post');
           if (!canPost) {
-            // Create a platform error for rate limiting
+            // Create a standardized error for rate limiting
+            const rateLimitError = new Error(`Rate limit reached for ${platform}. Please try again later.`);
+            
             errorDetails.push(
               createErrorDetail(
-                `Rate limit reached for ${platform}. Please try again later.`,
+                rateLimitError.message,
                 ApiErrorCode.RATE_LIMITED,
                 true, // Recoverable by waiting
                 platform,
-                userId,
-              ),
+                userId
+              )
             );
             continue;
           }
@@ -108,30 +112,17 @@ export class CreateController extends BasePostController {
             await new Promise((resolve) => setTimeout(resolve, getPostDelay(platform)));
           }
         } catch (error) {
-          // Handle platform-specific errors
-          if (error instanceof TwitterError) {
-            errorDetails.push(
-              createErrorDetail(
-                error.message,
-                error.code,
-                error.recoverable,
-                'twitter' as PlatformName,
-                target.userId,
-                error.details,
-              ),
-            );
-          } // Handle generic errors
-          else {
-            errorDetails.push(
-              createErrorDetail(
-                error instanceof Error ? error.message : 'An unexpected error occurred',
-                ApiErrorCode.PLATFORM_ERROR,
-                false,
-                target.platform,
-                target.userId,
-              ),
-            );
-          }
+          // Use the standardized error detail function
+          errorDetails.push(
+            createErrorDetail(
+              error instanceof Error ? error.message : 'Unknown error',
+              ApiErrorCode.PLATFORM_ERROR,
+              false, // Default to not recoverable
+              target.platform,
+              target.userId,
+              error instanceof Error ? { errorStack: error.stack } : undefined
+            )
+          );
         }
       }
 
@@ -152,39 +143,23 @@ export class CreateController extends BasePostController {
       }
 
       // Return the response with appropriate status code
-      c.status(statusCode as any);
+      c.status(statusCode as StatusCode);
       return c.json(response);
     } catch (error) {
       console.error('Error creating post:', error);
 
-      // Handle unexpected errors
-      if (error instanceof Error) {
-        c.status(500);
-        return c.json(
-          createEnhancedErrorResponse([
-            createErrorDetail(
-              error.message,
-              ApiErrorCode.INTERNAL_ERROR,
-              false,
-              undefined,
-              undefined,
-            ),
-          ]),
-        );
-      }
-
-      // Handle unknown errors
       c.status(500);
       return c.json(
         createEnhancedErrorResponse([
           createErrorDetail(
-            'An unexpected error occurred',
-            ApiErrorCode.UNKNOWN_ERROR,
-            false,
-            undefined,
-            undefined,
-          ),
-        ]),
+            error instanceof Error ? error.message : 'Unknown error',
+            ApiErrorCode.INTERNAL_ERROR,
+            false, // Internal errors are not recoverable
+            'unknown' as PlatformName,
+            'system',
+            error instanceof Error ? { errorStack: error.stack } : undefined
+          )
+        ])
       );
     }
   }

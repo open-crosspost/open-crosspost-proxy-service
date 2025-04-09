@@ -83,7 +83,7 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
     signerId: string,
     redirectUri: string,
     scopes: string[],
-    successUrl?: string,
+    successUrl: string,
     errorUrl?: string,
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
@@ -107,8 +107,8 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
         codeVerifier,
         state,
         createdAt: Date.now(),
-        successUrl: successUrl, 
-        errorUrl: errorUrl || successUrl, // Use success URL as fallback
+        successUrl: successUrl,
+        errorUrl: errorUrl || successUrl,
         signerId, // Store the NEAR account ID
       };
 

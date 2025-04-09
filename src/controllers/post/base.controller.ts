@@ -7,6 +7,7 @@ import {
   PlatformError
 } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
+import type { StatusCode } from 'hono/utils/http-status';
 import { getEnv } from '../../config/env.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
@@ -120,14 +121,14 @@ export abstract class BasePostController {
 
     // Handle platform-specific errors
     if (error instanceof PlatformError) {
-      c.status(error.status as any);
+      c.status((error.status || 500) as StatusCode); 
       c.json(
         createEnhancedErrorResponse([
           createErrorDetail(
             error.message,
             error.code,
             error.recoverable,
-            error.platform as any,
+            error.platform,
             error.userId,
             error.details,
           ),

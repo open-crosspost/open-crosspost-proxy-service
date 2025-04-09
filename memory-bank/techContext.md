@@ -32,6 +32,10 @@
 | jose                                   | JWT handling and cryptographic operations    |
 | zod                                    | Type validation and schema definition        |
 | bs58                                   | Base58 encoding/decoding for NEAR signatures |
+| @std/testing/bdd                       | BDD-style testing with describe/it functions |
+| @std/assert                            | Assertion library for testing                |
+| @std/expect                            | Jest-like expect assertions for testing      |
+| @std/testing/snapshot                  | Snapshot testing capabilities                |
 
 ## Development Setup
 

@@ -1,4 +1,4 @@
-import { PlatformError } from '@crosspost/types';
+import { ApiErrorCode, Platform, PlatformError } from '@crosspost/types'; // Import ApiErrorCode
 import { TwitterApiCachePluginRedis } from '@twitter-api-v2/plugin-cache-redis';
 import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
 import { TwitterApiAutoTokenRefresher } from '@twitter-api-v2/plugin-token-refresher';
@@ -20,7 +20,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
   private redisClient: Redis | null = null;
 
   constructor(env: Env) {
-    super(env);
+    super(env, Platform.TWITTER);
     this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY, env);
     this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
 
@@ -83,11 +83,19 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
           // Handle specific Twitter API error for invalid token
           if (
             (error as any).data?.error === 'invalid_request' ||
+            (error as any).data?.error_description?.includes('invalid') ||
             ((error as any).status === 400 && (error as any).code === 'invalid_grant')
           ) {
             await this.tokenStorage.deleteTokens(userId, 'twitter');
-            throw new Error('User authentication expired. Please reconnect your Twitter account.');
+            
+            // Throw a more descriptive error
+            throw new Error(
+              `User authentication expired (${(error as any).data?.error_description || 'invalid token'}). Please reconnect your Twitter account.`
+            );
           }
+          
+          // For other types of errors, provide more context
+          throw new Error(`Token refresh failed: ${(error as any).message || 'Unknown error'}`);
         },
       });
 
@@ -198,11 +206,15 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
       // Handle specific Twitter API error for invalid token
       if (
         error.data?.error === 'invalid_request' ||
+        error.data?.error_description?.includes('invalid') ||
         (error.status === 400 && error.code === 'invalid_grant')
       ) {
-        throw PlatformError.invalidToken(
-          'User authentication expired. Please reconnect your Twitter account.',
-          error,
+        throw new PlatformError(
+          `User authentication expired (${error.data?.error_description || 'invalid token'}). Please reconnect your Twitter account.`,
+          Platform.TWITTER,
+          ApiErrorCode.UNAUTHORIZED,
+          false, // Not recoverable
+          error, // Original error
         );
       }
 

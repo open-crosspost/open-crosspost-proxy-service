@@ -69,6 +69,14 @@ We have also completed a major refactoring of the types and schemas system, impl
 - 🔄 Optimizing thread creation
 - 🔄 Ensuring consistent response formats
 
+### Error Handling Consolidation
+- ✅ Created comprehensive error handling strategy document
+- ✅ Removed `PlatformErrorType` enum and replaced with `ApiErrorCode`
+- ✅ Updated `PlatformError` constructor calls to use new signature
+- ✅ Fixed type issues with `StatusCode` in controllers and middleware
+- 🔄 Addressing remaining TypeScript errors in auth middleware, usage rate limit middleware, and near-auth utils
+- 🔄 Resolving build errors in Deno distribution files
+
 ### Token Management Enhancements
 - 🔄 Improving token refresh mechanisms
 - 🔄 Enhancing token storage security

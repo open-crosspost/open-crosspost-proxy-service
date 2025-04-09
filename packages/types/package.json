@@ -50,6 +50,7 @@
     "out": "deno_dist"
   },
   "dependencies": {
+    "hono": "^4.7.6",
     "zod": "^3.24.2"
   }
 }

@@ -9,7 +9,8 @@ import { z } from "zod";
  * Platform schema
  */
 export const PlatformSchema = z.enum([
-  'twitter',
+  'unknown',
+  'twitter'
   // Add more platforms as they're implemented
   // 'linkedin',
   // 'facebook',
@@ -23,7 +24,8 @@ export type PlatformName = z.infer<typeof PlatformSchema>;
  * Enum for supported platforms (for backward compatibility)
  */
 export enum Platform {
-  TWITTER = 'twitter',
+  UNKNOWN = 'unknown',
+  TWITTER = 'twitter'
   // Add more platforms as they're implemented
   // LINKEDIN = 'linkedin',
   // FACEBOOK = 'facebook',

@@ -8,6 +8,7 @@ import {
   PlatformError
 } from '@crosspost/types';
 import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.ts';
+import type { StatusCode } from 'hono/utils/http-status';
 
 /**
  * Error middleware for Hono
@@ -38,7 +39,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
 
       // Handle our new ApiError
       if (err instanceof ApiError) {
-        c.status(err.status as any);
+        c.status(err.status as StatusCode);
         return c.json(
           createEnhancedErrorResponse([
             createErrorDetail(
@@ -55,7 +56,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
 
       // Handle our new PlatformError
       if (err instanceof PlatformError) {
-        c.status(err.status as any);
+        c.status((err.status || 500) as StatusCode);
         return c.json(
           createEnhancedErrorResponse([
             createErrorDetail(
@@ -75,14 +76,14 @@ export const errorMiddleware = (): MiddlewareHandler => {
         const platformErrors = err as PlatformError[];
 
         // Use the highest status code from the errors
-        const statusCode = Math.max(...platformErrors.map((e) => e.status));
+        const statusCode = Math.max(...platformErrors.map((e) => e.status!));
 
         // If all errors have the same status code, use that, otherwise use 207 Multi-Status
         const finalStatusCode = platformErrors.every((e) => e.status === statusCode)
           ? statusCode
           : 207;
 
-        c.status(finalStatusCode as any);
+        c.status(finalStatusCode as StatusCode);
 
         // Convert platform errors to error details
         const errorDetails: ErrorDetail[] = platformErrors.map((e) =>

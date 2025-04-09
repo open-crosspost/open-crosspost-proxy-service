@@ -4,7 +4,9 @@ import { PrefixedKvStore } from '../../../utils/kv-store.utils.ts';
 import { TokenStorage } from '../../storage/auth-token-storage.ts';
 import { PlatformAuth } from './platform-auth.interface.ts';
 import { PlatformClient } from './platform-client.interface.ts';
-import { PlatformError, PlatformErrorType } from '@crosspost/types';
+import { ApiErrorCode, PlatformError } from '@crosspost/types'; 
+import { enhanceErrorWithContext } from '../../../utils/error-handling.utils.ts';
+import type { StatusCode } from 'hono/utils/http-status';
 
 /**
  * Base Platform Auth
@@ -77,7 +79,12 @@ export abstract class BasePlatformAuth implements PlatformAuth {
       const tokens = await this.tokenStorage.getTokens(userId, this.platform);
 
       if (!tokens.refreshToken) {
-        throw PlatformError.invalidToken('No refresh token available');
+        throw new PlatformError(
+          'No refresh token available',
+          this.platform,
+          ApiErrorCode.UNAUTHORIZED,
+          false, // Not recoverable without re-auth
+        );
       }
 
       // Get platform client
@@ -94,23 +101,23 @@ export abstract class BasePlatformAuth implements PlatformAuth {
       } catch (error) {
         // Handle specific errors
         if (error instanceof PlatformError) {
-          if (error.type === PlatformErrorType.INVALID_TOKEN) {
-            // If the token is invalid, delete it
+          if (error.code === ApiErrorCode.UNAUTHORIZED) {
+            // If the token is invalid (UNAUTHORIZED), delete it
             await this.tokenStorage.deleteTokens(userId, this.platform);
           }
-          throw error;
+          throw enhanceErrorWithContext(error, 'refreshToken');
         }
 
         // Re-throw other errors
-        throw this.handleAuthError(error, 'refreshToken');
+        throw this.handleAuthError(error, 'refreshToken', userId); 
       }
     } catch (error) {
       if (error instanceof PlatformError) {
-        throw error;
+        throw enhanceErrorWithContext(error, 'refreshToken');
       }
 
       console.error(`Error refreshing token for ${userId}:`, error);
-      throw this.handleAuthError(error, 'refreshToken');
+      throw this.handleAuthError(error, 'refreshToken', userId);
     }
   }
 
@@ -164,19 +171,21 @@ export abstract class BasePlatformAuth implements PlatformAuth {
    * Handle common auth errors
    * @param error The error to handle
    * @param context Additional context for the error
+   * @param userId Optional user ID associated with the error
    * @throws PlatformError with appropriate type
    */
-  protected handleAuthError(error: unknown, context = ''): PlatformError {
-    console.error(`Auth Error ${context ? `(${context})` : ''}:`, error);
+  protected handleAuthError(error: unknown, context = '', userId?: string): PlatformError {
+    console.error(`Auth Error ${context ? `(${context})` : ''} for user ${userId || 'unknown'}:`, error);
 
     // If it's already a PlatformError, just return it
     if (error instanceof PlatformError) {
       return error;
     }
 
-    // Default error message
     let message = 'An authentication error occurred';
-    let type = PlatformErrorType.AUTHENTICATION_FAILED;
+    let apiErrorCode: ApiErrorCode = ApiErrorCode.UNAUTHORIZED; // Default to UNAUTHORIZED for auth errors
+    let recoverable = false; // Default recoverable to false
+    let status: number | undefined = 401; // Default status
 
     // Extract error details if available
     if (error instanceof Error) {
@@ -195,19 +204,37 @@ export abstract class BasePlatformAuth implements PlatformAuth {
         message.includes('token') ||
         message.includes('expired')
       ) {
-        type = PlatformErrorType.INVALID_TOKEN;
+        apiErrorCode = ApiErrorCode.UNAUTHORIZED;
         message = 'Authentication token is invalid or expired';
+        // Keep recoverable false, status 401
       } else if (err.status === 429 || message.includes('rate limit')) {
-        type = PlatformErrorType.RATE_LIMITED;
+        apiErrorCode = ApiErrorCode.RATE_LIMITED;
         message = 'Rate limit exceeded';
+        recoverable = true; // Rate limit errors are recoverable
+        status = 429;
       } else if (
         err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT'
       ) {
-        type = PlatformErrorType.NETWORK_ERROR;
+        apiErrorCode = ApiErrorCode.NETWORK_ERROR;
         message = 'Network error occurred while authenticating';
+        recoverable = true; // Network errors are often recoverable
+        status = 502; // Bad Gateway often indicates upstream network issues
+      }
+      // Use err.status if available and not already handled (e.g., rate limit)
+      else if (typeof err.status === 'number' && !status) {
+         status = err.status;
       }
     }
 
-    return new PlatformError(type, message, error);
+    return new PlatformError(
+      message,
+      this.platform,
+      apiErrorCode,
+      recoverable,
+      error, // Pass the original error object
+      status as StatusCode | undefined,
+      userId,
+      undefined
+    );
   }
 }

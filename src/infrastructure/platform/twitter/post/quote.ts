@@ -1,7 +1,7 @@
 import { SendTweetV2Params } from 'twitter-api-v2';
 import { TwitterError } from '../twitter-error.ts';
 import { TwitterPostBase } from './base.ts';
-import { PostContent, PostResult } from '@crosspost/types';
+import { ApiErrorCode, PostContent, PostResult } from '@crosspost/types'; // Import ApiErrorCode
 
 /**
  * Twitter Quote Post

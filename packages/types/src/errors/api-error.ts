@@ -1,3 +1,4 @@
+import type { StatusCode } from 'hono/utils/http-status';
 import { BaseError } from './base-error.ts';
 
 
@@ -49,14 +50,14 @@ export enum ApiErrorCode {
  */
 export class ApiError extends BaseError {
   public readonly code: ApiErrorCode;
-  public readonly status: number;
+  public readonly status: StatusCode;
   public readonly details?: Record<string, any>;
   public readonly recoverable: boolean;
 
   constructor(
     message: string,
     code: ApiErrorCode = ApiErrorCode.INTERNAL_ERROR,
-    status: number = 500,
+    status: StatusCode = 500,
     details?: Record<string, any>,
     recoverable: boolean = false,
   ) {

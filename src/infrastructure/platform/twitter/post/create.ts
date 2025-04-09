@@ -1,7 +1,8 @@
+import { PostContent, PostResult } from '@crosspost/types';
 import { SendTweetV2Params } from 'twitter-api-v2';
 import { TwitterError } from '../twitter-error.ts';
 import { TwitterPostBase } from './base.ts';
-import { ApiErrorCode, PostContent, PostResult } from '@crosspost/types';
+import { enhanceErrorWithContext } from '../../../../utils/error-handling.utils.ts';
 
 /**
  * Twitter Create Post
@@ -44,15 +45,8 @@ export class TwitterCreatePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error creating post:', error);
-      throw new TwitterError(
-        'Failed to create post',
-        ApiErrorCode.POST_CREATION_FAILED,
-        400,
-        error,
-        undefined,
-        true,
-        userId,
-      );
+      const twitterError = TwitterError.fromTwitterApiError(error, userId);
+      throw enhanceErrorWithContext(twitterError, 'createPost');
     }
   }
 
@@ -94,15 +88,8 @@ export class TwitterCreatePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error creating thread:', error);
-      throw new TwitterError(
-        'Failed to create thread',
-        ApiErrorCode.THREAD_CREATION_FAILED,
-        400,
-        error,
-        undefined,
-        true,
-        userId,
-      );
+      const twitterError = TwitterError.fromTwitterApiError(error, userId);
+      throw enhanceErrorWithContext(twitterError, 'createThread');
     }
   }
 }
