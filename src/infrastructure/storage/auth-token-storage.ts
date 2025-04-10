@@ -53,7 +53,13 @@ export class TokenStorage {
 
       if (!encryptedTokens) {
         await this.logger.logAccess(TokenOperation.GET, userId, false, 'Tokens not found');
-        throw new Error(`Tokens not found for user ${userId} on platform ${platform}`);
+        
+        const error = new Error(`Tokens not found for user ${userId} on platform ${platform}`);
+        error.name = "TokenNotFoundError";
+        (error as any).userId = userId;
+        (error as any).platform = platform;
+        
+        throw error;
       }
 
       // Decrypt the tokens
@@ -72,7 +78,11 @@ export class TokenStorage {
         error instanceof Error ? error.message : 'Unknown error',
       );
       console.error('Error getting tokens:', error);
-      throw new Error('Failed to retrieve tokens');
+      
+      const enhancedError = new Error('Failed to retrieve tokens');
+      enhancedError.name = "TokenRetrievalError";
+      
+      throw enhancedError;
     }
   }
 

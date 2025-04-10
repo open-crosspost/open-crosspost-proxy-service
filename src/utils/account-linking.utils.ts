@@ -1,6 +1,6 @@
 import { Env } from '../config/env.ts';
-import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
 import { PlatformName } from '@crosspost/types';
+import { TokenManager } from '../infrastructure/security/token-manager.ts';
 
 /**
  * Account Linking Utilities
@@ -23,11 +23,14 @@ export async function linkAccountToNear(
   env: Env,
 ): Promise<void> {
   try {
-    // Create NEAR auth service
-    const nearAuthService = new NearAuthService(env);
+    // Create token manager
+    const tokenManager = new TokenManager(env);
 
-    // Store the token in the NEAR auth service
-    await nearAuthService.storeToken(signerId, platform, userId, tokens);
+    // Save tokens to token storage
+    await tokenManager.saveTokens(userId, platform, tokens);
+    
+    // Link the account in NEAR auth service
+    await tokenManager.linkAccount(signerId, platform, userId);
 
     console.log(`Linked ${platform} account ${userId} to NEAR wallet ${signerId}`);
   } catch (error) {
@@ -50,11 +53,11 @@ export async function unlinkAccountFromNear(
   env: Env,
 ): Promise<void> {
   try {
-    // Create NEAR auth service
-    const nearAuthService = new NearAuthService(env);
+    // Create token manager
+    const tokenManager = new TokenManager(env);
 
-    // Delete the token from the NEAR auth service
-    await nearAuthService.deleteToken(signerId, platform, userId);
+    // Unlink the account
+    await tokenManager.unlinkAccount(signerId, platform, userId);
 
     console.log(`Unlinked ${platform} account ${userId} from NEAR wallet ${signerId}`);
   } catch (error) {
@@ -74,11 +77,11 @@ export async function getLinkedAccounts(
   env: Env,
 ): Promise<Array<{ platform: PlatformName; userId: string }>> {
   try {
-    // Create NEAR auth service
-    const nearAuthService = new NearAuthService(env);
+    // Create token manager
+    const tokenManager = new TokenManager(env);
 
     // Get all connected accounts
-    return await nearAuthService.listConnectedAccounts(signerId);
+    return await tokenManager.getLinkedAccounts(signerId);
   } catch (error) {
     console.error(`Error getting linked accounts for NEAR wallet:`, error);
     return [];

@@ -1,14 +1,14 @@
 import { Context } from '../../../deps.ts';
-import { createEnhancedApiResponse, createSuccessDetail, RepostRequest } from '@crosspost/types';
+import { createSuccessDetail, RepostRequest } from '@crosspost/types';
 import { BasePostController } from './base.controller.ts';
 
 /**
  * Repost Controller
- * Handles reposting/retweeting an existing post
+ * Handles reposting an existing post
  */
 export class RepostController extends BasePostController {
   /**
-   * Repost/retweet an existing post
+   * Repost an existing post
    * @param c The Hono context
    * @returns HTTP response
    */
@@ -18,34 +18,42 @@ export class RepostController extends BasePostController {
       const signerId = c.get('signerId') as string;
 
       // Get validated body from context
-      const body = c.get('validatedBody') as RepostRequest;
+      const request = c.get('validatedBody') as RepostRequest;
 
-      // Verify platform access
-      if (!await this.verifyAccess(signerId, body.platform, body.userId, c)) {
-        return c.res;
-      }
+      // Process all targets using the base controller method
+      const { successResults, errorDetails } = await this.processMultipleTargets(
+        signerId,
+        request.targets,
+        'repost',
+        async (target) => {
+          // Repost the post
+          const repostResult = await this.postService.repost(
+            request.platform, // Platform of the post being reposted
+            target.userId,
+            request.postId
+          );
 
-      // Check rate limits before reposting
-      if (!await this.checkRateLimits(body.platform, body.userId, 'retweet', c)) {
-        return c.res;
-      }
+          // Track the post for activity tracking
+          await this.activityTrackingService.trackPost(
+            signerId,
+            target.platform,
+            target.userId,
+            repostResult.id,
+          );
 
-      // Repost the post
-      const repostResult = await this.postService.repost(body.platform, body.userId, body.postId);
-
-      // Return the result
-      return c.json(
-        createEnhancedApiResponse(
-          createSuccessDetail(
-            body.platform,
-            body.userId,
+          // Return success detail
+          return createSuccessDetail(
+            target.platform,
+            target.userId,
             {
               postId: repostResult.id,
               success: repostResult.success,
             },
-          ),
-        ),
+          );
+        }
       );
+
+      return this.createMultiStatusResponse(c, successResults, errorDetails);
     } catch (error) {
       this.handleError(error, c);
       return c.res;

@@ -1,13 +1,13 @@
 import { Env } from '../../../config/env.ts';
 import { PlatformName } from '@crosspost/types';
 import { PrefixedKvStore } from '../../../utils/kv-store.utils.ts';
+import { AuthToken } from '../../storage/auth-token-storage.ts';
 
 /**
  * NEAR Authentication Service
  * Handles NEAR authentication validation
  */
 export class NearAuthService {
-  private readonly ED25519_PREFIX = 'ed25519:';
   private kvStore: PrefixedKvStore;
 
   constructor(private env: Env) {
@@ -47,7 +47,7 @@ export class NearAuthService {
    * @param userId User ID on the platform
    * @returns Token or null if not found
    */
-  async getToken(signerId: string, platform: PlatformName, userId: string): Promise<any | null> {
+  async getToken(signerId: string, platform: PlatformName, userId: string): Promise<AuthToken | null> {
     try {
       const key = ['token', signerId, platform, userId];
       return await this.kvStore.get(key);

@@ -5,23 +5,24 @@ import { TwitterApiAutoTokenRefresher } from '@twitter-api-v2/plugin-token-refre
 import { Redis } from '@upstash/redis';
 import { ITwitterApiClientPlugin, TwitterApi } from 'twitter-api-v2';
 import { Env } from '../../../config/env.ts';
-import { AuthToken, TokenStorage, TokenType } from '../../storage/auth-token-storage.ts';
+import { AuthToken, TokenType } from '../../storage/auth-token-storage.ts';
 import { BasePlatformClient } from '../abstract/base-platform-client.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
+import { TokenManager } from './../../security/token-manager.ts';
 
 /**
  * Twitter Client
  * Implements the PlatformClient interface for Twitter
  */
 export class TwitterClient extends BasePlatformClient implements PlatformClient {
-  private tokenStorage: TokenStorage;
+  private tokenManager: TokenManager;
   private rateLimitPlugin: TwitterApiRateLimitPlugin;
   private redisPlugin: TwitterApiCachePluginRedis | null = null;
   private redisClient: Redis | null = null;
 
   constructor(env: Env) {
     super(env, Platform.TWITTER);
-    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY, env);
+    this.tokenManager = new TokenManager(env);
     this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
 
     // Initialize Redis client if Upstash Redis credentials are available
@@ -50,32 +51,33 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
   /**
    * Get a Twitter client for a specific user
    * @param userId The user ID to get a client for
+   * @param tokens The tokens to use for authentication
    * @returns A Twitter client instance
    */
   async getClientForUser(userId: string): Promise<TwitterApi> {
     try {
       // Get the tokens from the token store
-      const tokens = await this.tokenStorage.getTokens(userId, 'twitter');
+      const token = await this.tokenManager.getTokens(userId, Platform.TWITTER);
 
       // Create the auto refresher plugin for OAuth 2.0
       const autoRefresherPlugin = new TwitterApiAutoTokenRefresher({
-        refreshToken: tokens.refreshToken || '',
+        refreshToken: token.refreshToken || '',
         refreshCredentials: {
           clientId: this.env.TWITTER_CLIENT_ID,
           clientSecret: this.env.TWITTER_CLIENT_SECRET,
         },
         onTokenUpdate: async (token) => {
           // Create new tokens object
-          const newTokens: AuthToken = {
+          const newToken: AuthToken = {
             accessToken: token.accessToken,
-            refreshToken: token.refreshToken || tokens.refreshToken, // Use old refresh token if new one isn't provided
+            refreshToken: token.refreshToken || token.refreshToken, // Use old refresh token if new one isn't provided
             expiresAt: Date.now() + 7200 * 1000, // Twitter tokens typically expire in 2 hours
-            scope: tokens.scope,
+            scope: token.scope,
             tokenType: TokenType.OAUTH2,
           };
 
           // Save the new tokens
-          await this.tokenStorage.saveTokens(userId, newTokens, 'twitter');
+          await this.tokenManager.saveTokens(userId, Platform.TWITTER, newToken);
         },
         onTokenRefreshError: async (error) => {
           console.error('Token refresh error:', error);
@@ -86,14 +88,14 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
             (error as any).data?.error_description?.includes('invalid') ||
             ((error as any).status === 400 && (error as any).code === 'invalid_grant')
           ) {
-            await this.tokenStorage.deleteTokens(userId, 'twitter');
-            
+            await this.tokenManager.deleteTokens(userId, Platform.TWITTER);
+
             // Throw a more descriptive error
             throw new Error(
               `User authentication expired (${(error as any).data?.error_description || 'invalid token'}). Please reconnect your Twitter account.`
             );
           }
-          
+
           // For other types of errors, provide more context
           throw new Error(`Token refresh failed: ${(error as any).message || 'Unknown error'}`);
         },
@@ -108,7 +110,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
       }
 
       // Create a Twitter client with the access token and plugins
-      return new TwitterApi(tokens.accessToken, { plugins });
+      return new TwitterApi(token.accessToken, { plugins });
     } catch (error) {
       console.error('Error getting Twitter client:', error);
       throw error;
@@ -164,7 +166,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
     const { data: user } = await loggedClient.v2.me();
 
     // Create tokens object
-    const tokens: AuthToken = {
+    const token: AuthToken = {
       accessToken,
       refreshToken,
       expiresAt: Date.now() + expiresIn * 1000,
@@ -173,9 +175,9 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
     };
 
     // Save the tokens
-    await this.tokenStorage.saveTokens(user.id, tokens, 'twitter');
+    await this.tokenManager.saveTokens(user.id, Platform.TWITTER, token);
 
-    return tokens;
+    return token;
   }
 
   /**

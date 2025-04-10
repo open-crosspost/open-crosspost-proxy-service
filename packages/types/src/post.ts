@@ -57,9 +57,6 @@ export const PostSchema = z.object({
 export const PostContentSchema = z.object({
   text: z.string().optional().describe('Text content for the post'),
   media: z.array(MediaContentSchema).optional().describe('Media attachments for the post'),
-  platform: PlatformSchema.optional().describe('The platform to post to'),
-  userId: z.string().optional().describe('User ID on the platform'),
-  postId: z.string().optional().describe('ID of the post (for replies, quotes, etc.)'),
 }).describe('Post content');
 
 /**
@@ -108,18 +105,18 @@ export const PostSuccessDetailSchema = z.object({
  */
 
 /**
- * Post target schema
+ * Target schema - common for all operations
  */
-export const PostTargetSchema = z.object({
+export const TargetSchema = z.object({
   platform: PlatformSchema.describe('The platform to post to (e.g., "twitter")'),
   userId: z.string().describe('User ID on the platform'),
-}).describe('Post target');
+}).describe('Target for posting operations');
 
 /**
  * Create post request schema
  */
 export const CreatePostRequestSchema = z.object({
-  targets: z.array(PostTargetSchema).describe('Array of targets to post to (can be a single target)'),
+  targets: z.array(TargetSchema).describe('Array of targets to post to (can be a single target)'),
   content: z.array(PostContentSchema).describe('The content of the post, always an array of PostContent objects, even for a single post'),
 }).describe('Create post request');
 
@@ -127,8 +124,8 @@ export const CreatePostRequestSchema = z.object({
  * Repost request schema
  */
 export const RepostRequestSchema = z.object({
-  platform: PlatformSchema,
-  userId: z.string().describe('User ID on the platform'),
+  targets: z.array(TargetSchema).describe('Array of targets to post to'),
+  platform: PlatformSchema.describe('Platform of the post being reposted'),
   postId: z.string().describe('ID of the post to repost'),
 }).describe('Repost request');
 
@@ -136,8 +133,8 @@ export const RepostRequestSchema = z.object({
  * Quote post request schema
  */
 export const QuotePostRequestSchema = z.object({
-  platform: PlatformSchema,
-  userId: z.string().describe('User ID on the platform'),
+  targets: z.array(TargetSchema).describe('Array of targets to post to (must be on the same platform as the post being quoted)'),
+  platform: PlatformSchema.describe('Platform of the post being quoted'),
   postId: z.string().describe('ID of the post to quote'),
   content: z.array(PostContentSchema).describe('Content for the quote post(s), always an array, even for a single post'),
 }).describe('Quote post request');
@@ -146,27 +143,35 @@ export const QuotePostRequestSchema = z.object({
  * Reply to post request schema
  */
 export const ReplyToPostRequestSchema = z.object({
-  platform: PlatformSchema,
-  userId: z.string().describe('User ID on the platform'),
+  targets: z.array(TargetSchema).describe('Array of targets to post to (must be on the same platform as the post being replied to)'),
+  platform: PlatformSchema.describe('Platform of the post being replied to'),
   postId: z.string().describe('ID of the post to reply to'),
   content: z.array(PostContentSchema).describe('Content for the reply post(s), always an array, even for a single post'),
 }).describe('Reply to post request');
 
 /**
+ * Post to delete schema
+ */
+export const PostToDeleteSchema = z.object({
+  platform: PlatformSchema.describe('Platform of the post to delete'),
+  userId: z.string().describe('User ID on the platform'),
+  postId: z.string().describe('ID of the post to delete'),
+}).describe('Post to delete');
+
+/**
  * Delete post request schema
  */
 export const DeletePostRequestSchema = z.object({
-  platform: PlatformSchema,
-  userId: z.string().describe('User ID on the platform'),
-  postId: z.string().describe('ID of the post to delete'),
+  targets: z.array(TargetSchema).describe('Array of targets to delete posts'),
+  posts: z.array(PostToDeleteSchema).describe('Array of posts to delete'),
 }).describe('Delete post request');
 
 /**
  * Like post request schema
  */
 export const LikePostRequestSchema = z.object({
-  platform: PlatformSchema,
-  userId: z.string().describe('User ID on the platform'),
+  targets: z.array(TargetSchema).describe('Array of targets to like the post (must be on the same platform as the post being liked)'),
+  platform: PlatformSchema.describe('Platform of the post being liked'),
   postId: z.string().describe('ID of the post to like'),
 }).describe('Like post request');
 
@@ -174,8 +179,8 @@ export const LikePostRequestSchema = z.object({
  * Unlike post request schema
  */
 export const UnlikePostRequestSchema = z.object({
-  platform: PlatformSchema,
-  userId: z.string().describe('User ID on the platform'),
+  targets: z.array(TargetSchema).describe('Array of targets to unlike the post (must be on the same platform as the post being unliked)'),
+  platform: PlatformSchema.describe('Platform of the post being unliked'),
   postId: z.string().describe('ID of the post to unlike'),
 }).describe('Unlike post request');
 
@@ -266,7 +271,8 @@ export type PostResult = z.infer<typeof PostResultSchema>;
 export type DeleteResult = z.infer<typeof DeleteResultSchema>;
 export type LikeResult = z.infer<typeof LikeResultSchema>;
 export type PostSuccessDetail = z.infer<typeof PostSuccessDetailSchema>;
-export type PostTarget = z.infer<typeof PostTargetSchema>;
+export type Target = z.infer<typeof TargetSchema>;
+export type PostToDelete = z.infer<typeof PostToDeleteSchema>;
 
 // Request types
 export type CreatePostRequest = z.infer<typeof CreatePostRequestSchema>;

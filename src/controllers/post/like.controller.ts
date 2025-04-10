@@ -1,4 +1,4 @@
-import { LikePostRequest, createEnhancedApiResponse, createSuccessDetail } from '@crosspost/types';
+import { LikePostRequest, createSuccessDetail } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { BasePostController } from './base.controller.ts';
 
@@ -18,34 +18,34 @@ export class LikeController extends BasePostController {
       const signerId = c.get('signerId') as string;
 
       // Get validated body from context
-      const body = c.get('validatedBody') as LikePostRequest;
+      const request = c.get('validatedBody') as LikePostRequest;
 
-      // Verify platform access
-      if (!await this.verifyAccess(signerId, body.platform, body.userId, c)) {
-        return c.res;
-      }
+      // Process all targets using the base controller method
+      const { successResults, errorDetails } = await this.processMultipleTargets(
+        signerId,
+        request.targets,
+        'like',
+        async (target) => {
+          // Like the post
+          const likeResult = await this.postService.likePost(
+            request.platform, // Platform of the post being liked
+            target.userId,
+            request.postId
+          );
 
-      // Check rate limits before liking
-      if (!await this.checkRateLimits(body.platform, body.userId, 'like', c)) {
-        return c.res;
-      }
-
-      // Like the post
-      const likeResult = await this.postService.likePost(body.platform, body.userId, body.postId);
-
-      // Return the result
-      return c.json(
-        createEnhancedApiResponse(
-          createSuccessDetail(
-            body.platform,
-            body.userId,
+          // Return success detail
+          return createSuccessDetail(
+            target.platform,
+            target.userId,
             {
-              postId: body.postId,
+              postId: request.postId,
               success: likeResult.success,
             },
-          ),
-        ),
+          );
+        }
       );
+
+      return this.createMultiStatusResponse(c, successResults, errorDetails);
     } catch (error) {
       this.handleError(error, c);
       return c.res;

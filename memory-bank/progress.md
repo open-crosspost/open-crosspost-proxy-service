@@ -78,18 +78,35 @@ We have also completed a major refactoring of the types and schemas system, impl
 - 🔄 Resolving build errors in Deno distribution files
 
 ### Token Management Enhancements
-- 🔄 Improving token refresh mechanisms
-- 🔄 Enhancing token storage security
-- 🔄 Implementing better error recovery for token operations
+- ✅ Implemented NEAR-centric token management approach
+- ✅ Centralized token access through AuthService
+- ✅ Added token refresh callback mechanism in BasePlatformClient
+- ✅ Removed duplicate token storage in platform-specific implementations
+- ✅ Standardized auth state handling across the codebase
+- ✅ Improved abstraction in BasePlatformAuth for OAuth callback handling
+- 🔄 Improving error recovery for token operations
+- 🔄 Enhancing token expiry management
 
 ## What's Next
 
 ### Testing Framework
-- ⬜ Unit tests for core components
-- ⬜ Integration tests for API endpoints
-- ⬜ End-to-end testing
-- ⬜ Test fixtures and helpers
-- ⬜ Mock implementations for external dependencies
+- ✅ Defined comprehensive testing strategy
+- ✅ Created Twitter API mock implementation based on node-twitter-v2 docs
+- ✅ Created Twitter client mock implementation
+- ✅ Implemented proper mocking strategies using Deno's `@std/testing/mock` utilities
+  - ✅ Documented best practices for function mocking with `stub`
+  - ✅ Implemented proper signature matching for mocked functions
+  - ✅ Using the `using` keyword for automatic cleanup of stubs
+  - ✅ Created mock module implementations for ES modules with read-only exports
+- 🔄 Service tests (HTTP-based testing of endpoints)
+  - ✅ Post creation controller tests
+  - 🔄 Other post operation endpoints tests (in progress)
+  - ⬜ Authentication endpoints tests
+  - ⬜ Rate limiting endpoints tests
+- 🔄 SDK tests (Testing against mock service responses)
+  - ⬜ SDK authentication methods tests
+  - ⬜ SDK post operation methods tests
+  - ⬜ SDK error handling tests
 
 ### Security Enhancements
 - ⬜ Metadata separation for token storage
@@ -116,4 +133,3 @@ We have also completed a major refactoring of the types and schemas system, impl
 2. Limited storage capacity on Deno KV free tier
 3. Rate limit data is not persisted across worker restarts
 4. Input validation is inconsistent across endpoints
-5. NearAuthService still uses direct KV access instead of KvStore utilities

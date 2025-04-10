@@ -42,9 +42,14 @@ The NEAR wallet integration provides a secure way to authenticate users:
    - Ensuring consistent response formats
 
 2. **Token Management Enhancements**: 🔄 IN PROGRESS
-   - Improving token refresh mechanisms
-   - Enhancing token storage security
-   - Implementing better error recovery for token operations
+   - ✅ Implemented NEAR-centric token management approach
+   - ✅ Centralized token access through AuthService
+   - ✅ Added token refresh callback mechanism in BasePlatformClient
+   - ✅ Removed duplicate token storage in platform-specific implementations
+   - ✅ Standardized auth state handling across the codebase
+   - ✅ Improved abstraction in BasePlatformAuth for OAuth callback handling
+   - 🔄 Improving error recovery for token operations
+   - 🔄 Enhancing token expiry management
 
 3. **SDK Refinement**: ✅ COMPLETED
    - Created modular SDK architecture
@@ -73,14 +78,22 @@ The NEAR wallet integration provides a secure way to authenticate users:
    - Still need to address remaining TypeScript errors in auth middleware, usage rate limit middleware, and near-auth utils
 
 4. **Testing Framework**: 🔄 IN PROGRESS
-   - Created Twitter API mock implementation based on node-twitter-v2 docs
-   - Next steps for testing:
-     - Create unit tests for Twitter platform implementations (post, media, auth)
-     - Implement controller tests using the Twitter API mock
-     - Create integration tests for API endpoints using the mock
-     - Set up end-to-end testing with the SDK against the proxy
-     - Implement test fixtures for common test scenarios
-     - Create test helpers for authentication and request simulation
+   - Defined comprehensive testing strategy with focus on simplicity and error propagation
+   - Created and refined Twitter API mock implementation based on node-twitter-v2 docs
+   - Implemented proper mocking strategies using Deno's `@std/testing/mock` utilities:
+     - Using `stub` function to mock module functions with proper signature matching
+     - Using the `using` keyword for automatic cleanup of stubs
+     - Created mock module implementations for ES modules with read-only exports
+     - Documented best practices for mocking in the testing-strategy.md file
+   - Successfully implemented post creation controller tests with mocked dependencies
+   - Current focus:
+     - Service testing: HTTP-based tests for service endpoints using mock Twitter API
+     - SDK testing: Testing SDK against mock service responses
+     - Error propagation: Ensuring errors are properly propagated from Twitter API to SDK
+   - Next steps:
+     - Implement service tests for authentication, post operations, and rate limiting
+     - Implement SDK tests for client methods and error handling
+     - Create necessary test utilities and helpers
 
 5. **Documentation**:
    - Update API documentation

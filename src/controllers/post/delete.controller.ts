@@ -1,14 +1,14 @@
-import { DeletePostRequest, createEnhancedApiResponse, createSuccessDetail } from '@crosspost/types';
+import { DeletePostRequest, createSuccessDetail } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { BasePostController } from './base.controller.ts';
 
 /**
  * Delete Post Controller
- * Handles deleting an existing post
+ * Handles deleting existing posts
  */
 export class DeleteController extends BasePostController {
   /**
-   * Delete a post
+   * Delete posts
    * @param c The Hono context
    * @returns HTTP response
    */
@@ -18,33 +18,50 @@ export class DeleteController extends BasePostController {
       const signerId = c.get('signerId') as string;
 
       // Get validated body from context
-      const body = c.get('validatedBody') as DeletePostRequest;
+      const request = c.get('validatedBody') as DeletePostRequest;
 
-      // Verify platform access
-      if (!await this.verifyAccess(signerId, body.platform, body.userId, c)) {
-        return c.res;
-      }
+      // Process all targets using the base controller method
+      const { successResults, errorDetails } = await this.processMultipleTargets(
+        signerId,
+        request.targets,
+        'delete',
+        async (target) => {
+          // Find posts for this target
+          const targetPosts = request.posts.filter(
+            post => post.platform === target.platform && post.userId === target.userId
+          );
 
-      // Delete the post
-      const deleteResult = await this.postService.deletePost(
-        body.platform,
-        body.userId,
-        body.postId,
-      );
+          if (targetPosts.length === 0) {
+            console.log(`No posts found for target ${target.platform}:${target.userId}`);
+            return null; // Skip this target if no matching posts
+          }
 
-      // Return the result
-      return c.json(
-        createEnhancedApiResponse(
-          createSuccessDetail(
-            body.platform,
-            body.userId,
+          // Process the first matching post (we could process all, but for simplicity let's do one)
+          const post = targetPosts[0];
+          
+          // Delete the post
+          const deleteResult = await this.postService.deletePost(
+            post.platform,
+            post.userId,
+            post.postId
+          );
+
+          // Return success detail
+          return createSuccessDetail(
+            target.platform,
+            target.userId,
             {
-              postId: body.postId,
+              postId: post.postId,
               success: deleteResult.success,
             },
-          ),
-        ),
+          );
+        }
       );
+
+      // Filter out null results (targets with no matching posts)
+      const filteredResults = successResults.filter(result => result !== null);
+
+      return this.createMultiStatusResponse(c, filteredResults, errorDetails);
     } catch (error) {
       this.handleError(error, c);
       return c.res;

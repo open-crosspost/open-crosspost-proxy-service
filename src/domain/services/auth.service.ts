@@ -1,12 +1,15 @@
+import { Platform, PlatformName, UserProfile } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
 import { DEFAULT_CONFIG } from '../../config/index.ts';
-import { PlatformAuth } from '../../infrastructure/platform/abstract/platform-auth.interface.ts';
+import { PlatformAuth, AuthState } from '../../infrastructure/platform/abstract/platform-auth.interface.ts';
 import { PlatformProfile } from '../../infrastructure/platform/abstract/platform-profile.interface.ts';
 import { TwitterAuth } from '../../infrastructure/platform/twitter/twitter-auth.ts';
 import { TwitterProfile } from '../../infrastructure/platform/twitter/twitter-profile.ts';
-import { TokenStorage, AuthToken } from '../../infrastructure/storage/auth-token-storage.ts';
-import { Platform, PlatformName, UserProfile } from '@crosspost/types';
+import { TokenManager } from '../../infrastructure/security/token-manager.ts';
+import { AuthToken } from '../../infrastructure/storage/auth-token-storage.ts';
 import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
+import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
+
 
 /**
  * Auth Service
@@ -15,12 +18,14 @@ import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
 export class AuthService {
   private platformAuthMap: Map<PlatformName, PlatformAuth>;
   private platformProfileMap: Map<PlatformName, PlatformProfile>;
-  private tokenStorage: TokenStorage;
+  private tokenManager: TokenManager;
+  private authStateStore: PrefixedKvStore;
   private env: Env;
 
   constructor(env: Env) {
     this.env = env;
-    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY, env);
+    this.tokenManager = new TokenManager(env);
+    this.authStateStore = new PrefixedKvStore(['auth']);
 
     // Initialize supported platforms
     this.platformAuthMap = new Map();
@@ -78,12 +83,32 @@ export class AuthService {
     signerId: string,
     redirectUri: string,
     scopes: string[] = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
-    successUrl?: string,
+    successUrl: string,
     errorUrl?: string,
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
+      // Get platform specific auth service
       const platformAuth = this.getPlatformAuth(platform);
-      return await platformAuth.initializeAuth(signerId, redirectUri, scopes, successUrl, errorUrl);
+      const result = await platformAuth.initializeAuth(redirectUri, scopes);
+      const { state, codeVerifier } = result;
+
+      // Store the auth state in Deno KV
+      const authState: AuthState = {
+        redirectUri,
+        codeVerifier: codeVerifier || "",
+        state,
+        createdAt: Date.now(),
+        successUrl: successUrl,
+        errorUrl: errorUrl || successUrl,
+        signerId, // Store the NEAR account ID
+      };
+
+      // Store the state in KV with 1 hour expiration, this is needed for the callback
+      await this.authStateStore.set([state], authState, {
+        expireIn: 3600000, // 1 hour in milliseconds
+      });
+
+      return result;
     } catch (error) {
       console.error('Error initializing auth:', error);
       throw error;
@@ -92,17 +117,25 @@ export class AuthService {
 
   /**
    * Get the auth state data from storage
-   * @param platform The platform name (e.g., Platform.TWITTER)
    * @param state The state parameter from the callback
    * @returns The auth state data including successUrl and errorUrl
    */
   async getAuthState(
-    platform: PlatformName,
     state: string,
   ): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
     try {
-      const platformAuth = this.getPlatformAuth(platform);
-      return await platformAuth.getAuthState(state);
+      // Get the auth state directly from the authStateStore
+      const authState = await this.authStateStore.get<AuthState>([state]);
+
+      if (!authState) {
+        return null;
+      }
+
+      return {
+        successUrl: authState.successUrl,
+        errorUrl: authState.errorUrl,
+        signerId: authState.signerId,
+      };
     } catch (error) {
       console.error('Error getting auth state:', error);
       return null;
@@ -120,7 +153,7 @@ export class AuthService {
     platform: PlatformName,
     code: string,
     state: string,
-  ): Promise<{ userId: string; tokens: AuthToken; successUrl: string }> {
+  ): Promise<{ userId: string; token: AuthToken; successUrl: string }> {
     try {
       const platformAuth = this.getPlatformAuth(platform);
       return await platformAuth.handleCallback(code, state);
@@ -170,7 +203,7 @@ export class AuthService {
    */
   async hasValidTokens(platform: PlatformName, userId: string): Promise<boolean> {
     try {
-      return await this.tokenStorage.hasTokens(userId, platform);
+      return await this.tokenManager.hasTokens(userId, platform);
     } catch (error) {
       console.error('Error checking tokens:', error);
       return false;
@@ -222,6 +255,22 @@ export class AuthService {
     } catch (error) {
       console.error('Error getting user profile:', error);
       return null;
+    }
+  }
+
+  /**
+   * Check if a NEAR account has access to a platform account
+   * @param signerId NEAR account ID
+   * @param platform Platform name (e.g., Platform.TWITTER)
+   * @param userId User ID on the platform
+   * @returns True if the NEAR account has access to the platform account
+   */
+  async hasAccess(signerId: string, platform: PlatformName, userId: string): Promise<boolean> {
+    try {
+      return await this.tokenManager.hasAccess(signerId, platform, userId);
+    } catch (error) {
+      console.error('Error checking access:', error);
+      return false;
     }
   }
 }

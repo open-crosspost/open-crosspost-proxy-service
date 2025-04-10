@@ -1,9 +1,7 @@
-import { ApiErrorCode, createEnhancedErrorResponse, createErrorDetail, createMultiStatusResponse, CreatePostRequest, createSuccessDetail, PlatformName } from '@crosspost/types';
+import { CreatePostRequest, createSuccessDetail } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
-import { verifyPlatformAccess } from '../../utils/near-auth.utils.ts';
-import { addContentVariation, getPostDelay } from '../../utils/spam-detection.utils.ts';
+import { addContentVariation } from '../../utils/spam-detection.utils.ts';
 import { BasePostController } from './base.controller.ts';
-import { StatusCode } from 'npm:hono/utils/http-status';
 
 /**
  * Create Post Controller
@@ -23,144 +21,48 @@ export class CreateController extends BasePostController {
       // Get validated body from context
       const request = c.get('validatedBody') as CreatePostRequest;
 
-      // Initialize success and error arrays for multi-status response
-      const successResults: Array<ReturnType<typeof createSuccessDetail>> = [];
-      const errorDetails: Array<ReturnType<typeof createErrorDetail>> = [];
-
-      // Initialize media cache for this operation
-      this.mediaCache.clearCache();
-
-      // Process targets sequentially
-      for (let i = 0; i < request.targets.length; i++) {
-        const target = request.targets[i];
-        try {
-          const { platform, userId } = target;
-
-          try {
-            // Verify platform access
-            await verifyPlatformAccess(signerId, platform, userId);
-          } catch (error) {
-            // Create a standardized error for unauthorized access
-            const accessError = error instanceof Error
-              ? error
-              : new Error(`No connected ${platform} account found for user ID ${userId}`);
-              
-            errorDetails.push(
-              createErrorDetail(
-                accessError.message,
-                ApiErrorCode.UNAUTHORIZED,
-                true, // Recoverable by connecting the account
-                platform,
-                userId
-              )
-            );
-            continue;
-          }
-
-          // Check rate limits before posting using the platform-agnostic method
-          const canPost = await this.rateLimitService.canPerformAction(platform, 'post');
-          if (!canPost) {
-            // Create a standardized error for rate limiting
-            const rateLimitError = new Error(`Rate limit reached for ${platform}. Please try again later.`);
-            
-            errorDetails.push(
-              createErrorDetail(
-                rateLimitError.message,
-                ApiErrorCode.RATE_LIMITED,
-                true, // Recoverable by waiting
-                platform,
-                userId
-              )
-            );
-            continue;
-          }
-
+      const { successResults, errorDetails } = await this.processMultipleTargets(
+        signerId,
+        request.targets,
+        'post',
+        async (target, index) => {
           // Add content variation to avoid duplicate content detection
-          const modifiedContent = addContentVariation(request.content, i);
+          const modifiedContent = addContentVariation(request.content, index);
 
           // Create the post
           const result = await this.postService.createPost(
-            platform,
-            userId,
+            target.platform,
+            target.userId,
             modifiedContent,
-          );
-
-          // Add to success results
-          successResults.push(
-            createSuccessDetail(
-              platform,
-              userId,
-              {
-                postId: result.id,
-                postUrl: result.url || `https://twitter.com/i/web/status/${result.id}`, // Fallback URL format
-                createdAt: result.createdAt,
-                threadIds: result.threadIds,
-              },
-            ),
           );
 
           // Track the post for activity tracking
           await this.activityTrackingService.trackPost(
             signerId,
-            platform,
-            userId,
+            target.platform,
+            target.userId,
             result.id, // The post ID from the platform
           );
 
-          // Add a small delay between posts to avoid spam detection
-          if (i < request.targets.length - 1) {
-            await new Promise((resolve) => setTimeout(resolve, getPostDelay(platform)));
-          }
-        } catch (error) {
-          // Use the standardized error detail function
-          errorDetails.push(
-            createErrorDetail(
-              error instanceof Error ? error.message : 'Unknown error',
-              ApiErrorCode.PLATFORM_ERROR,
-              false, // Default to not recoverable
-              target.platform,
-              target.userId,
-              error instanceof Error ? { errorStack: error.stack } : undefined
-            )
+          // Return success detail
+          return createSuccessDetail(
+            target.platform,
+            target.userId,
+            {
+              postId: result.id,
+              postUrl: result.url,
+              createdAt: result.createdAt,
+              threadIds: result.threadIds,
+            },
           );
         }
-      }
-
-      // Clear the media cache after all posts are processed
-      this.mediaCache.clearCache();
-
-      // Create a multi-status response
-      const response = createMultiStatusResponse(successResults, errorDetails);
-
-      // Determine appropriate status code
-      let statusCode = 200;
-      if (successResults.length === 0 && errorDetails.length > 0) {
-        // Complete failure - use the first error's status code
-        statusCode = 400; // Default to 400 Bad Request
-      } else if (successResults.length > 0 && errorDetails.length > 0) {
-        // Partial success - use 207 Multi-Status
-        statusCode = 207;
-      }
-
-      // Return the response with appropriate status code
-      c.status(statusCode as StatusCode);
-      return c.json(response);
-    } catch (error) {
-      console.error('Error creating post:', error);
-
-      c.status(500);
-      return c.json(
-        createEnhancedErrorResponse([
-          createErrorDetail(
-            error instanceof Error ? error.message : 'Unknown error',
-            ApiErrorCode.INTERNAL_ERROR,
-            false, // Internal errors are not recoverable
-            'unknown' as PlatformName,
-            'system',
-            error instanceof Error ? { errorStack: error.stack } : undefined
-          )
-        ])
       );
+
+      // Create a multi-status response using the base controller method
+      return this.createMultiStatusResponse(c, successResults, errorDetails);
+    } catch (error) {
+      this.handleError(error, c);
+      return c.res;
     }
   }
 }

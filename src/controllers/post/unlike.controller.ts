@@ -1,4 +1,4 @@
-import { createEnhancedApiResponse, createSuccessDetail, UnlikePostRequest } from '@crosspost/types';
+import { createSuccessDetail, UnlikePostRequest } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { BasePostController } from './base.controller.ts';
 
@@ -18,38 +18,34 @@ export class UnlikeController extends BasePostController {
       const signerId = c.get('signerId') as string;
 
       // Get validated body from context
-      const body = c.get('validatedBody') as UnlikePostRequest;
+      const request = c.get('validatedBody') as UnlikePostRequest;
 
-      // Verify platform access
-      if (!await this.verifyAccess(signerId, body.platform, body.userId, c)) {
-        return c.res;
-      }
+      // Process all targets using the base controller method
+      const { successResults, errorDetails } = await this.processMultipleTargets(
+        signerId,
+        request.targets,
+        'like', // Use 'like' for rate limiting since it's the same action type
+        async (target) => {
+          // Unlike the post
+          const unlikeResult = await this.postService.unlikePost(
+            request.platform, // Platform of the post being unliked
+            target.userId,
+            request.postId
+          );
 
-      // Check rate limits before unliking
-      if (!await this.checkRateLimits(body.platform, body.userId, 'like', c)) {
-        return c.res;
-      }
-
-      // Unlike the post
-      const unlikeResult = await this.postService.unlikePost(
-        body.platform,
-        body.userId,
-        body.postId,
-      );
-
-      // Return the result
-      return c.json(
-        createEnhancedApiResponse(
-          createSuccessDetail(
-            body.platform,
-            body.userId,
+          // Return success detail
+          return createSuccessDetail(
+            target.platform,
+            target.userId,
             {
-              postId: body.postId,
+              postId: request.postId,
               success: unlikeResult.success,
             },
-          ),
-        ),
+          );
+        }
       );
+
+      return this.createMultiStatusResponse(c, successResults, errorDetails);
     } catch (error) {
       this.handleError(error, c);
       return c.res;

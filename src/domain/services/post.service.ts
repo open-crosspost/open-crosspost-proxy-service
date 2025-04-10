@@ -1,13 +1,8 @@
 import { PlatformName, Platform } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
-import {
-  DeleteResult,
-  LikeResult,
-  PlatformPost,
-  PostContent,
-  PostResult,
-} from '../../infrastructure/platform/abstract/platform-post.interface.ts';
+import { DeleteResult, LikeResult, PostContent, PostResult } from '@crosspost/types';
 import { TwitterPost } from '../../infrastructure/platform/twitter/twitter-post.ts';
+import { PlatformPost } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
 
 /**
  * Post Service

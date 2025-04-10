@@ -107,6 +107,41 @@ This pattern enables:
 - Cross-platform actions authorized by a single signature
 - Decentralized identity management
 
+#### 2.3 NEAR-Centric Token Management Pattern
+
+The system implements a NEAR-centric token management pattern where platform tokens are primarily accessed through NEAR account IDs. This centralizes token storage and access, improving security and maintainability.
+
+```mermaid
+flowchart TD
+    Client[Client] --> NearAuth[NEAR Auth]
+    NearAuth --> AuthService[Auth Service]
+    
+    AuthService --> NearAuthService[NEAR Auth Service]
+    AuthService --> PlatformAuth[Platform Auth]
+    
+    NearAuthService --> TokenStorage[Token Storage]
+    PlatformAuth --> BasePlatformAuth[Base Platform Auth]
+    
+    BasePlatformAuth --> PlatformClient[Platform Client]
+    PlatformClient --> TokenRefresh[Token Refresh Callback]
+    TokenRefresh --> BasePlatformAuth
+```
+
+Key components of this pattern:
+
+- **AuthService**: Central service that coordinates token access and management
+- **NearAuthService**: Manages the relationship between NEAR accounts and platform tokens
+- **BasePlatformAuth**: Base class that handles common auth operations for all platforms
+- **TokenRefresh Callback**: Mechanism for platform clients to notify auth services about token updates
+
+This pattern ensures:
+
+- Single source of truth for token storage
+- Clear ownership model (NEAR account owns platform tokens)
+- Consistent token refresh and management
+- Reduced duplication in token storage logic
+- Improved security through centralized access control
+
 ### 3. Centralized Schema and Type Pattern
 
 The system implements a Centralized Schema and Type pattern that provides a single source of truth for both TypeScript types and Zod schemas. TypeScript types are derived from Zod schemas using `z.infer<typeof schemaName>`, ensuring consistency between validation and type checking.

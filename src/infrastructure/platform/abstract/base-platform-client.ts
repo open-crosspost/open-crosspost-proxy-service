@@ -1,18 +1,24 @@
-import { Env } from '../../../config/env.ts';
-import { PlatformClient } from './platform-client.interface.ts';
 import { ApiErrorCode, PlatformError, PlatformName } from '@crosspost/types';
 import type { StatusCode } from 'hono/utils/http-status'; // Import StatusCode
+import { Env } from '../../../config/env.ts';
+import { AuthToken } from '../../storage/auth-token-storage.ts';
+import { PlatformClient } from './platform-client.interface.ts';
 
 /**
  * Base Platform Client
  * Base implementation of the PlatformClient interface with common functionality
  */
 export abstract class BasePlatformClient implements PlatformClient {
+
   /**
    * Create a new base platform client
    * @param env Environment configuration
+   * @param platform Platform name
    */
-  constructor(protected env: Env, protected platform: PlatformName) {}
+  constructor(
+    protected env: Env,
+    protected platform: PlatformName,
+  ) { }
 
   /**
    * Initialize the client with necessary credentials
@@ -22,9 +28,10 @@ export abstract class BasePlatformClient implements PlatformClient {
   /**
    * Get a client instance for a specific user
    * @param userId The user ID to get a client for
+   * @param token The token to use for authentication
    * @throws PlatformError if the client cannot be created
    */
-  abstract getClientForUser(userId: string): Promise<any>;
+  abstract getClientForUser(userId: string, token: AuthToken): Promise<any>;
 
   /**
    * Get the authorization URL for the OAuth flow
@@ -111,20 +118,20 @@ export abstract class BasePlatformClient implements PlatformClient {
       // Determine ApiErrorCode based on status code and error content
       if (status !== undefined) {
         if (status === 401 || status === 403) {
-           // Check for specific token/auth errors vs general permission errors
-           if (
-             err.data?.error === 'invalid_token' ||
-             err.data?.error === 'invalid_request' ||
-             err.code === 'invalid_grant' ||
-             message.includes('token') ||
-             message.includes('unauthorized')
-           ) {
-             apiErrorCode = ApiErrorCode.UNAUTHORIZED;
-             // recoverable might be true if refresh is possible, but default to false here
-           } else {
-             apiErrorCode = ApiErrorCode.FORBIDDEN; // General permission denied
-             recoverable = false;
-           }
+          // Check for specific token/auth errors vs general permission errors
+          if (
+            err.data?.error === 'invalid_token' ||
+            err.data?.error === 'invalid_request' ||
+            err.code === 'invalid_grant' ||
+            message.includes('token') ||
+            message.includes('unauthorized')
+          ) {
+            apiErrorCode = ApiErrorCode.UNAUTHORIZED;
+            // recoverable might be true if refresh is possible, but default to false here
+          } else {
+            apiErrorCode = ApiErrorCode.FORBIDDEN; // General permission denied
+            recoverable = false;
+          }
         } else if (status === 429) {
           apiErrorCode = ApiErrorCode.RATE_LIMITED;
           recoverable = true;

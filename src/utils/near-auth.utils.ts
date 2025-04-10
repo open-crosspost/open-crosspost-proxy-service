@@ -1,10 +1,10 @@
+import { ApiError, ApiErrorCode } from '@crosspost/types';
 import { Context, NearSimpleSigning } from '../../deps.ts';
 import { getEnv } from '../config/env.ts';
-import { NearAuthService } from '../infrastructure/security/near-auth/near-auth.service.ts';
-import { ApiError, PlatformName } from '@crosspost/types';
+import { TokenManager } from '../infrastructure/security/token-manager.ts';
 
 /**
- * NEAR Authentication Data
+ * NEAR UNAUTHORIZED Data
  */
 export interface NearAuthData {
   account_id: string;
@@ -17,14 +17,14 @@ export interface NearAuthData {
 }
 
 /**
- * NEAR Authentication Utilities
- * Common functions for NEAR authentication
+ * NEAR UNAUTHORIZED Utilities
+ * Common functions for NEAR UNAUTHORIZED
  */
 
 /**
- * Extract and validate NEAR authentication data from request headers
+ * Extract and validate NEAR UNAUTHORIZED data from request headers
  * @param c The Hono context
- * @returns Validated NEAR authentication data and result
+ * @returns Validated NEAR UNAUTHORIZED data and result
  */
 export async function extractAndValidateNearAuth(c: Context): Promise<{
   authData: NearAuthData;
@@ -34,7 +34,7 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
   const authHeader = c.req.header('Authorization');
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new ApiError(ErrorType.AUTHENTICATION, 'Missing or invalid Authorization header', 401);
+    throw new ApiError('Missing or invalid Authorization header', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   // Extract the token part (after 'Bearer ')
@@ -45,15 +45,15 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
   try {
     authObject = JSON.parse(token);
   } catch (error) {
-    throw new ApiError(ErrorType.VALIDATION, 'Invalid JSON in Authorization token', 400);
+    throw new ApiError('Invalid JSON in Authorization token', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   // Validate required fields
-  if (!authObject.account_id || !authObject.public_key || !authObject.signature || 
-      !authObject.message || !authObject.nonce) {
+  if (!authObject.account_id || !authObject.public_key || !authObject.signature ||
+    !authObject.message || !authObject.nonce) {
     throw new ApiError(
-      ErrorType.VALIDATION,
-      'Missing required NEAR authentication data in token',
+      'Missing required NEAR UNAUTHORIZED data in token',
+      ApiErrorCode.VALIDATION_ERROR,
       400
     );
   }
@@ -65,10 +65,10 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
     callback_url: authObject.callback_url || c.req.url, // Use current URL as callback if not provided
   };
 
-  // Create a temporary NearSigner instance for validation
+  // Create a temporary NearSigner instance for VALIDATION_ERROR
   const tempSigner = new NearSimpleSigning.NearSigner({
-    networkId: 'mainnet', // This doesn't matter for validation
-    nodeUrl: 'https://rpc.mainnet.near.org', // This doesn't matter for validation
+    networkId: 'mainnet', // This doesn't matter for VALIDATION_ERROR
+    nodeUrl: 'https://rpc.mainnet.near.org', // This doesn't matter for VALIDATION_ERROR
     defaultRecipient: 'crosspost.near'
   });
 
@@ -83,8 +83,8 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
 
   if (!result.valid) {
     throw new ApiError(
-      ErrorType.AUTHENTICATION,
-      `NEAR authentication failed: ${result.error}`,
+      `NEAR UNAUTHORIZED failed: ${result.error}`,
+      ApiErrorCode.UNAUTHORIZED,
       401,
     );
   }
@@ -92,16 +92,16 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
   // The signerId is the account_id from the auth data
   const signerId = authData.account_id;
 
-  // Initialize NEAR auth service to check authorization
+  // Initialize token manager to check authorization
   const env = getEnv();
-  const nearAuthService = new NearAuthService(env);
+  const tokenManager = new TokenManager(env);
 
   // Check if the account is authorized
-  const isAuthorized = await nearAuthService.isNearAccountAuthorized(signerId);
-  if (!isAuthorized) {
+  const authStatus = await tokenManager.getNearAuthorizationStatus(signerId);
+  if (authStatus < 0) { // -1 means not authorized
     throw new ApiError(
-      ErrorType.AUTHENTICATION,
       'NEAR account is not authorized',
+      ApiErrorCode.UNAUTHORIZED,
       401,
     );
   }
@@ -110,33 +110,4 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
     authData,
     signerId,
   };
-}
-
-/**
- * Verify that a NEAR account has a valid token for a platform and userId
- * @param signerId NEAR account ID
- * @param platform Platform name (e.g., Platform.TWITTER)
- * @param userId User ID on the platform
- * @returns The token if valid, throws an error if not
- */
-export async function verifyPlatformAccess(
-  signerId: string,
-  platform: PlatformName,
-  userId: string,
-): Promise<any> {
-  const env = getEnv();
-  const nearAuthService = new NearAuthService(env);
-
-  // Check if the NEAR account has a token for this platform and userId
-  const token = await nearAuthService.getToken(signerId, platform, userId);
-
-  if (!token) {
-    throw new ApiError(
-      ErrorType.AUTHENTICATION,
-      `No connected ${platform} account found for user ID ${userId}`,
-      401,
-    );
-  }
-
-  return token;
 }

@@ -1,7 +1,7 @@
-import { AuthToken, TokenType } from '../../../src/infrastructure/storage/auth-token-storage.ts';
 import { TwitterClient } from '../../../src/infrastructure/platform/twitter/twitter-client.ts';
+import { AuthToken, TokenType } from '../../../src/infrastructure/storage/auth-token-storage.ts';
 import { createMockTwitterApi } from './twitter-api-mock.ts';
-import { Platform } from '@crosspost/types';
+import { tokenManagerMock } from '../token-manager-mock.ts';
 
 /**
  * Mock Twitter Client for testing
@@ -10,7 +10,7 @@ import { Platform } from '@crosspost/types';
 export class TwitterClientMock extends TwitterClient {
   private mockTokens: Map<string, AuthToken> = new Map();
   private errorScenario?: string;
-  
+
   /**
    * Constructor
    * @param env Environment configuration
@@ -33,6 +33,7 @@ export class TwitterClientMock extends TwitterClient {
   /**
    * Get a Twitter client for a specific user
    * @param userId The user ID to get a client for
+   * @param token The token to use for authentication
    * @returns A Twitter client instance
    */
   override async getClientForUser(userId: string): Promise<any> {
@@ -40,6 +41,9 @@ export class TwitterClientMock extends TwitterClient {
     if (this.errorScenario === 'getClientForUser') {
       throw new Error('Failed to get client for user');
     }
+
+    // Get tokens from the token manager mock
+    await tokenManagerMock.getTokens(userId, "twitter");
 
     // Return a mock Twitter API client
     return createMockTwitterApi(userId, this.errorScenario);
