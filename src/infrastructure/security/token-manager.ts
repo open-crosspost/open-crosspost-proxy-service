@@ -9,13 +9,11 @@ import { ApiErrorCode, PlatformError } from '@crosspost/types';
  * Centralized manager for token operations, coordinating between TokenStorage and NearAuthService
  */
 export class TokenManager {
-  private tokenStorage: TokenStorage;
-  private nearAuthService: NearAuthService;
-
-  constructor(private env: Env) {
-    this.tokenStorage = new TokenStorage(env.ENCRYPTION_KEY, env);
-    this.nearAuthService = new NearAuthService(env);
-  }
+  constructor(
+    private env: Env,
+    private tokenStorage: TokenStorage,
+    private nearAuthService: NearAuthService,
+  ) {}
 
   /**
    * Get tokens for a user

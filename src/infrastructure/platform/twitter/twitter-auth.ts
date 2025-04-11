@@ -1,6 +1,8 @@
 import { Platform } from '@crosspost/types';
 import { TwitterApi } from 'twitter-api-v2';
 import { Env } from '../../../config/env.ts';
+import { PrefixedKvStore } from '../../../utils/kv-store.utils.ts';
+import { TokenManager } from '../../../infrastructure/security/token-manager.ts';
 import { AuthToken, TokenType } from '../../storage/auth-token-storage.ts';
 import { BasePlatformAuth } from '../abstract/base-platform-auth.ts';
 import { PlatformAuth } from '../abstract/platform-auth.interface.ts';
@@ -13,13 +15,14 @@ import { TwitterProfile } from './twitter-profile.ts';
  * Implements the PlatformAuth interface for Twitter
  */
 export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
-  private twitterClient: TwitterClient;
-  private twitterProfile: TwitterProfile;
-
-  constructor(env: Env) {
-    super(env, Platform.TWITTER);
-    this.twitterClient = new TwitterClient(env);
-    this.twitterProfile = new TwitterProfile(env);
+  constructor(
+    env: Env,
+    tokenManager: TokenManager,
+    kvStore: PrefixedKvStore,
+    private twitterClient: TwitterClient,
+    private twitterProfile: TwitterProfile
+  ) {
+    super(env, Platform.TWITTER, tokenManager, kvStore);
   }
 
   /**

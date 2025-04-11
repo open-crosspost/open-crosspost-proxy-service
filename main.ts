@@ -25,12 +25,7 @@ import { errorMiddleware } from './src/middleware/error.middleware.ts';
 import { PlatformMiddleware } from './src/middleware/supported-platforms.middleware.ts';
 import { UsageRateLimitMiddleware } from './src/middleware/usage-rate-limit.middleware.ts';
 import { ValidationMiddleware } from './src/middleware/validation.middleware.ts';
-
-// Import controllers
-import { AuthController } from './src/controllers/auth.controller.ts';
-import { LeaderboardController } from './src/controllers/leaderboard.controller.ts';
-import { postControllers } from './src/controllers/post/index.ts';
-import { RateLimitController } from './src/controllers/rate-limit.controller.ts';
+import { initializeApp } from './init.ts';
 
 // Create a new Hono app
 const app = new Hono();
@@ -40,9 +35,7 @@ app.use('*', errorMiddleware());
 app.use('*', corsMiddleware());
 
 // Initialize controllers
-const authController = new AuthController();
-const leaderboardController = new LeaderboardController();
-const rateLimitController = new RateLimitController();
+const { authController, leaderboardController, rateLimitController, postControllers } = initializeApp();
 
 // Health check route
 app.get('/health', (c) => c.json({ status: 'ok' }));

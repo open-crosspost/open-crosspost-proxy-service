@@ -12,9 +12,8 @@ import { PrefixedKvStore } from '../utils/kv-store.utils.ts';
 export class RateLimitController {
   private rateLimitService: RateLimitService;
 
-  constructor() {
-    const env = getEnv();
-    this.rateLimitService = new RateLimitService(env);
+  constructor(rateLimitService: RateLimitService) {
+    this.rateLimitService = rateLimitService;
   }
 
   /**

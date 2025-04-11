@@ -1,242 +1,194 @@
-import { ApiErrorCode, Platform } from "@crosspost/types";
+import { ApiErrorCode, Platform, PlatformError } from "@crosspost/types";
 import { assertEquals, assertExists } from "jsr:@std/assert";
-import { afterEach, beforeEach, describe, it } from "jsr:@std/testing/bdd";
-import * as mock from "jsr:@std/testing/mock";
-import { Env } from "../../../src/config/env.ts";
+import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { CreateController } from "../../../src/controllers/post/create.controller.ts";
-import { PostService } from "../../../src/domain/services/post.service.ts";
-import { mockToken } from "../../mocks/near-auth-service-mock.ts";
-import { tokenManagerMock } from "../../mocks/token-manager-mock.ts";
-import { tokenStorageMock } from "../../mocks/token-storage-mock.ts";
-import { createMockTwitterApi } from "../../mocks/twitter/twitter-api-mock.ts";
-import { TwitterClientMock } from "../../mocks/twitter/twitter-client-mock.ts";
-import { createMockContext } from "../../utils/test-utils.ts";
-
-// Create a mock Env object for PostService
-const mockEnv: Env = {
-  TWITTER_CLIENT_ID: "mock-client-id",
-  TWITTER_CLIENT_SECRET: "mock-client-secret",
-  TWITTER_API_KEY: "mock-api-key",
-  TWITTER_API_SECRET: "mock-api-secret",
-  TWITTER_ACCESS_TOKEN: "mock-access-token",
-  TWITTER_ACCESS_SECRET: "mock-access-secret",
-  ENCRYPTION_KEY: "mock-encryption-key-that-is-long-enough",
-  ALLOWED_ORIGINS: "*",
-  ENVIRONMENT: "test",
-};
+import {
+  createAuthErrorServices,
+  createMockContext,
+  createMockServices,
+  createPlatformErrorServices,
+  createRateLimitErrorServices
+} from "../../utils/test-utils.ts";
 
 describe("Post Creation Controller", () => {
-  const originalEnv: Record<string, string | undefined> = {};
-  let mockTwitterClient: TwitterClientMock;
-  let postService: PostService;
-  let createController: CreateController;
+  let controller: CreateController;
+  let services: ReturnType<typeof createMockServices>;
 
   // Setup before each test
   beforeEach(() => {
-    // Clear all mocks before each test
-    mock.restore();
+    // Create mock services
+    services = createMockServices();
 
-    // Save original environment variables
-    const envVars = [
-      "TWITTER_CLIENT_ID",
-      "TWITTER_CLIENT_SECRET",
-      "ENCRYPTION_KEY",
-      "ALLOWED_ORIGINS",
-      "API_KEYS",
-      "ENVIRONMENT",
-    ];
-
-    for (const key of envVars) {
-      originalEnv[key] = Deno.env.get(key);
-      const value = mockEnv[key as keyof typeof mockEnv];
-      if (value !== undefined) {
-        Deno.env.set(key, value);
-      }
-    }
-
-    // Create mock Twitter client
-    mockTwitterClient = new TwitterClientMock(mockEnv);
-
-    // Create post service with mock Twitter client
-    postService = new PostService(mockEnv);
-
-    // Replace the internal Twitter client with our mock
-    (postService as any).twitterClient = mockTwitterClient;
-
-    // Replace the token manager in the Twitter client with our mock
-    (mockTwitterClient as any).tokenManager = tokenManagerMock;
-
-    // Create post controller with mock post service
-    createController = new CreateController();
-
-    // Replace the internal post service with our mock
-    (createController as any).postService = postService;
-
-    // Mock the authService.hasAccess method to return true
-    mock.stub((createController as any).authService, "hasAccess", () => {
-      return Promise.resolve(true);
-    });
-
-    // Mock the rateLimitService.canPerformAction method to return true
-    mock.stub((createController as any).rateLimitService, "canPerformAction", () => {
-      return Promise.resolve(true);
-    });
-
-    // Mock the authService.getTokensForUser method to return the mock token
-    mock.stub((createController as any).authService, "getTokensForUser", () => {
-      return Promise.resolve(mockToken);
-    });
-
-    // Set up the mock tokens
-    tokenStorageMock.setToken("test-user-id", "twitter", mockToken);
-
-  });
-
-  // Cleanup after each test
-  afterEach(() => {
-    // Restore original environment variables
-    for (const [key, value] of Object.entries(originalEnv)) {
-      if (value === undefined) {
-        Deno.env.delete(key);
-      } else {
-        Deno.env.set(key, value);
-      }
-    }
-
-    // Clear all mocks
-    mock.restore();
-    tokenManagerMock.clear();
-
-    // Reset the default tokens
-    tokenManagerMock.setToken("test-user-id", "twitter", mockToken);
+    // Create the controller instance with mock dependencies
+    controller = new CreateController(
+      services.postService,
+      services.rateLimitService,
+      services.activityTrackingService,
+      services.authService
+    );
   });
 
   it("should create a post successfully", async () => {
-    // Mock the getClientForUser method to return our mock Twitter API
-    mock.stub(mockTwitterClient, "getClientForUser", (_userId) => {
-      return Promise.resolve(createMockTwitterApi("test-user-id"));
-    });
-
     // Create a mock context with the request body
-    const mockContext = createMockContext({
+    const context = createMockContext({
       signerId: "test.near",
       validatedBody: {
         targets: [
           {
             platform: Platform.TWITTER,
-            userId: "test-user-id"
-          }
+            userId: "test-user-id",
+          },
         ],
         content: "Test post from API",
       },
     });
 
     // Call the controller
-    const response = await createController.handle(mockContext);
-
-    // Parse the response
+    const response = await controller.handle(context);
     const responseBody = await response.json();
 
     // Verify the response
     assertEquals(response.status, 200);
-    assertExists(responseBody.success);
-    assertEquals(responseBody.success, true);
     assertExists(responseBody.data);
+    assertExists(responseBody.data.results);
+    assertEquals(responseBody.data.results.length, 1);
+    assertEquals(responseBody.data.errors.length, 0);
+    assertEquals(responseBody.data.results[0].platform, Platform.TWITTER);
+    assertEquals(responseBody.data.results[0].userId, "test-user-id");
+    assertExists(responseBody.data.results[0].postId);
   });
 
-  it("should handle rate limit errors", async () => {
-    // Mock the getClientForUser method to return our rate-limited mock API
-    mock.stub(mockTwitterClient, "getClientForUser", (_userId) => {
-      return Promise.resolve(createMockTwitterApi("test-user-id", "rate_limit"));
-    });
+  it("should handle rate limit errors from RateLimitService", async () => {
+    // Create services with rate limit error
+    const rateLimitServices = createRateLimitErrorServices();
 
-    // Create a mock context with the request body
-    const mockContext = createMockContext({
+    // Create a controller with the rate-limited services
+    const rateLimitController = new CreateController(
+      rateLimitServices.postService,
+      rateLimitServices.rateLimitService,
+      rateLimitServices.activityTrackingService,
+      rateLimitServices.authService
+    );
+
+    // Create a mock context
+    const rateLimitContext = createMockContext({
       signerId: "test.near",
       validatedBody: {
         targets: [
           {
             platform: Platform.TWITTER,
-            userId: "test-user-id"
-          }
+            userId: "test-user-id",
+          },
         ],
         content: "Test post that will hit rate limit",
       },
     });
 
-    // Call the controller and expect it to handle the rate limit error
-    const response = await createController.handle(mockContext);
-
-    // Parse the response
-    const responseBody = await response.json();
+    // Call the controller
+    const rateLimitResponse = await rateLimitController.handle(rateLimitContext);
+    const rateLimitResponseBody = await rateLimitResponse.json();
 
     // Verify the response indicates a rate limit error
-    assertEquals(response.status, 429);
-    assertExists(responseBody.errors);
-    assertEquals(responseBody.errors[0].errorCode, ApiErrorCode.RATE_LIMITED);
+    assertEquals(rateLimitResponse.status, 429);
+    assertEquals(rateLimitResponseBody.data.results.length, 0);
+    assertExists(rateLimitResponseBody.data.errors);
+    assertEquals(rateLimitResponseBody.data.errors.length, 1);
+    assertEquals(rateLimitResponseBody.data.errors[0].errorCode, ApiErrorCode.RATE_LIMITED);
+    assertEquals(rateLimitResponseBody.data.errors[0].platform, Platform.TWITTER);
+    assertEquals(rateLimitResponseBody.data.errors[0].userId, "test-user-id");
   });
 
-  it("should handle authentication errors", async () => {
-    // Mock the getClientForUser method to return our auth-error mock API
-    mock.stub(mockTwitterClient, "getClientForUser", (_userId) => {
-      return Promise.resolve(createMockTwitterApi("test-user-id", "auth_error"));
-    });
+  it("should handle authentication errors from AuthService", async () => {
+    // Create services with authentication error
+    const authErrorServices = createAuthErrorServices();
 
-    // Create a mock context with the request body
-    const mockContext = createMockContext({
+    // Create a controller with the auth error services
+    const authErrorController = new CreateController(
+      authErrorServices.postService,
+      authErrorServices.rateLimitService,
+      authErrorServices.activityTrackingService,
+      authErrorServices.authService
+    );
+
+    // Create a mock context
+    const authErrorContext = createMockContext({
       signerId: "test.near",
       validatedBody: {
         targets: [
           {
             platform: Platform.TWITTER,
-            userId: "test-user-id"
-          }
+            userId: "test-user-id",
+          },
         ],
-        content: "Test post that will hit auth error",
+        content: "Test post with auth error",
       },
     });
 
-    // Call the controller and expect it to handle the auth error
-    const response = await createController.handle(mockContext);
-
-    // Parse the response
-    const responseBody = await response.json();
+    // Call the controller
+    const authErrorResponse = await authErrorController.handle(authErrorContext);
+    const authErrorResponseBody = await authErrorResponse.json();
 
     // Verify the response indicates an authentication error
-    assertEquals(response.status, 401);
-    assertExists(responseBody.errors);
-    assertEquals(responseBody.errors[0].errorCode, ApiErrorCode.UNAUTHORIZED);
+    assertEquals(authErrorResponse.status, 401);
+    assertEquals(authErrorResponseBody.data.results.length, 0);
+    assertExists(authErrorResponseBody.data.errors);
+    assertEquals(authErrorResponseBody.data.errors.length, 1);
+    assertEquals(authErrorResponseBody.data.errors[0].errorCode, ApiErrorCode.UNAUTHORIZED);
+    assertEquals(authErrorResponseBody.data.errors[0].platform, Platform.TWITTER);
+    assertEquals(authErrorResponseBody.data.errors[0].userId, "test-user-id");
   });
 
-  it("should handle content policy violations", async () => {
-    // Mock the getClientForUser method to return our content-policy-error mock API
-    mock.stub(mockTwitterClient, "getClientForUser", (_userId) => {
-      return Promise.resolve(createMockTwitterApi("test-user-id", "content_policy"));
-    });
+  it("should handle platform errors from PostService", async () => {
+    // Create a platform error
+    const platformError = new PlatformError(
+      "Platform specific error",
+      Platform.TWITTER,
+      ApiErrorCode.PLATFORM_ERROR,
+      false,
+      undefined,
+      500,
+      "test-user-id"
+    );
 
-    // Create a mock context with the request body
-    const mockContext = createMockContext({
+    // Create services with platform error
+    const platformErrorServices = createPlatformErrorServices(platformError);
+
+    // Create a controller with the platform error services
+    const platformErrorController = new CreateController(
+      platformErrorServices.postService,
+      platformErrorServices.rateLimitService,
+      platformErrorServices.activityTrackingService,
+      platformErrorServices.authService
+    );
+
+    // Create a mock context
+    const platformErrorContext = createMockContext({
       signerId: "test.near",
       validatedBody: {
         targets: [
           {
             platform: Platform.TWITTER,
-            userId: "test-user-id"
-          }
+            userId: "test-user-id",
+          },
         ],
-        content: "Test post that will violate content policy",
+        content: "Test post causing platform error",
       },
     });
 
-    // Call the controller and expect it to handle the content policy error
-    const response = await createController.handle(mockContext);
+    // Call the controller
+    const platformErrorResponse = await platformErrorController.handle(platformErrorContext);
+    const platformErrorResponseBody = await platformErrorResponse.json();
 
-    // Parse the response
-    const responseBody = await response.json();
-
-    // Verify the response indicates a content policy violation
-    assertEquals(response.status, 400);
-    assertExists(responseBody.errors);
-    assertEquals(responseBody.errors[0].errorCode, ApiErrorCode.CONTENT_POLICY_VIOLATION);
+    // Verify the response indicates a platform error
+    assertEquals(platformErrorResponse.status, 500);
+    assertEquals(platformErrorResponseBody.data.results.length, 0);
+    assertExists(platformErrorResponseBody.data.errors);
+    assertEquals(platformErrorResponseBody.data.errors.length, 1);
+    assertEquals(platformErrorResponseBody.data.errors[0].errorCode, ApiErrorCode.PLATFORM_ERROR);
+    assertEquals(platformErrorResponseBody.data.errors[0].error, "Platform specific error");
+    assertEquals(platformErrorResponseBody.data.errors[0].platform, Platform.TWITTER);
+    assertEquals(platformErrorResponseBody.data.errors[0].userId, "test-user-id");
   });
+
+  // Add more tests for other scenarios like multiple targets, content variations, etc.
 });

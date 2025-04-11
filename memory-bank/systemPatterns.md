@@ -109,38 +109,53 @@ This pattern enables:
 
 #### 2.3 NEAR-Centric Token Management Pattern
 
-The system implements a NEAR-centric token management pattern where platform tokens are primarily accessed through NEAR account IDs. This centralizes token storage and access, improving security and maintainability.
+The system implements a NEAR-centric token management pattern where platform tokens are stored securely and accessed via a central `TokenManager`, which also handles the link between NEAR accounts (`signerId`) and platform accounts (`userId`).
 
 ```mermaid
 flowchart TD
-    Client[Client] --> NearAuth[NEAR Auth]
-    NearAuth --> AuthService[Auth Service]
-    
-    AuthService --> NearAuthService[NEAR Auth Service]
-    AuthService --> PlatformAuth[Platform Auth]
-    
-    NearAuthService --> TokenStorage[Token Storage]
-    PlatformAuth --> BasePlatformAuth[Base Platform Auth]
-    
-    BasePlatformAuth --> PlatformClient[Platform Client]
-    PlatformClient --> TokenRefresh[Token Refresh Callback]
-    TokenRefresh --> BasePlatformAuth
+    subgraph "Service Layer"
+        AuthService(AuthService)
+        OtherServices(Other Domain Services)
+    end
+
+    subgraph "Platform Abstraction"
+        BasePlatformAuth(BasePlatformAuth)
+        PlatformClient(PlatformClient)
+    end
+
+    subgraph "Security Infrastructure"
+        TokenManager(TokenManager)
+        NearAuthService(NearAuthService)
+        TokenStorage(TokenStorage)
+    end
+
+    AuthService --> TokenManager
+    OtherServices --> TokenManager
+    BasePlatformAuth --> TokenManager
+    BasePlatformAuth --> PlatformClient
+
+    TokenManager --> NearAuthService
+    TokenManager --> TokenStorage
+
+    PlatformClient -- Token Refresh Callback --> TokenManager
 ```
 
 Key components of this pattern:
 
-- **AuthService**: Central service that coordinates token access and management
-- **NearAuthService**: Manages the relationship between NEAR accounts and platform tokens
-- **BasePlatformAuth**: Base class that handles common auth operations for all platforms
-- **TokenRefresh Callback**: Mechanism for platform clients to notify auth services about token updates
+- **TokenManager**: Central coordinator for all token operations. Interacts with `TokenStorage` for persistence and `NearAuthService` for linking/authorization. Provides a unified interface for services and platform layers.
+- **TokenStorage**: Responsible for securely storing (encrypting) and retrieving platform `AuthToken` data, keyed by `userId` and `platform`.
+- **NearAuthService**: Manages NEAR account authorization status and the mapping between `signerId` (NEAR account) and platform accounts (`userId`, `platform`). Does *not* store actual tokens.
+- **AuthService/Other Domain Services**: Utilize `TokenManager` to get/save tokens and check access based on `signerId`.
+- **BasePlatformAuth**: Uses `TokenManager` to retrieve tokens needed for platform interactions and potentially trigger refreshes.
+- **PlatformClient**: May trigger token updates back to `TokenManager` via callbacks (e.g., from auto-refresh plugins).
 
 This pattern ensures:
 
-- Single source of truth for token storage
-- Clear ownership model (NEAR account owns platform tokens)
-- Consistent token refresh and management
-- Reduced duplication in token storage logic
-- Improved security through centralized access control
+- Clear separation of concerns: Token storage, NEAR linking, and platform interaction logic are distinct.
+- Single point of access for token operations via `TokenManager`.
+- Secure token persistence via `TokenStorage`.
+- Centralized NEAR account linking and authorization via `NearAuthService`.
+- Improved testability by isolating dependencies.
 
 ### 3. Centralized Schema and Type Pattern
 

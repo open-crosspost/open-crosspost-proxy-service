@@ -12,15 +12,18 @@ export class PostService {
   private platformPosts: Map<string, PlatformPost>;
   private env: Env;
 
-  constructor(env: Env) {
+  constructor(env: Env, platformPosts?: Map<string, PlatformPost>) {
     this.env = env;
-    this.platformPosts = new Map();
-
-    // Initialize with Twitter
-    this.platformPosts.set(Platform.TWITTER, new TwitterPost(env));
-
-    // Add other platforms as they become available
-    // this.platformPosts.set(Platform.LINKEDIN, new LinkedInPost(env));
+    
+    if (platformPosts) {
+      // Use the provided platform posts map
+      this.platformPosts = platformPosts;
+    } else {
+      // For backward compatibility, create an empty map
+      // This should be removed once all code is updated to use dependency injection
+      this.platformPosts = new Map();
+      console.warn('PostService created without platformPosts map. This is deprecated.');
+    }
   }
 
   /**

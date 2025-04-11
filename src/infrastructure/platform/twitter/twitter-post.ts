@@ -28,10 +28,10 @@ export class TwitterPost implements PlatformPost {
   private likePostService: TwitterLikePost;
   private deletePostService: TwitterDeletePost;
 
-  constructor(env: Env) {
+  constructor(env: Env, twitterClient: TwitterClient, twitterMedia: TwitterMedia) {
     this.env = env;
-    this.twitterClient = new TwitterClient(env);
-    this.twitterMedia = new TwitterMedia(env);
+    this.twitterClient = twitterClient;
+    this.twitterMedia = twitterMedia;
 
     // Pass the shared client and media service to each specialized service
     this.createPostService = new TwitterCreatePost(this.twitterClient, this.twitterMedia);

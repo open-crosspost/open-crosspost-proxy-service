@@ -25,19 +25,15 @@ import { TokenAccessLogger, TokenOperation } from '../security/token-access-logg
  * Handles secure storage and retrieval of OAuth tokens
  */
 export class TokenStorage {
-  private tokenStore: PrefixedKvStore;
-  private encryptionKey: string;
-  private logger: TokenAccessLogger;
-
   // Version constants for encryption
   private readonly ENCRYPTION_VERSION_1 = 0x01;
   private readonly CURRENT_ENCRYPTION_VERSION = this.ENCRYPTION_VERSION_1;
 
-  constructor(encryptionKey: string, env: Env) {
-    this.encryptionKey = encryptionKey;
-    this.logger = new TokenAccessLogger(env);
-    this.tokenStore = new PrefixedKvStore(['tokens']);
-  }
+  constructor(
+    private encryptionKey: string,
+    private tokenStore: PrefixedKvStore,
+    private logger: TokenAccessLogger
+  ) {}
 
   /**
    * Get tokens for a user

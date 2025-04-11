@@ -11,15 +11,18 @@ export class RateLimitService {
   private platformRateLimits: Map<PlatformName, PlatformRateLimit>;
   private env: Env;
 
-  constructor(env: Env) {
+  constructor(env: Env, platformRateLimits?: Map<PlatformName, PlatformRateLimit>) {
     this.env = env;
-    this.platformRateLimits = new Map();
-
-    // Initialize with Twitter
-    this.platformRateLimits.set(Platform.TWITTER, new TwitterRateLimit(env));
-
-    // Add other platforms as they become available
-    // this.platformRateLimits.set(Platform.LINKEDIN, new LinkedInRateLimit(env));
+    
+    if (platformRateLimits) {
+      // Use the provided platform rate limits map
+      this.platformRateLimits = platformRateLimits;
+    } else {
+      // For backward compatibility, create an empty map
+      // This should be removed once all code is updated to use dependency injection
+      this.platformRateLimits = new Map();
+      console.warn('RateLimitService created without platformRateLimits map. This is deprecated.');
+    }
   }
 
   /**

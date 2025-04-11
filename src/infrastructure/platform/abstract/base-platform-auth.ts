@@ -13,18 +13,19 @@ import { PlatformClient } from './platform-client.interface.ts';
  * Base implementation of the PlatformAuth interface with common functionality
  */
 export abstract class BasePlatformAuth implements PlatformAuth {
-  protected tokenManager: TokenManager;
-  protected kvStore: PrefixedKvStore;
-
   /**
    * Create a new base platform auth
    * @param env Environment configuration
    * @param platform Platform name (e.g., 'twitter')
+   * @param tokenManager Token manager for handling tokens
+   * @param kvStore KV store for auth state
    */
-  constructor(protected env: Env, protected platform: PlatformName) {
-    this.tokenManager = new TokenManager(env);
-    this.kvStore = new PrefixedKvStore(['auth', platform]);
-  }
+  constructor(
+    protected env: Env, 
+    protected platform: PlatformName,
+    protected tokenManager: TokenManager,
+    protected kvStore: PrefixedKvStore
+  ) {}
 
   /**
    * Handle token refresh events from the platform client

@@ -27,9 +27,9 @@ export class TwitterMedia implements PlatformMedia {
   private twitterClient: TwitterClient;
   private oauth1Client: TwitterApi | null = null;
 
-  constructor(env: Env) {
+  constructor(env: Env, twitterClient: TwitterClient) {
     this.env = env;
-    this.twitterClient = new TwitterClient(env);
+    this.twitterClient = twitterClient;
 
     // Initialize OAuth 1.0a client for media uploads if credentials are provided
     if (

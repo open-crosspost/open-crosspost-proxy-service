@@ -13,18 +13,16 @@ import { TokenManager } from '../infrastructure/security/token-manager.ts';
  * @param platform Platform name (e.g., Platform.TWITTER)
  * @param userId User ID on the platform
  * @param tokens Tokens for the platform
- * @param env Environment configuration
+ * @param tokenManager Token manager for handling tokens
  */
 export async function linkAccountToNear(
   signerId: string,
   platform: PlatformName,
   userId: string,
   tokens: any,
-  env: Env,
+  tokenManager: TokenManager,
 ): Promise<void> {
   try {
-    // Create token manager
-    const tokenManager = new TokenManager(env);
 
     // Save tokens to token storage
     await tokenManager.saveTokens(userId, platform, tokens);
@@ -44,17 +42,15 @@ export async function linkAccountToNear(
  * @param signerId NEAR account ID
  * @param platform Platform name (e.g., Platform.TWITTER)
  * @param userId User ID on the platform
- * @param env Environment configuration
+ * @param tokenManager Token manager for handling tokens
  */
 export async function unlinkAccountFromNear(
   signerId: string,
   platform: PlatformName,
   userId: string,
-  env: Env,
+  tokenManager: TokenManager,
 ): Promise<void> {
   try {
-    // Create token manager
-    const tokenManager = new TokenManager(env);
 
     // Unlink the account
     await tokenManager.unlinkAccount(signerId, platform, userId);
@@ -69,16 +65,14 @@ export async function unlinkAccountFromNear(
 /**
  * Get all accounts linked to a NEAR wallet
  * @param signerId NEAR account ID
- * @param env Environment configuration
+ * @param tokenManager Token manager for handling tokens
  * @returns Array of platform and userId pairs
  */
 export async function getLinkedAccounts(
   signerId: string,
-  env: Env,
+  tokenManager: TokenManager,
 ): Promise<Array<{ platform: PlatformName; userId: string }>> {
   try {
-    // Create token manager
-    const tokenManager = new TokenManager(env);
 
     // Get all connected accounts
     return await tokenManager.getLinkedAccounts(signerId);

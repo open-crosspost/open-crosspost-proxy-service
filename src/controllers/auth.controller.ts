@@ -12,15 +12,12 @@ import { extractAndValidateNearAuth } from '../utils/near-auth.utils.ts';
  * Handles HTTP requests for authentication-related operations
  */
 export class AuthController {
-  private authService: AuthService;
-  private tokenManager: TokenManager;
-  private env: Env;
-
-  constructor() {
-    this.env = getEnv();
-    this.authService = new AuthService(this.env);
-    this.tokenManager = new TokenManager(this.env);
-  }
+  // Dependencies will be injected
+  constructor(
+    private authService: AuthService,
+    private tokenManager: TokenManager,
+    private env: Env, // Keep env if needed directly, e.g., for unlinkAccountFromNear
+  ) {}
 
   /**
    * Initialize authentication with NEAR signature
@@ -244,7 +241,7 @@ export class AuthController {
 
       // Unlink the account from the NEAR wallet
       if (success) {
-        await unlinkAccountFromNear(signerId, platform, userId, this.env);
+        await unlinkAccountFromNear(signerId, platform, userId, this.tokenManager);
       }
 
       // Return success status
@@ -405,7 +402,7 @@ export class AuthController {
           await this.authService.revokeToken(account.platform, account.userId);
 
           // Unlink the account from the NEAR wallet
-          await unlinkAccountFromNear(signerId, account.platform, account.userId, this.env);
+          await unlinkAccountFromNear(signerId, account.platform, account.userId, this.tokenManager);
 
           console.log(
             `Unlinked ${account.platform} account ${account.userId} from NEAR wallet ${signerId}`,

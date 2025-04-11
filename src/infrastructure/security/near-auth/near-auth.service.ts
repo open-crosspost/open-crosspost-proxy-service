@@ -8,11 +8,10 @@ import { AuthToken } from '../../storage/auth-token-storage.ts';
  * Handles NEAR authentication validation
  */
 export class NearAuthService {
-  private kvStore: PrefixedKvStore;
-
-  constructor(private env: Env) {
-    this.kvStore = new PrefixedKvStore(['near_auth']);
-  }
+  constructor(
+    private env: Env,
+    private kvStore: PrefixedKvStore
+  ) {}
 
 
   /**

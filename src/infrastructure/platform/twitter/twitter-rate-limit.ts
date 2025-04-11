@@ -11,8 +11,8 @@ export class TwitterRateLimit implements PlatformRateLimit {
   private twitterClient: TwitterClient;
   private actionEndpointMap: Record<string, { endpoint: string; version: 'v1' | 'v2' }>;
 
-  constructor(env: Env) {
-    this.twitterClient = new TwitterClient(env);
+  constructor(env: Env, twitterClient: TwitterClient) {
+    this.twitterClient = twitterClient;
 
     // Map common actions to their corresponding endpoints
     this.actionEndpointMap = {

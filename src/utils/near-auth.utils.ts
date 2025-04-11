@@ -1,6 +1,5 @@
 import { ApiError, ApiErrorCode } from '@crosspost/types';
 import { Context, NearSimpleSigning } from '../../deps.ts';
-import { getEnv } from '../config/env.ts';
 import { TokenManager } from '../infrastructure/security/token-manager.ts';
 
 /**
@@ -20,6 +19,29 @@ export interface NearAuthData {
  * NEAR UNAUTHORIZED Utilities
  * Common functions for NEAR UNAUTHORIZED
  */
+
+// Singleton instance of TokenManager
+let tokenManagerInstance: TokenManager | null = null;
+
+/**
+ * Set the TokenManager instance
+ * @param tokenManager The TokenManager instance
+ */
+export function setTokenManager(tokenManager: TokenManager): void {
+  tokenManagerInstance = tokenManager;
+}
+
+/**
+ * Get the TokenManager instance
+ * @returns The TokenManager instance
+ * @throws Error if the TokenManager instance is not set
+ */
+export function getTokenManager(): TokenManager {
+  if (!tokenManagerInstance) {
+    throw new Error('TokenManager instance not set. Call setTokenManager first.');
+  }
+  return tokenManagerInstance;
+}
 
 /**
  * Extract and validate NEAR UNAUTHORIZED data from request headers
@@ -92,9 +114,8 @@ export async function extractAndValidateNearAuth(c: Context): Promise<{
   // The signerId is the account_id from the auth data
   const signerId = authData.account_id;
 
-  // Initialize token manager to check authorization
-  const env = getEnv();
-  const tokenManager = new TokenManager(env);
+  // Get the TokenManager instance
+  const tokenManager = getTokenManager();
 
   // Check if the account is authorized
   const authStatus = await tokenManager.getNearAuthorizationStatus(signerId);

@@ -1,5 +1,9 @@
 import { LikePostRequest, createSuccessDetail } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
+import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
+import { AuthService } from '../../domain/services/auth.service.ts';
+import { PostService } from '../../domain/services/post.service.ts';
+import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
 import { BasePostController } from './base.controller.ts';
 
 /**
@@ -7,6 +11,15 @@ import { BasePostController } from './base.controller.ts';
  * Handles liking an existing post
  */
 export class LikeController extends BasePostController {
+  constructor(
+    postService: PostService,
+    rateLimitService: RateLimitService,
+    activityTrackingService: ActivityTrackingService,
+    authService: AuthService,
+  ) {
+    super(postService, rateLimitService, activityTrackingService, authService);
+  }
+
   /**
    * Like a post
    * @param c The Hono context

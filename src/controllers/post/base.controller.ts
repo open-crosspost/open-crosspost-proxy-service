@@ -28,13 +28,17 @@ export abstract class BasePostController {
   protected authService: AuthService;
   protected mediaCache: MediaCache;
 
-  constructor() {
-    const env = getEnv();
-    this.postService = new PostService(env);
-    this.rateLimitService = new RateLimitService(env);
-    this.activityTrackingService = new ActivityTrackingService(env);
-    this.authService = new AuthService(env);
-    this.mediaCache = MediaCache.getInstance();
+  constructor(
+    postService: PostService,
+    rateLimitService: RateLimitService,
+    activityTrackingService: ActivityTrackingService,
+    authService: AuthService,
+  ) {
+    this.postService = postService;
+    this.rateLimitService = rateLimitService;
+    this.activityTrackingService = activityTrackingService;
+    this.authService = authService;
+    this.mediaCache = MediaCache.getInstance(); // MediaCache remains a singleton for now
   }
 
   /**

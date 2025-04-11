@@ -15,14 +15,15 @@ import { TokenManager } from './../../security/token-manager.ts';
  * Implements the PlatformClient interface for Twitter
  */
 export class TwitterClient extends BasePlatformClient implements PlatformClient {
-  private tokenManager: TokenManager;
   private rateLimitPlugin: TwitterApiRateLimitPlugin;
   private redisPlugin: TwitterApiCachePluginRedis | null = null;
   private redisClient: Redis | null = null;
 
-  constructor(env: Env) {
+  constructor(
+    env: Env,
+    private tokenManager: TokenManager
+  ) {
     super(env, Platform.TWITTER);
-    this.tokenManager = new TokenManager(env);
     this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
 
     // Initialize Redis client if Upstash Redis credentials are available
@@ -51,7 +52,6 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
   /**
    * Get a Twitter client for a specific user
    * @param userId The user ID to get a client for
-   * @param tokens The tokens to use for authentication
    * @returns A Twitter client instance
    */
   async getClientForUser(userId: string): Promise<TwitterApi> {

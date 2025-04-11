@@ -10,13 +10,11 @@ import { UserProfile } from '@crosspost/types';
  * Implements the PlatformProfile interface for Twitter
  */
 export class TwitterProfile implements PlatformProfile {
-  private twitterClient: TwitterClient;
-  private profileStorage: UserProfileStorage;
-
-  constructor(env: Env) {
-    this.twitterClient = new TwitterClient(env);
-    this.profileStorage = new UserProfileStorage(env);
-  }
+  constructor(
+    private env: Env,
+    private twitterClient: TwitterClient,
+    private profileStorage: UserProfileStorage
+  ) {}
 
   /**
    * Get a user's profile, fetching from the API if needed

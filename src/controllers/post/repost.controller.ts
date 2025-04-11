@@ -1,5 +1,9 @@
 import { Context } from '../../../deps.ts';
 import { createSuccessDetail, RepostRequest } from '@crosspost/types';
+import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
+import { AuthService } from '../../domain/services/auth.service.ts';
+import { PostService } from '../../domain/services/post.service.ts';
+import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
 import { BasePostController } from './base.controller.ts';
 
 /**
@@ -7,6 +11,15 @@ import { BasePostController } from './base.controller.ts';
  * Handles reposting an existing post
  */
 export class RepostController extends BasePostController {
+  constructor(
+    postService: PostService,
+    rateLimitService: RateLimitService,
+    activityTrackingService: ActivityTrackingService,
+    authService: AuthService,
+  ) {
+    super(postService, rateLimitService, activityTrackingService, authService);
+  }
+
   /**
    * Repost an existing post
    * @param c The Hono context

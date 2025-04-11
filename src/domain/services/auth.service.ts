@@ -16,29 +16,13 @@ import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
  * Domain service for authentication-related operations
  */
 export class AuthService {
-  private platformAuthMap: Map<PlatformName, PlatformAuth>;
-  private platformProfileMap: Map<PlatformName, PlatformProfile>;
-  private tokenManager: TokenManager;
-  private authStateStore: PrefixedKvStore;
-  private env: Env;
-
-  constructor(env: Env) {
-    this.env = env;
-    this.tokenManager = new TokenManager(env);
-    this.authStateStore = new PrefixedKvStore(['auth']);
-
-    // Initialize supported platforms
-    this.platformAuthMap = new Map();
-    this.platformAuthMap.set(Platform.TWITTER, new TwitterAuth(env));
-    // Add more platforms as they're implemented
-    // this.platformAuthMap.set(Platform.LINKEDIN, new LinkedInAuth(env));
-
-    // Initialize platform profiles
-    this.platformProfileMap = new Map();
-    this.platformProfileMap.set(Platform.TWITTER, new TwitterProfile(env));
-    // Add more platform profiles as they're implemented
-    // this.platformProfileMap.set(Platform.LINKEDIN, new LinkedInProfile(env));
-  }
+  constructor(
+    private env: Env,
+    private tokenManager: TokenManager,
+    private authStateStore: PrefixedKvStore,
+    private platformAuthMap: Map<PlatformName, PlatformAuth>,
+    private platformProfileMap: Map<PlatformName, PlatformProfile>
+  ) {}
 
   /**
    * Get the platform-specific auth implementation
@@ -228,7 +212,7 @@ export class AuthService {
       const tokens = await platformAuth.refreshToken(userId);
 
       // Link the account using the utility function
-      await linkAccountToNear(signerId, platform, userId, tokens, this.env);
+      await linkAccountToNear(signerId, platform, userId, tokens, this.tokenManager);
 
       return true;
     } catch (error) {
