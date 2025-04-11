@@ -1,6 +1,6 @@
 import { Env } from '../config/env.ts';
 import { PlatformName } from '@crosspost/types';
-import { TokenManager } from '../infrastructure/security/token-manager.ts';
+import { NearAuthService } from '../infrastructure/security/near-auth-service.ts';
 
 /**
  * Account Linking Utilities
@@ -13,22 +13,21 @@ import { TokenManager } from '../infrastructure/security/token-manager.ts';
  * @param platform Platform name (e.g., Platform.TWITTER)
  * @param userId User ID on the platform
  * @param tokens Tokens for the platform
- * @param tokenManager Token manager for handling tokens
+ * @param nearAuthService Token manager for handling tokens
  */
 export async function linkAccountToNear(
   signerId: string,
   platform: PlatformName,
   userId: string,
   tokens: any,
-  tokenManager: TokenManager,
+  nearAuthService: NearAuthService,
 ): Promise<void> {
   try {
-
     // Save tokens to token storage
-    await tokenManager.saveTokens(userId, platform, tokens);
-    
+    await nearAuthService.saveTokens(userId, platform, tokens);
+
     // Link the account in NEAR auth service
-    await tokenManager.linkAccount(signerId, platform, userId);
+    await nearAuthService.linkAccount(signerId, platform, userId);
 
     console.log(`Linked ${platform} account ${userId} to NEAR wallet ${signerId}`);
   } catch (error) {
@@ -42,18 +41,17 @@ export async function linkAccountToNear(
  * @param signerId NEAR account ID
  * @param platform Platform name (e.g., Platform.TWITTER)
  * @param userId User ID on the platform
- * @param tokenManager Token manager for handling tokens
+ * @param nearAuthService Token manager for handling tokens
  */
 export async function unlinkAccountFromNear(
   signerId: string,
   platform: PlatformName,
   userId: string,
-  tokenManager: TokenManager,
+  nearAuthService: NearAuthService,
 ): Promise<void> {
   try {
-
     // Unlink the account
-    await tokenManager.unlinkAccount(signerId, platform, userId);
+    await nearAuthService.unlinkAccount(signerId, platform, userId);
 
     console.log(`Unlinked ${platform} account ${userId} from NEAR wallet ${signerId}`);
   } catch (error) {
@@ -65,17 +63,16 @@ export async function unlinkAccountFromNear(
 /**
  * Get all accounts linked to a NEAR wallet
  * @param signerId NEAR account ID
- * @param tokenManager Token manager for handling tokens
+ * @param nearAuthService Token manager for handling tokens
  * @returns Array of platform and userId pairs
  */
 export async function getLinkedAccounts(
   signerId: string,
-  tokenManager: TokenManager,
+  nearAuthService: NearAuthService,
 ): Promise<Array<{ platform: PlatformName; userId: string }>> {
   try {
-
     // Get all connected accounts
-    return await tokenManager.getLinkedAccounts(signerId);
+    return await nearAuthService.getLinkedAccounts(signerId);
   } catch (error) {
     console.error(`Error getting linked accounts for NEAR wallet:`, error);
     return [];

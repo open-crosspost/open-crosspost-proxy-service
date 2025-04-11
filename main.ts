@@ -16,7 +16,7 @@ import {
   ReplyToPostRequestSchema,
   RepostRequestSchema,
   UnlikePostRequestSchema,
-} from "@crosspost/types";
+} from '@crosspost/types';
 import { Hono } from './deps.ts';
 import { getSecureEnv, isProduction } from './src/config/env.ts';
 import { AuthMiddleware } from './src/middleware/auth.middleware.ts';
@@ -35,7 +35,8 @@ app.use('*', errorMiddleware());
 app.use('*', corsMiddleware());
 
 // Initialize controllers
-const { authController, leaderboardController, rateLimitController, postControllers } = initializeApp();
+const { authController, leaderboardController, rateLimitController, postControllers } =
+  initializeApp();
 
 // Health check route
 app.get('/health', (c) => c.json({ status: 'ok' }));

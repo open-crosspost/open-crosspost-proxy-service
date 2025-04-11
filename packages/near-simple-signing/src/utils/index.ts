@@ -80,9 +80,9 @@ export function validateNonce(nonce: string): ValidationResult {
 
     return { valid: true };
   } catch (error) {
-    return { 
-      valid: false, 
-      error: error instanceof Error ? error.message : 'Unknown error validating nonce' 
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : 'Unknown error validating nonce',
     };
   }
 }

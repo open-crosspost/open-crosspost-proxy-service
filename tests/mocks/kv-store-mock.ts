@@ -29,7 +29,7 @@ export class MockKvStore {
   async list<T>(prefix: Deno.KvKey, options?: Deno.KvListOptions): Promise<Deno.KvListIterator<T>> {
     const prefixString = JSON.stringify(prefix).slice(0, -1); // Remove the closing bracket
     const entries: Array<{ key: Deno.KvKey; value: T }> = [];
-    
+
     for (const [keyString, value] of this.store.entries()) {
       if (keyString.startsWith(prefixString)) {
         entries.push({
@@ -38,7 +38,7 @@ export class MockKvStore {
         });
       }
     }
-    
+
     // Create a simple iterator that implements AsyncIterableIterator
     const iterator = {
       entries,
@@ -52,9 +52,9 @@ export class MockKvStore {
       },
       [Symbol.asyncIterator]() {
         return this;
-      }
+      },
     };
-    
+
     return iterator as unknown as Deno.KvListIterator<T>;
   }
 
@@ -95,10 +95,13 @@ export const mockKvStoreModule = {
     const result = await mockKvStore.get<T>(key);
     return result ? result.value : null;
   },
-  set: async (key: Deno.KvKey, value: any, options?: { expireIn?: number }): Promise<void> => 
+  set: async (key: Deno.KvKey, value: any, options?: { expireIn?: number }): Promise<void> =>
     mockKvStore.set(key, value, options),
   delete: async (key: Deno.KvKey): Promise<void> => mockKvStore.delete(key),
-  list: async <T>(prefix: Deno.KvKey, options?: Deno.KvListOptions): Promise<Array<{ key: Deno.KvKey; value: T }>> => {
+  list: async <T>(
+    prefix: Deno.KvKey,
+    options?: Deno.KvListOptions,
+  ): Promise<Array<{ key: Deno.KvKey; value: T }>> => {
     const entries: Array<{ key: Deno.KvKey; value: T }> = [];
     const iter = await mockKvStore.list<T>(prefix, options);
     for await (const entry of iter) {
@@ -107,9 +110,9 @@ export const mockKvStoreModule = {
     return entries;
   },
   withTransaction: async (fn: (atomic: Deno.AtomicOperation) => Deno.AtomicOperation) => {
-    return { 
+    return {
       ok: true,
-      versionstamp: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
+      versionstamp: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]),
     };
   },
 };

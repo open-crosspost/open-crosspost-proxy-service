@@ -14,7 +14,7 @@ export { HTTPException } from 'npm:hono/http-exception';
 export type { Context, MiddlewareHandler, Next } from 'npm:hono';
 
 // Zod validation and OpenAPI
-export { z } from "zod";
+export { z } from 'zod';
 
 // Twitter API
 export { TwitterApi } from 'twitter-api-v2';

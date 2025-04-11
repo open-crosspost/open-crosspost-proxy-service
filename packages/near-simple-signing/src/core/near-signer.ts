@@ -69,15 +69,16 @@ export class NearSigner {
     if (isBrowser) {
       // This is a placeholder for actual wallet connection logic
       // In a real implementation, this would use near-api-js or wallet-selector
-      console.warn('NearSigner.connect() in browser is a placeholder. Implement actual wallet connection logic.');
+      console.warn(
+        'NearSigner.connect() in browser is a placeholder. Implement actual wallet connection logic.',
+      );
 
       // Simulate a successful connection
       this.account = {
         accountId: 'example.testnet',
         publicKey: 'ed25519:8hSHprDq2StXwMtNd43wDTXQYsjXcD4MJxUTvwtnmM4T',
       };
-    } 
-    // Server environment - use provided key pair
+    } // Server environment - use provided key pair
     else {
       if (!this.options.accountId || !this.options.keyPair) {
         throw new Error('accountId and keyPair are required for connect() in server environment');
@@ -275,7 +276,7 @@ export class NearSigner {
         nonce: { array: { type: 'u8', len: 32 } }, // Fixed-length array of 32 bytes
         receiver: 'string',
         callback_url: { option: 'string' },
-      }
+      },
     };
 
     // Serialize using borsh
@@ -334,13 +335,14 @@ export class NearSigner {
     // Browser environment - use wallet's signing capability
     if (isBrowser && !this.options.keyPair) {
       // This is a placeholder for actual browser wallet signing logic
-      console.warn('signHash() in browser is a placeholder. Implement actual wallet signing logic.');
+      console.warn(
+        'signHash() in browser is a placeholder. Implement actual wallet signing logic.',
+      );
 
       // Simulate signing with a random signature
       const randomSignature = nacl.randomBytes(64);
       return uint8ArrayToBase64(randomSignature);
-    } 
-    // Server environment or browser with keyPair - use provided key pair
+    } // Server environment or browser with keyPair - use provided key pair
     else if (this.options.keyPair) {
       try {
         // Use the keyPair to sign the hash

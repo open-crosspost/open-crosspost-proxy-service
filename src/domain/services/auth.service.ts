@@ -1,15 +1,17 @@
 import { Platform, PlatformName, UserProfile } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
 import { DEFAULT_CONFIG } from '../../config/index.ts';
-import { PlatformAuth, AuthState } from '../../infrastructure/platform/abstract/platform-auth.interface.ts';
+import {
+  AuthState,
+  PlatformAuth,
+} from '../../infrastructure/platform/abstract/platform-auth.interface.ts';
 import { PlatformProfile } from '../../infrastructure/platform/abstract/platform-profile.interface.ts';
 import { TwitterAuth } from '../../infrastructure/platform/twitter/twitter-auth.ts';
 import { TwitterProfile } from '../../infrastructure/platform/twitter/twitter-profile.ts';
-import { TokenManager } from '../../infrastructure/security/token-manager.ts';
+import { NearAuthService } from '../../infrastructure/security/near-auth-service.ts';
 import { AuthToken } from '../../infrastructure/storage/auth-token-storage.ts';
 import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
-
 
 /**
  * Auth Service
@@ -18,10 +20,10 @@ import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 export class AuthService {
   constructor(
     private env: Env,
-    private tokenManager: TokenManager,
+    private nearAuthService: NearAuthService,
     private authStateStore: PrefixedKvStore,
     private platformAuthMap: Map<PlatformName, PlatformAuth>,
-    private platformProfileMap: Map<PlatformName, PlatformProfile>
+    private platformProfileMap: Map<PlatformName, PlatformProfile>,
   ) {}
 
   /**
@@ -79,7 +81,7 @@ export class AuthService {
       // Store the auth state in Deno KV
       const authState: AuthState = {
         redirectUri,
-        codeVerifier: codeVerifier || "",
+        codeVerifier: codeVerifier || '',
         state,
         createdAt: Date.now(),
         successUrl: successUrl,
@@ -187,7 +189,7 @@ export class AuthService {
    */
   async hasValidTokens(platform: PlatformName, userId: string): Promise<boolean> {
     try {
-      return await this.tokenManager.hasTokens(userId, platform);
+      return await this.nearAuthService.hasTokens(userId, platform);
     } catch (error) {
       console.error('Error checking tokens:', error);
       return false;
@@ -212,7 +214,7 @@ export class AuthService {
       const tokens = await platformAuth.refreshToken(userId);
 
       // Link the account using the utility function
-      await linkAccountToNear(signerId, platform, userId, tokens, this.tokenManager);
+      await linkAccountToNear(signerId, platform, userId, tokens, this.nearAuthService);
 
       return true;
     } catch (error) {
@@ -251,7 +253,7 @@ export class AuthService {
    */
   async hasAccess(signerId: string, platform: PlatformName, userId: string): Promise<boolean> {
     try {
-      return await this.tokenManager.hasAccess(signerId, platform, userId);
+      return await this.nearAuthService.hasAccess(signerId, platform, userId);
     } catch (error) {
       console.error('Error checking access:', error);
       return false;

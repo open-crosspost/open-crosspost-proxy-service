@@ -253,7 +253,9 @@ export abstract class BasePlatformClient implements PlatformClient {
    * @param request Media metadata update request
    * @returns Media metadata update response
    */
-  abstract updateMediaMetadata(request: MediaMetadataUpdateRequest): Promise<MediaMetadataUpdateResponse>;
+  abstract updateMediaMetadata(
+    request: MediaMetadataUpdateRequest,
+  ): Promise<MediaMetadataUpdateResponse>;
 
   /**
    * Make an authenticated request to the API

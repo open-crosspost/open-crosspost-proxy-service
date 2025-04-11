@@ -109,7 +109,9 @@ This pattern enables:
 
 #### 2.3 NEAR-Centric Token Management Pattern
 
-The system implements a NEAR-centric token management pattern where platform tokens are stored securely and accessed via a central `TokenManager`, which also handles the link between NEAR accounts (`signerId`) and platform accounts (`userId`).
+The system implements a NEAR-centric token management pattern where platform tokens are stored
+securely and accessed via a central `NearAuthService`, which also handles the link between NEAR
+accounts (`signerId`) and platform accounts (`userId`).
 
 ```mermaid
 flowchart TD
@@ -124,42 +126,52 @@ flowchart TD
     end
 
     subgraph "Security Infrastructure"
-        TokenManager(TokenManager)
+        NearAuthService(NearAuthService)
         NearAuthService(NearAuthService)
         TokenStorage(TokenStorage)
     end
 
-    AuthService --> TokenManager
-    OtherServices --> TokenManager
-    BasePlatformAuth --> TokenManager
+    AuthService --> NearAuthService
+    OtherServices --> NearAuthService
+    BasePlatformAuth --> NearAuthService
     BasePlatformAuth --> PlatformClient
 
-    TokenManager --> NearAuthService
-    TokenManager --> TokenStorage
+    NearAuthService --> NearAuthService
+    NearAuthService --> TokenStorage
 
-    PlatformClient -- Token Refresh Callback --> TokenManager
+    PlatformClient -- Token Refresh Callback --> NearAuthService
 ```
 
 Key components of this pattern:
 
-- **TokenManager**: Central coordinator for all token operations. Interacts with `TokenStorage` for persistence and `NearAuthService` for linking/authorization. Provides a unified interface for services and platform layers.
-- **TokenStorage**: Responsible for securely storing (encrypting) and retrieving platform `AuthToken` data, keyed by `userId` and `platform`.
-- **NearAuthService**: Manages NEAR account authorization status and the mapping between `signerId` (NEAR account) and platform accounts (`userId`, `platform`). Does *not* store actual tokens.
-- **AuthService/Other Domain Services**: Utilize `TokenManager` to get/save tokens and check access based on `signerId`.
-- **BasePlatformAuth**: Uses `TokenManager` to retrieve tokens needed for platform interactions and potentially trigger refreshes.
-- **PlatformClient**: May trigger token updates back to `TokenManager` via callbacks (e.g., from auto-refresh plugins).
+- **NearAuthService**: Central coordinator for all token operations. Interacts with `TokenStorage`
+  for persistence and `NearAuthService` for linking/authorization. Provides a unified interface for
+  services and platform layers.
+- **TokenStorage**: Responsible for securely storing (encrypting) and retrieving platform
+  `AuthToken` data, keyed by `userId` and `platform`.
+- **NearAuthService**: Manages NEAR account authorization status and the mapping between `signerId`
+  (NEAR account) and platform accounts (`userId`, `platform`). Does _not_ store actual tokens.
+- **AuthService/Other Domain Services**: Utilize `NearAuthService` to get/save tokens and check
+  access based on `signerId`.
+- **BasePlatformAuth**: Uses `NearAuthService` to retrieve tokens needed for platform interactions
+  and potentially trigger refreshes.
+- **PlatformClient**: May trigger token updates back to `NearAuthService` via callbacks (e.g., from
+  auto-refresh plugins).
 
 This pattern ensures:
 
-- Clear separation of concerns: Token storage, NEAR linking, and platform interaction logic are distinct.
-- Single point of access for token operations via `TokenManager`.
+- Clear separation of concerns: Token storage, NEAR linking, and platform interaction logic are
+  distinct.
+- Single point of access for token operations via `NearAuthService`.
 - Secure token persistence via `TokenStorage`.
 - Centralized NEAR account linking and authorization via `NearAuthService`.
 - Improved testability by isolating dependencies.
 
 ### 3. Centralized Schema and Type Pattern
 
-The system implements a Centralized Schema and Type pattern that provides a single source of truth for both TypeScript types and Zod schemas. TypeScript types are derived from Zod schemas using `z.infer<typeof schemaName>`, ensuring consistency between validation and type checking.
+The system implements a Centralized Schema and Type pattern that provides a single source of truth
+for both TypeScript types and Zod schemas. TypeScript types are derived from Zod schemas using
+`z.infer<typeof schemaName>`, ensuring consistency between validation and type checking.
 
 ```mermaid
 flowchart TD
@@ -185,6 +197,7 @@ flowchart TD
 ```
 
 This pattern ensures:
+
 - Single source of truth for data models
 - Consistency between validation and type checking
 - Reduced maintenance overhead
@@ -323,3 +336,4 @@ flowchart TD
     RetryOrFail --> ReturnError
     ReturnDetails --> ReturnError
     LogAndAlert --> ReturnError
+```

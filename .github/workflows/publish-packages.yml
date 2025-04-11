@@ -10,23 +10,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      
+
       - name: Install dependencies
         run: |
           cd packages
           bun install
-      
+
       # Build and publish all packages
       - name: Build packages
         run: |
           cd packages
           bun run build:all
-      
+
       # Publish types package
       - name: Publish @crosspost/types
         env:
@@ -35,7 +35,7 @@ jobs:
           cd packages/types
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
           npm publish --access public
-      
+
       # Publish sdk package
       - name: Publish @crosspost/sdk
         env:

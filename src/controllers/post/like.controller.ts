@@ -1,4 +1,4 @@
-import { LikePostRequest, createSuccessDetail } from '@crosspost/types';
+import { createSuccessDetail, LikePostRequest } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
@@ -43,7 +43,7 @@ export class LikeController extends BasePostController {
           const likeResult = await this.postService.likePost(
             request.platform, // Platform of the post being liked
             target.userId,
-            request.postId
+            request.postId,
           );
 
           // Return success detail
@@ -55,7 +55,7 @@ export class LikeController extends BasePostController {
               success: likeResult.success,
             },
           );
-        }
+        },
       );
 
       return this.createMultiStatusResponse(c, successResults, errorDetails);

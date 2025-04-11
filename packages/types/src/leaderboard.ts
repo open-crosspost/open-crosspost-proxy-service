@@ -4,15 +4,17 @@
  * TypeScript types are derived from Zod schemas for type safety
  */
 
-import { z } from "zod";
-import { EnhancedResponseSchema } from "./response.ts";
-import { PlatformSchema } from "./common.ts";
+import { z } from 'zod';
+import { EnhancedResponseSchema } from './response.ts';
+import { PlatformSchema } from './common.ts';
 
 /**
  * Leaderboard query schema
  */
 export const LeaderboardQuerySchema = z.object({
-  timeframe: z.enum(['day', 'week', 'month', 'all']).optional().describe('Timeframe for the leaderboard'),
+  timeframe: z.enum(['day', 'week', 'month', 'all']).optional().describe(
+    'Timeframe for the leaderboard',
+  ),
   limit: z.string().optional()
     .transform((val) => val ? parseInt(val, 10) : undefined)
     .pipe(z.number().min(1).max(100).optional())
@@ -49,7 +51,7 @@ export const LeaderboardResponseSchema = EnhancedResponseSchema(
     limit: z.number().describe('Maximum number of results returned'),
     offset: z.number().describe('Offset for pagination'),
     generatedAt: z.string().datetime().describe('Timestamp when the leaderboard was generated'),
-  })
+  }),
 ).describe('Leaderboard response');
 
 /**
@@ -63,7 +65,9 @@ export const AccountActivityParamsSchema = z.object({
  * Account activity query schema
  */
 export const AccountActivityQuerySchema = z.object({
-  timeframe: z.enum(['day', 'week', 'month', 'all']).optional().describe('Timeframe for the activity'),
+  timeframe: z.enum(['day', 'week', 'month', 'all']).optional().describe(
+    'Timeframe for the activity',
+  ),
 }).describe('Account activity query');
 
 /**
@@ -96,7 +100,7 @@ export const AccountActivityResponseSchema = EnhancedResponseSchema(
     rank: z.number().describe('Rank on the leaderboard'),
     lastActive: z.string().datetime().describe('Timestamp of last activity across all platforms'),
     platforms: z.array(PlatformActivitySchema).describe('Activity breakdown by platform'),
-  })
+  }),
 ).describe('Account activity response');
 
 /**
@@ -119,7 +123,9 @@ export const AccountPostsQuerySchema = z.object({
     .transform((val) => val ? parseInt(val, 10) : undefined)
     .pipe(z.number().min(0).optional())
     .describe('Offset for pagination'),
-  type: z.enum(['post', 'repost', 'reply', 'quote', 'like', 'all']).optional().describe('Filter by post type (optional)'),
+  type: z.enum(['post', 'repost', 'reply', 'quote', 'like', 'all']).optional().describe(
+    'Filter by post type (optional)',
+  ),
 }).describe('Account posts query');
 
 /**
@@ -153,8 +159,10 @@ export const AccountPostsResponseSchema = EnhancedResponseSchema(
     limit: z.number().describe('Maximum number of results returned'),
     offset: z.number().describe('Offset for pagination'),
     platform: z.string().optional().describe('Platform filter (if applied)'),
-    type: z.enum(['post', 'repost', 'reply', 'quote', 'like', 'all']).optional().describe('Post type filter (if applied)'),
-  })
+    type: z.enum(['post', 'repost', 'reply', 'quote', 'like', 'all']).optional().describe(
+      'Post type filter (if applied)',
+    ),
+  }),
 ).describe('Account posts response');
 
 // Derive TypeScript types from Zod schemas

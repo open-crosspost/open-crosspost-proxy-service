@@ -68,7 +68,7 @@ export class CreateController extends BasePostController {
               threadIds: result.threadIds,
             },
           );
-        }
+        },
       );
 
       // Create a multi-status response using the base controller method

@@ -43,7 +43,7 @@ export class RepostController extends BasePostController {
           const repostResult = await this.postService.repost(
             request.platform, // Platform of the post being reposted
             target.userId,
-            request.postId
+            request.postId,
           );
 
           // Track the post for activity tracking
@@ -63,7 +63,7 @@ export class RepostController extends BasePostController {
               success: repostResult.success,
             },
           );
-        }
+        },
       );
 
       return this.createMultiStatusResponse(c, successResults, errorDetails);

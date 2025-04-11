@@ -1,14 +1,15 @@
-import { 
-  createEnhancedErrorResponse, 
-  createErrorDetail, 
-  ErrorDetail,
+import {
+  ApiError,
   ApiErrorCode,
   BaseError,
-  ApiError,
-  PlatformError
+  createEnhancedErrorResponse,
+  createErrorDetail,
+  ErrorDetail,
+  PlatformError,
 } from '@crosspost/types';
 import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.ts';
 import type { StatusCode } from 'hono/utils/http-status';
+import { getStatusCodeForError } from '../utils/error-handling.utils.ts';
 
 /**
  * Error middleware for Hono
@@ -39,7 +40,10 @@ export const errorMiddleware = (): MiddlewareHandler => {
 
       // Handle our new ApiError
       if (err instanceof ApiError) {
-        c.status(err.status as StatusCode);
+        // Use the status from the error or get it from our map
+        const statusCode = err.status || getStatusCodeForError(err.code);
+        c.status(statusCode as StatusCode);
+
         return c.json(
           createEnhancedErrorResponse([
             createErrorDetail(
@@ -56,7 +60,10 @@ export const errorMiddleware = (): MiddlewareHandler => {
 
       // Handle our new PlatformError
       if (err instanceof PlatformError) {
-        c.status((err.status || 500) as StatusCode);
+        // Use the status from the error or get it from our map
+        const statusCode = err.status || getStatusCodeForError(err.code);
+        c.status(statusCode as StatusCode);
+
         return c.json(
           createEnhancedErrorResponse([
             createErrorDetail(
@@ -102,6 +109,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
 
       // Handle other BaseError types
       if (err instanceof BaseError) {
+        c.status(500);
         return c.json(
           createEnhancedErrorResponse([
             createErrorDetail(
@@ -112,12 +120,12 @@ export const errorMiddleware = (): MiddlewareHandler => {
               undefined,
             ),
           ]),
-          500,
         );
       }
 
       // Handle standard Error objects
       if (err instanceof Error) {
+        c.status(500);
         return c.json(
           createEnhancedErrorResponse([
             createErrorDetail(
@@ -128,11 +136,11 @@ export const errorMiddleware = (): MiddlewareHandler => {
               undefined,
             ),
           ]),
-          500,
         );
       }
 
       // Handle unknown errors
+      c.status(500);
       return c.json(
         createEnhancedErrorResponse([
           createErrorDetail(
@@ -143,7 +151,6 @@ export const errorMiddleware = (): MiddlewareHandler => {
             undefined,
           ),
         ]),
-        500,
       );
     }
   };

@@ -1,9 +1,9 @@
-import { Context } from "../../deps.ts";
-import { PlatformName, PostResult } from "@crosspost/types";
-import { ActivityTrackingService } from "../../src/domain/services/activity-tracking.service.ts";
-import { AuthService } from "../../src/domain/services/auth.service.ts";
-import { PostService } from "../../src/domain/services/post.service.ts";
-import { RateLimitService } from "../../src/domain/services/rate-limit.service.ts";
+import { PlatformName, PostResult } from '@crosspost/types';
+import { Context } from '../../deps.ts';
+import { ActivityTrackingService } from '../../src/domain/services/activity-tracking.service.ts';
+import { AuthService } from '../../src/domain/services/auth.service.ts';
+import { PostService } from '../../src/domain/services/post.service.ts';
+import { RateLimitService } from '../../src/domain/services/rate-limit.service.ts';
 
 /**
  * Create a mock context for testing
@@ -16,17 +16,48 @@ export function createMockContext(options: {
   params?: Record<string, string>;
   headers?: Record<string, string>;
 } = {}): Context {
+  // Create default Authorization header with NEAR signature if signerId is provided
+  const defaultHeaders: Record<string, string> = {};
+  if (options.signerId) {
+    const nearAuthData = {
+      account_id: options.signerId,
+      public_key: 'ed25519:mock-public-key',
+      signature: 'mock-signature',
+      message: 'mock-message',
+      nonce: 'mock-nonce',
+      recipient: 'crosspost.near',
+    };
+    defaultHeaders['Authorization'] = `Bearer ${JSON.stringify(nearAuthData)}`;
+  }
+
+  // Merge default headers with provided headers
+  const mergedHeaders = { ...defaultHeaders, ...(options.headers || {}) };
+
   const c = {
     // Mock basic context properties
     req: {
-      url: "https://example.com",
-      method: "GET",
-      headers: new Headers(options.headers || {}),
+      url: 'https://example.com',
+      method: 'GET',
+      headers: new Headers(mergedHeaders),
+      header: (name: string) => {
+        return mergedHeaders[name] || null;
+      },
+      query: (param: string) => {
+        // Mock implementation for query parameters
+        if (param === 'userId' && options.params?.userId) {
+          return options.params.userId;
+        }
+        return null;
+      },
+      json: async () => {
+        // Return the mock request body if _json is set, otherwise return validatedBody
+        return (c.req as any)._json || options.validatedBody || {};
+      },
     },
     // Mock context methods
     get: (key: string) => {
-      if (key === "signerId") return options.signerId || "test.near";
-      if (key === "validatedBody") return options.validatedBody || {};
+      if (key === 'signerId') return options.signerId || 'test.near';
+      if (key === 'validatedBody') return options.validatedBody || {};
       return undefined;
     },
     set: (key: string, value: unknown) => {},
@@ -37,15 +68,22 @@ export function createMockContext(options: {
     },
     json: (data: unknown) => {
       // Create a response with the stored status code
-      return new Response(JSON.stringify(data), { 
+      return new Response(JSON.stringify(data), {
         status: (c as any)._status || 200,
-        headers: { "Content-Type": "application/json" } 
+        headers: { 'Content-Type': 'application/json' },
+      });
+    },
+    redirect: (url: string) => {
+      // Create a redirect response
+      return new Response(null, {
+        status: 302,
+        headers: { 'Location': url },
       });
     },
     // Add params if provided
     params: options.params || {},
   } as unknown as Context;
-  
+
   return c;
 }
 
@@ -72,20 +110,22 @@ export function createMockServices() {
         createdAt: new Date().toISOString(),
         success: true,
       } as PostResult);
-    }
+    },
   };
 
   const mockAuthService = {
-    hasAccess: (_signerId: string, _platform: PlatformName, _userId: string) => Promise.resolve(true),
-    getTokensForUser: () => Promise.resolve({ accessToken: "mock-token" })
+    hasAccess: (_signerId: string, _platform: PlatformName, _userId: string) =>
+      Promise.resolve(true),
+    getTokensForUser: () => Promise.resolve({ accessToken: 'mock-token' }),
   };
 
   const mockRateLimitService = {
-    canPerformAction: (_platform: PlatformName, _action?: string) => Promise.resolve(true)
+    canPerformAction: (_platform: PlatformName, _action?: string) => Promise.resolve(true),
   };
 
   const mockActivityTrackingService = {
-    trackPost: (_signerId: string, _platform: PlatformName, _userId: string, _postId: string) => Promise.resolve()
+    trackPost: (_signerId: string, _platform: PlatformName, _userId: string, _postId: string) =>
+      Promise.resolve(),
   };
 
   return {
@@ -105,8 +145,8 @@ export function createRateLimitErrorServices() {
   return {
     ...services,
     rateLimitService: {
-      canPerformAction: () => Promise.resolve(false)
-    } as unknown as RateLimitService
+      canPerformAction: () => Promise.resolve(false),
+    } as unknown as RateLimitService,
   };
 }
 
@@ -120,8 +160,8 @@ export function createAuthErrorServices() {
     ...services,
     authService: {
       hasAccess: () => Promise.resolve(false),
-      getTokensForUser: () => Promise.resolve({ accessToken: "mock-token" })
-    } as unknown as AuthService
+      getTokensForUser: () => Promise.resolve({ accessToken: 'mock-token' }),
+    } as unknown as AuthService,
   };
 }
 
@@ -135,7 +175,7 @@ export function createPlatformErrorServices(error: Error) {
   return {
     ...services,
     postService: {
-      createPost: () => Promise.reject(error)
-    } as unknown as PostService
+      createPost: () => Promise.reject(error),
+    } as unknown as PostService,
   };
 }

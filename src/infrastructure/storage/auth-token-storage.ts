@@ -32,7 +32,7 @@ export class TokenStorage {
   constructor(
     private encryptionKey: string,
     private tokenStore: PrefixedKvStore,
-    private logger: TokenAccessLogger
+    private logger: TokenAccessLogger,
   ) {}
 
   /**
@@ -49,12 +49,12 @@ export class TokenStorage {
 
       if (!encryptedTokens) {
         await this.logger.logAccess(TokenOperation.GET, userId, false, 'Tokens not found');
-        
+
         const error = new Error(`Tokens not found for user ${userId} on platform ${platform}`);
-        error.name = "TokenNotFoundError";
+        error.name = 'TokenNotFoundError';
         (error as any).userId = userId;
         (error as any).platform = platform;
-        
+
         throw error;
       }
 
@@ -74,10 +74,10 @@ export class TokenStorage {
         error instanceof Error ? error.message : 'Unknown error',
       );
       console.error('Error getting tokens:', error);
-      
+
       const enhancedError = new Error('Failed to retrieve tokens');
-      enhancedError.name = "TokenRetrievalError";
-      
+      enhancedError.name = 'TokenRetrievalError';
+
       throw enhancedError;
     }
   }

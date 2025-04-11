@@ -4,15 +4,17 @@
  * TypeScript types are derived from Zod schemas for type safety
  */
 
-import { z } from "zod";
-import { EnhancedResponseSchema } from "./response.ts";
-import { PlatformSchema } from "./common.ts";
+import { z } from 'zod';
+import { EnhancedResponseSchema } from './response.ts';
+import { PlatformSchema } from './common.ts';
 
 /**
  * Rate limit endpoint parameter schema
  */
 export const RateLimitEndpointParamSchema = z.object({
-  endpoint: z.string().optional().describe('Specific endpoint to get rate limit information for (optional)'),
+  endpoint: z.string().optional().describe(
+    'Specific endpoint to get rate limit information for (optional)',
+  ),
 }).describe('Rate limit endpoint parameter');
 
 /**
@@ -43,7 +45,9 @@ export const RateLimitStatusSchema = z.object({
  */
 export const PlatformRateLimitSchema = z.object({
   platform: PlatformSchema,
-  endpoints: z.record(z.string(), RateLimitStatusSchema).describe('Rate limit status for each endpoint'),
+  endpoints: z.record(z.string(), RateLimitStatusSchema).describe(
+    'Rate limit status for each endpoint',
+  ),
 }).describe('Platform-specific rate limit');
 
 /**
@@ -86,7 +90,9 @@ export const AllRateLimitsResponseSchema = EnhancedResponseSchema(
         users: z.record(
           z.string(),
           z.object({
-            endpoints: z.array(RateLimitEndpointSchema).describe('Rate limits for specific endpoints'),
+            endpoints: z.array(RateLimitEndpointSchema).describe(
+              'Rate limits for specific endpoints',
+            ),
             lastUpdated: z.string().describe('Last updated date (ISO string)'),
           }),
         ).describe('User-specific rate limits'),
@@ -106,7 +112,9 @@ export const AllRateLimitsResponseSchema = EnhancedResponseSchema(
  */
 export const RateLimitResponseSchema = z.object({
   platformLimits: z.array(PlatformRateLimitSchema).describe('Platform-specific rate limits'),
-  usageLimits: z.record(z.string(), UsageRateLimitSchema).describe('Usage-based rate limits for the NEAR account'),
+  usageLimits: z.record(z.string(), UsageRateLimitSchema).describe(
+    'Usage-based rate limits for the NEAR account',
+  ),
   signerId: z.string().describe('NEAR account ID'),
 }).describe('Rate limit response');
 

@@ -1,5 +1,5 @@
 import { Context } from '../../../deps.ts';
-import { ReplyToPostRequest, createSuccessDetail } from '@crosspost/types';
+import { createSuccessDetail, ReplyToPostRequest } from '@crosspost/types';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
@@ -66,7 +66,7 @@ export class ReplyController extends BasePostController {
               inReplyToId: request.postId,
             },
           );
-        }
+        },
       );
 
       // Create a multi-status response using the base controller method

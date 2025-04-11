@@ -2,13 +2,15 @@
 
 ## Overview
 
-The Crosspost API includes a comprehensive SDK architecture that consists of three separate packages:
+The Crosspost API includes a comprehensive SDK architecture that consists of three separate
+packages:
 
 1. **@crosspost/types** - Shared type definitions
 2. **@crosspost/near-simple-signing** - NEAR signature generation utility
 3. **@crosspost/sdk** - Main API client SDK
 
-This architecture provides a modular approach to interacting with the Crosspost API, allowing developers to use only the components they need.
+This architecture provides a modular approach to interacting with the Crosspost API, allowing
+developers to use only the components they need.
 
 ## Package: @crosspost/types
 
@@ -44,7 +46,8 @@ This package contains shared TypeScript type definitions used across the Crosspo
 
 ## Package: @crosspost/near-simple-signing
 
-This package provides a simple way to generate NEAR wallet signatures for authentication with the Crosspost API.
+This package provides a simple way to generate NEAR wallet signatures for authentication with the
+Crosspost API.
 
 ### Directory Structure
 
@@ -123,7 +126,7 @@ import { NearSigner } from '@crosspost/near-simple-signing';
 const signer = new NearSigner({
   networkId: 'testnet',
   nodeUrl: 'https://rpc.testnet.near.org',
-  walletUrl: 'https://wallet.testnet.near.org'
+  walletUrl: 'https://wallet.testnet.near.org',
 });
 
 // Connect to NEAR wallet
@@ -134,15 +137,15 @@ const client = new CrosspostClient({
   baseUrl: 'https://api.crosspost.example',
   auth: {
     type: 'near',
-    signer: signer
-  }
+    signer: signer,
+  },
 });
 
 // Use the Twitter client to create a post
 const response = await client.twitter.createPost({
   content: {
-    text: 'Hello from Crosspost SDK!'
-  }
+    text: 'Hello from Crosspost SDK!',
+  },
 });
 ```
 

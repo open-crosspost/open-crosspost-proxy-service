@@ -69,18 +69,18 @@ deno task cache
 
 The project uses the following environment variables, which should be configured in Deno Deploy:
 
-| Variable                 | Purpose                                                    |
-| ------------------------ | ---------------------------------------------------------- |
-| TWITTER_CLIENT_ID        | Twitter OAuth client ID                                    |
-| TWITTER_CLIENT_SECRET    | Twitter OAuth client secret                                |
-| TWITTER_API_KEY          | Twitter API key (for OAuth 1.0a)                           |
-| TWITTER_API_SECRET       | Twitter API secret (for OAuth 1.0a)                        |
-| TWITTER_ACCESS_TOKEN     | Twitter access token (for OAuth 1.0a)                      |
-| TWITTER_ACCESS_SECRET    | Twitter access secret (for OAuth 1.0a)                     |
-| ENCRYPTION_KEY           | Key for encrypting stored tokens                           |
-| ALLOWED_ORIGINS          | Comma-separated list of allowed CORS origins               |
-| API_KEYS                 | JSON string of valid API keys and their associated origins |
-| ENVIRONMENT              | Current environment (development, staging, production)     |
+| Variable              | Purpose                                                    |
+| --------------------- | ---------------------------------------------------------- |
+| TWITTER_CLIENT_ID     | Twitter OAuth client ID                                    |
+| TWITTER_CLIENT_SECRET | Twitter OAuth client secret                                |
+| TWITTER_API_KEY       | Twitter API key (for OAuth 1.0a)                           |
+| TWITTER_API_SECRET    | Twitter API secret (for OAuth 1.0a)                        |
+| TWITTER_ACCESS_TOKEN  | Twitter access token (for OAuth 1.0a)                      |
+| TWITTER_ACCESS_SECRET | Twitter access secret (for OAuth 1.0a)                     |
+| ENCRYPTION_KEY        | Key for encrypting stored tokens                           |
+| ALLOWED_ORIGINS       | Comma-separated list of allowed CORS origins               |
+| API_KEYS              | JSON string of valid API keys and their associated origins |
+| ENVIRONMENT           | Current environment (development, staging, production)     |
 
 ## Technical Constraints
 

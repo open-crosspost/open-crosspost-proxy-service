@@ -1,7 +1,6 @@
 import type { StatusCode } from 'hono/utils/http-status';
 import { BaseError } from './base-error.ts';
 
-
 /**
  * API Error codes for standardized error identification
  */

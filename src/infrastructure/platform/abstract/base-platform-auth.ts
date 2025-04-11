@@ -3,7 +3,7 @@ import type { StatusCode } from 'hono/utils/http-status';
 import { Env } from '../../../config/env.ts';
 import { enhanceErrorWithContext } from '../../../utils/error-handling.utils.ts';
 import { PrefixedKvStore } from '../../../utils/kv-store.utils.ts';
-import { TokenManager } from '../../security/token-manager.ts';
+import { NearAuthService } from '../../security/near-auth-service.ts';
 import { AuthToken } from '../../storage/auth-token-storage.ts';
 import { AuthState, PlatformAuth } from './platform-auth.interface.ts';
 import { PlatformClient } from './platform-client.interface.ts';
@@ -17,14 +17,14 @@ export abstract class BasePlatformAuth implements PlatformAuth {
    * Create a new base platform auth
    * @param env Environment configuration
    * @param platform Platform name (e.g., 'twitter')
-   * @param tokenManager Token manager for handling tokens
+   * @param nearAuthService Token manager for handling tokens
    * @param kvStore KV store for auth state
    */
   constructor(
-    protected env: Env, 
+    protected env: Env,
     protected platform: PlatformName,
-    protected tokenManager: TokenManager,
-    protected kvStore: PrefixedKvStore
+    protected nearAuthService: NearAuthService,
+    protected kvStore: PrefixedKvStore,
   ) {}
 
   /**
@@ -34,7 +34,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
    */
   protected async handleTokenRefresh(userId: string, token: AuthToken): Promise<void> {
     // Save the new tokens using the token manager
-    await this.tokenManager.saveTokens(userId, this.platform, token);
+    await this.nearAuthService.saveTokens(userId, this.platform, token);
   }
 
   /**
@@ -46,7 +46,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
   async getTokensForUser(userId: string): Promise<AuthToken> {
     try {
       // Get tokens from token manager
-      const tokens = await this.tokenManager.getTokens(userId, this.platform);
+      const tokens = await this.nearAuthService.getTokens(userId, this.platform);
 
       // Check if tokens are expired and need refresh
       if (tokens.expiresAt && tokens.expiresAt < Date.now() && tokens.refreshToken) {
@@ -70,7 +70,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
   async deleteTokensForUser(userId: string): Promise<void> {
     try {
       // Delete tokens using the token manager
-      await this.tokenManager.deleteTokens(userId, this.platform);
+      await this.nearAuthService.deleteTokens(userId, this.platform);
     } catch (error) {
       console.error(`Error deleting tokens for ${userId}:`, error);
       // Don't throw - deletion errors should not block the application
@@ -90,10 +90,10 @@ export abstract class BasePlatformAuth implements PlatformAuth {
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }>;
 
   /**
-     * Get the auth state data from storage
-     * @param state The state parameter from the callback
-     * @returns The auth state data including successUrl and errorUrl
-     */
+   * Get the auth state data from storage
+   * @param state The state parameter from the callback
+   * @returns The auth state data including successUrl and errorUrl
+   */
   async getAuthState(
     state: string,
   ): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
@@ -171,10 +171,10 @@ export abstract class BasePlatformAuth implements PlatformAuth {
   ): Promise<void> {
     try {
       // Save tokens to token storage
-      await this.tokenManager.saveTokens(userId, this.platform, token);
+      await this.nearAuthService.saveTokens(userId, this.platform, token);
 
       // Link the account in NEAR auth service
-      await this.tokenManager.linkAccount(signerId, this.platform, userId);
+      await this.nearAuthService.linkAccount(signerId, this.platform, userId);
 
       console.log(`Linked ${this.platform} account ${userId} to NEAR wallet ${signerId}`);
     } catch (error) {
@@ -208,7 +208,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
   async refreshToken(userId: string): Promise<any> {
     try {
       // Get current tokens
-      const tokens = await this.tokenManager.getTokens(userId, this.platform);
+      const tokens = await this.nearAuthService.getTokens(userId, this.platform);
 
       if (!tokens.refreshToken) {
         throw new PlatformError(
@@ -227,7 +227,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
         const newTokens = await client.refreshPlatformToken(tokens.refreshToken);
 
         // Save new tokens
-        await this.tokenManager.saveTokens(userId, this.platform, newTokens);
+        await this.nearAuthService.saveTokens(userId, this.platform, newTokens);
 
         return newTokens;
       } catch (error) {
@@ -235,7 +235,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
         if (error instanceof PlatformError) {
           if (error.code === ApiErrorCode.UNAUTHORIZED) {
             // If the token is invalid (UNAUTHORIZED), delete it
-            await this.tokenManager.deleteTokens(userId, this.platform);
+            await this.nearAuthService.deleteTokens(userId, this.platform);
           }
           throw enhanceErrorWithContext(error, 'refreshToken');
         }
@@ -263,7 +263,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
   async revokeToken(userId: string): Promise<boolean> {
     try {
       // Get current tokens
-      const tokens = await this.tokenManager.getTokens(userId, this.platform);
+      const tokens = await this.nearAuthService.getTokens(userId, this.platform);
 
       // Get platform client
       const client = this.getPlatformClient();
@@ -277,7 +277,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
       }
 
       // Delete tokens from storage using token manager
-      await this.tokenManager.deleteTokens(userId, this.platform);
+      await this.nearAuthService.deleteTokens(userId, this.platform);
 
       return true;
     } catch (error) {
@@ -307,7 +307,10 @@ export abstract class BasePlatformAuth implements PlatformAuth {
    * @throws PlatformError with appropriate type
    */
   protected handleAuthError(error: unknown, context = '', userId?: string): PlatformError {
-    console.error(`Auth Error ${context ? `(${context})` : ''} for user ${userId || 'unknown'}:`, error);
+    console.error(
+      `Auth Error ${context ? `(${context})` : ''} for user ${userId || 'unknown'}:`,
+      error,
+    );
 
     // If it's already a PlatformError, just return it
     if (error instanceof PlatformError) {
@@ -351,8 +354,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
         message = 'Network error occurred while authenticating';
         recoverable = true; // Network errors are often recoverable
         status = 502; // Bad Gateway often indicates upstream network issues
-      }
-      // Use err.status if available and not already handled (e.g., rate limit)
+      } // Use err.status if available and not already handled (e.g., rate limit)
       else if (typeof err.status === 'number' && !status) {
         status = err.status;
       }
@@ -366,7 +368,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
       error, // Pass the original error object
       status as StatusCode | undefined,
       userId,
-      undefined
+      undefined,
     );
   }
 }

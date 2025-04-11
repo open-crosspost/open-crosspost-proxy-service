@@ -21,7 +21,7 @@ export interface TokenAccessLog {
 export class TokenAccessLogger {
   constructor(
     private env: Env,
-    private logStore: PrefixedKvStore
+    private logStore: PrefixedKvStore,
   ) {}
 
   /**

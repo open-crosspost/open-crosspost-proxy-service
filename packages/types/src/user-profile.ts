@@ -4,9 +4,9 @@
  * TypeScript types are derived from Zod schemas for type safety
  */
 
-import { z } from "zod";
-import { PlatformSchema } from "./common.ts";
-import { EnhancedResponseSchema } from "./response.ts";
+import { z } from 'zod';
+import { PlatformSchema } from './common.ts';
+import { EnhancedResponseSchema } from './response.ts';
 
 /**
  * User profile schema
@@ -34,7 +34,7 @@ export const ProfileRefreshResultSchema = z.object({
  * Profile refresh response schema
  */
 export const ProfileRefreshResponseSchema = EnhancedResponseSchema(
-  ProfileRefreshResultSchema
+  ProfileRefreshResultSchema,
 ).describe('Profile refresh response');
 
 // Derive TypeScript types from Zod schemas

@@ -43,7 +43,7 @@ export class UnlikeController extends BasePostController {
           const unlikeResult = await this.postService.unlikePost(
             request.platform, // Platform of the post being unliked
             target.userId,
-            request.postId
+            request.postId,
           );
 
           // Return success detail
@@ -55,7 +55,7 @@ export class UnlikeController extends BasePostController {
               success: unlikeResult.success,
             },
           );
-        }
+        },
       );
 
       return this.createMultiStatusResponse(c, successResults, errorDetails);

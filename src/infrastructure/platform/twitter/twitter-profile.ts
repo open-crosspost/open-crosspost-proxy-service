@@ -13,7 +13,7 @@ export class TwitterProfile implements PlatformProfile {
   constructor(
     private env: Env,
     private twitterClient: TwitterClient,
-    private profileStorage: UserProfileStorage
+    private profileStorage: UserProfileStorage,
   ) {}
 
   /**

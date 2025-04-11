@@ -1,7 +1,7 @@
 import { TwitterClient } from '../../../src/infrastructure/platform/twitter/twitter-client.ts';
 import { AuthToken, TokenType } from '../../../src/infrastructure/storage/auth-token-storage.ts';
+import { MockNearAuthService, mockToken } from './../near-auth-service-mock.ts';
 import { createMockTwitterApi } from './twitter-api-mock.ts';
-import { tokenManagerMock } from '../token-manager-mock.ts';
 
 /**
  * Mock Twitter Client for testing
@@ -10,6 +10,7 @@ import { tokenManagerMock } from '../token-manager-mock.ts';
 export class TwitterClientMock extends TwitterClient {
   private mockTokens: Map<string, AuthToken> = new Map();
   private errorScenario?: string;
+  private mockNearAuthService: MockNearAuthService;
 
   /**
    * Constructor
@@ -17,7 +18,11 @@ export class TwitterClientMock extends TwitterClient {
    * @param errorScenario Optional error scenario to simulate
    */
   constructor(env: any, errorScenario?: string) {
-    super(env);
+    // Create a mock NearAuthService instance
+    const mockNearAuthService = new MockNearAuthService(env);
+    super(env, mockNearAuthService as any);
+
+    this.mockNearAuthService = mockNearAuthService;
     this.errorScenario = errorScenario;
   }
 
@@ -42,8 +47,8 @@ export class TwitterClientMock extends TwitterClient {
       throw new Error('Failed to get client for user');
     }
 
-    // Get tokens from the token manager mock
-    await tokenManagerMock.getTokens(userId, "twitter");
+    // Use the mock token directly
+    const token = this.mockTokens.get(userId) || mockToken;
 
     // Return a mock Twitter API client
     return createMockTwitterApi(userId, this.errorScenario);
@@ -62,9 +67,13 @@ export class TwitterClientMock extends TwitterClient {
       throw new Error('Failed to get auth URL');
     }
 
-    return `https://x.com/i/oauth2/authorize?client_id=mock&redirect_uri=${encodeURIComponent(
-      redirectUri
-    )}&state=${state}&scope=${scopes.join('%20')}&response_type=code&code_challenge=mock&code_challenge_method=S256`;
+    return `https://x.com/i/oauth2/authorize?client_id=mock&redirect_uri=${
+      encodeURIComponent(
+        redirectUri,
+      )
+    }&state=${state}&scope=${
+      scopes.join('%20')
+    }&response_type=code&code_challenge=mock&code_challenge_method=S256`;
   }
 
   /**

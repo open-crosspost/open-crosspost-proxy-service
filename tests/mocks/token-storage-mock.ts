@@ -1,16 +1,16 @@
-import { AuthToken, TokenType } from "../../src/infrastructure/storage/auth-token-storage.ts";
-import { PlatformName } from "@crosspost/types";
-import { mockToken } from "./near-auth-service-mock.ts";
+import { AuthToken, TokenType } from '../../src/infrastructure/storage/auth-token-storage.ts';
+import { PlatformName } from '@crosspost/types';
+import { mockToken } from './near-auth-service-mock.ts';
 
 /**
  * Mock implementation of the TokenStorage class for testing
  */
 export class TokenStorageMock {
   private tokens: Map<string, AuthToken> = new Map();
-  
+
   constructor() {
     // Initialize with default mock token for test-user-id on twitter
-    this.tokens.set("twitter:test-user-id", mockToken);
+    this.tokens.set('twitter:test-user-id', mockToken);
   }
 
   /**
@@ -20,19 +20,18 @@ export class TokenStorageMock {
    * @returns The user's tokens
    */
   async getTokens(userId: string, platform: PlatformName): Promise<AuthToken> {
-    
     const key = `${platform}:${userId}`;
     const token = this.tokens.get(key);
-    
+
     if (!token) {
       const error = new Error(`Tokens not found for user ${userId} on platform ${platform}`);
-      error.name = "TokenNotFoundError";
+      error.name = 'TokenNotFoundError';
       (error as any).userId = userId;
       (error as any).platform = platform;
-      (error as any).details = { userId, platform, operation: "getTokens" };
+      (error as any).details = { userId, platform, operation: 'getTokens' };
       throw error;
     }
-    
+
     return token;
   }
 

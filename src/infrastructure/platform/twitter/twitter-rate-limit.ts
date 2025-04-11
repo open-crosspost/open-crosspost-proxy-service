@@ -46,7 +46,7 @@ export class TwitterRateLimit implements PlatformRateLimit {
       const resetDate = new Date(rateLimitData.reset * 1000);
       const now = new Date();
       const resetSeconds = Math.max(0, Math.floor((resetDate.getTime() - now.getTime()) / 1000));
-      
+
       return {
         limit: rateLimitData.limit,
         remaining: rateLimitData.remaining,

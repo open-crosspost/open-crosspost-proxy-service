@@ -13,7 +13,7 @@ export class RateLimitService {
 
   constructor(env: Env, platformRateLimits?: Map<PlatformName, PlatformRateLimit>) {
     this.env = env;
-    
+
     if (platformRateLimits) {
       // Use the provided platform rate limits map
       this.platformRateLimits = platformRateLimits;

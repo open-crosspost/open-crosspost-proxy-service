@@ -4,7 +4,8 @@ Shared type definitions for the Crosspost API ecosystem.
 
 ## Overview
 
-This package contains TypeScript type definitions used across the Crosspost API ecosystem, including:
+This package contains TypeScript type definitions used across the Crosspost API ecosystem,
+including:
 
 - Common types (PlatformName, ApiErrorCode, etc.)
 - Request types for all API endpoints
@@ -32,24 +33,24 @@ bun add @crosspost/types
 
 ```typescript
 // Import from JSR
-import { PlatformName } from "@crosspost/types";
+import { PlatformName } from '@crosspost/types';
 
 // Or import directly from GitHub
-import { PlatformName } from "https://raw.githubusercontent.com/your-org/crosspost/main/packages/types/mod.ts";
+import { PlatformName } from 'https://raw.githubusercontent.com/your-org/crosspost/main/packages/types/mod.ts';
 ```
 
 ## Usage
 
 ```typescript
-import { PlatformName, CreatePostRequest, CreatePostResponse } from "@crosspost/types";
+import { CreatePostRequest, CreatePostResponse, PlatformName } from '@crosspost/types';
 
 // Use the types in your code
-const platform: PlatformName = "twitter";
+const platform: PlatformName = 'twitter';
 
 const request: CreatePostRequest = {
   content: {
-    text: "Hello, world!"
-  }
+    text: 'Hello, world!',
+  },
 };
 
 // Type checking for responses
@@ -85,27 +86,23 @@ function handleResponse(response: CreatePostResponse) {
 Example usage:
 
 ```typescript
-import { 
-  createEnhancedApiResponse, 
-  createErrorDetail, 
-  ApiErrorCode 
-} from "@crosspost/types";
+import { ApiErrorCode, createEnhancedApiResponse, createErrorDetail } from '@crosspost/types';
 
 // Success response
 const response = createEnhancedApiResponse({
-  id: "123",
-  text: "Hello, world!"
+  id: '123',
+  text: 'Hello, world!',
 });
 
 // Error response
 const errorResponse = createEnhancedErrorResponse([
   createErrorDetail(
-    "Post not found", 
+    'Post not found',
     ApiErrorCode.NOT_FOUND,
-    "twitter",
-    "user123",
-    false
-  )
+    'twitter',
+    'user123',
+    false,
+  ),
 ]);
 ```
 

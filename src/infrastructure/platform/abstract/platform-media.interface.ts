@@ -3,7 +3,6 @@
  * Defines the common interface for platform-specific media operations
  */
 
-
 import { MediaContent } from '@crosspost/types';
 
 export interface MediaStatusResult {

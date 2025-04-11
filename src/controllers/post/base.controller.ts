@@ -1,27 +1,27 @@
 import {
   ApiErrorCode,
-  createEnhancedErrorResponse,
   createErrorDetail,
   createMultiStatusResponse,
   createSuccessDetail,
   PlatformError,
-  PlatformName
+  PlatformName,
 } from '@crosspost/types';
 import type { StatusCode } from 'hono/utils/http-status';
 import { Context } from '../../../deps.ts';
-import { getEnv } from '../../config/env.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
 import { MediaCache } from '../../utils/media-cache.utils.ts';
+import { getStatusCodeForError } from '../../utils/error-handling.utils.ts';
 import { getPostDelay } from '../../utils/spam-detection.utils.ts';
+import { BaseController } from '../base.controller.ts';
 
 /**
  * Base Post Controller
  * Contains common functionality for all post-related controllers
  */
-export abstract class BasePostController {
+export abstract class BasePostController extends BaseController {
   protected postService: PostService;
   protected rateLimitService: RateLimitService;
   protected activityTrackingService: ActivityTrackingService;
@@ -34,6 +34,7 @@ export abstract class BasePostController {
     activityTrackingService: ActivityTrackingService,
     authService: AuthService,
   ) {
+    super();
     this.postService = postService;
     this.rateLimitService = rateLimitService;
     this.activityTrackingService = activityTrackingService;
@@ -118,10 +119,10 @@ export abstract class BasePostController {
     signerId: string,
     targets: T[],
     action: string,
-    processor: (target: T, index: number) => Promise<any>
+    processor: (target: T, index: number) => Promise<any>,
   ): Promise<{
     successResults: ReturnType<typeof createSuccessDetail>[];
-    errorDetails: ReturnType<typeof createErrorDetail>[]
+    errorDetails: ReturnType<typeof createErrorDetail>[];
   }> {
     const successResults: ReturnType<typeof createSuccessDetail>[] = [];
     const errorDetails: ReturnType<typeof createErrorDetail>[] = [];
@@ -158,12 +159,14 @@ export abstract class BasePostController {
         errorDetails.push(
           createErrorDetail(
             error instanceof Error ? error.message : 'Unknown error',
-            ApiErrorCode.PLATFORM_ERROR,
-            false,
+            error instanceof PlatformError ? error.code : ApiErrorCode.PLATFORM_ERROR,
+            error instanceof PlatformError ? error.recoverable : false,
             target.platform,
             target.userId,
-            error instanceof Error ? { errorStack: error.stack } : undefined
-          )
+            error instanceof PlatformError
+              ? error.details
+              : (error instanceof Error ? { errorStack: error.stack } : undefined),
+          ),
         );
       }
     }
@@ -184,7 +187,7 @@ export abstract class BasePostController {
   protected createMultiStatusResponse(
     c: Context,
     successResults: ReturnType<typeof createSuccessDetail>[],
-    errorDetails: ReturnType<typeof createErrorDetail>[]
+    errorDetails: ReturnType<typeof createErrorDetail>[],
   ): Response {
     // Create a multi-status response
     const response = createMultiStatusResponse(successResults, errorDetails);
@@ -194,22 +197,8 @@ export abstract class BasePostController {
     if (successResults.length === 0 && errorDetails.length > 0) {
       // Complete failure - use appropriate status code based on error type
       const firstError = errorDetails[0];
-      switch (firstError.errorCode) {
-        case ApiErrorCode.RATE_LIMITED:
-          statusCode = 429;
-          break;
-        case ApiErrorCode.UNAUTHORIZED:
-          statusCode = 401;
-          break;
-        case ApiErrorCode.CONTENT_POLICY_VIOLATION:
-          statusCode = 400;
-          break;
-        case ApiErrorCode.PLATFORM_ERROR:
-          statusCode = 500;
-          break;
-        default:
-          statusCode = 400;
-      }
+      // Cast the errorCode to ApiErrorCode since it's stored as a string in the error detail
+      statusCode = getStatusCodeForError(firstError.errorCode as ApiErrorCode);
     } else if (successResults.length > 0 && errorDetails.length > 0) {
       // Partial success - use 207 Multi-Status
       statusCode = 207;
@@ -218,53 +207,5 @@ export abstract class BasePostController {
     // Return the response with appropriate status code
     c.status(statusCode as StatusCode);
     return c.json(response);
-  }
-
-  /**
-   * Handle errors from platform operations
-   * @param error Error to handle
-   * @param c Hono context for response
-   * @param platform Platform name (for generic errors)
-   * @param userId User ID on the platform (for generic errors)
-   */
-  protected handleError(
-    error: unknown,
-    c: Context,
-    platform?: PlatformName,
-    userId?: string,
-  ): void {
-    console.error(`Error in ${this.constructor.name}:`, error);
-
-    // Handle platform-specific errors
-    if (error instanceof PlatformError) {
-      c.status((error.status || 500) as StatusCode);
-      c.json(
-        createEnhancedErrorResponse([
-          createErrorDetail(
-            error.message,
-            error.code,
-            error.recoverable,
-            error.platform,
-            error.userId,
-            error.details,
-          ),
-        ]),
-      );
-      return;
-    }
-
-    // Handle generic errors
-    c.status(500);
-    c.json(
-      createEnhancedErrorResponse([
-        createErrorDetail(
-          error instanceof Error ? error.message : 'An unexpected error occurred',
-          ApiErrorCode.INTERNAL_ERROR,
-          false,
-          platform,
-          userId,
-        ),
-      ]),
-    );
   }
 }

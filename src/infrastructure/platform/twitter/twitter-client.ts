@@ -8,7 +8,7 @@ import { Env } from '../../../config/env.ts';
 import { AuthToken, TokenType } from '../../storage/auth-token-storage.ts';
 import { BasePlatformClient } from '../abstract/base-platform-client.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
-import { TokenManager } from './../../security/token-manager.ts';
+import { NearAuthService } from './../../security/near-auth-service.ts';
 
 /**
  * Twitter Client
@@ -21,7 +21,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
 
   constructor(
     env: Env,
-    private tokenManager: TokenManager
+    private nearAuthService: NearAuthService,
   ) {
     super(env, Platform.TWITTER);
     this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
@@ -57,7 +57,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
   async getClientForUser(userId: string): Promise<TwitterApi> {
     try {
       // Get the tokens from the token store
-      const token = await this.tokenManager.getTokens(userId, Platform.TWITTER);
+      const token = await this.nearAuthService.getTokens(userId, Platform.TWITTER);
 
       // Create the auto refresher plugin for OAuth 2.0
       const autoRefresherPlugin = new TwitterApiAutoTokenRefresher({
@@ -77,7 +77,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
           };
 
           // Save the new tokens
-          await this.tokenManager.saveTokens(userId, Platform.TWITTER, newToken);
+          await this.nearAuthService.saveTokens(userId, Platform.TWITTER, newToken);
         },
         onTokenRefreshError: async (error) => {
           console.error('Token refresh error:', error);
@@ -88,11 +88,13 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
             (error as any).data?.error_description?.includes('invalid') ||
             ((error as any).status === 400 && (error as any).code === 'invalid_grant')
           ) {
-            await this.tokenManager.deleteTokens(userId, Platform.TWITTER);
+            await this.nearAuthService.deleteTokens(userId, Platform.TWITTER);
 
             // Throw a more descriptive error
             throw new Error(
-              `User authentication expired (${(error as any).data?.error_description || 'invalid token'}). Please reconnect your Twitter account.`
+              `User authentication expired (${
+                (error as any).data?.error_description || 'invalid token'
+              }). Please reconnect your Twitter account.`,
             );
           }
 
@@ -175,7 +177,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
     };
 
     // Save the tokens
-    await this.tokenManager.saveTokens(user.id, Platform.TWITTER, token);
+    await this.nearAuthService.saveTokens(user.id, Platform.TWITTER, token);
 
     return token;
   }
@@ -212,7 +214,9 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
         (error.status === 400 && error.code === 'invalid_grant')
       ) {
         throw new PlatformError(
-          `User authentication expired (${error.data?.error_description || 'invalid token'}). Please reconnect your Twitter account.`,
+          `User authentication expired (${
+            error.data?.error_description || 'invalid token'
+          }). Please reconnect your Twitter account.`,
           Platform.TWITTER,
           ApiErrorCode.UNAUTHORIZED,
           false, // Not recoverable

@@ -6,14 +6,18 @@ This document outlines the organization of types and schemas in the Crosspost pr
 
 The project uses a centralized approach for type safety and validation:
 
-1. **Zod Schemas**: Defined in the `packages/types/src` directory, these provide runtime validation of API requests and responses.
-2. **TypeScript Types**: Derived from Zod schemas using `z.infer<typeof schemaName>`, these provide static type checking during development.
+1. **Zod Schemas**: Defined in the `packages/types/src` directory, these provide runtime validation
+   of API requests and responses.
+2. **TypeScript Types**: Derived from Zod schemas using `z.infer<typeof schemaName>`, these provide
+   static type checking during development.
 
-This approach ensures that types and schemas are always in sync, as the TypeScript types are derived directly from the Zod schemas.
+This approach ensures that types and schemas are always in sync, as the TypeScript types are derived
+directly from the Zod schemas.
 
 ## Types Package (`packages/types`)
 
-The types package is the single source of truth for both Zod schemas and TypeScript types. It's organized by domain rather than by request/response:
+The types package is the single source of truth for both Zod schemas and TypeScript types. It's
+organized by domain rather than by request/response:
 
 ```
 packages/types/src/
@@ -38,9 +42,9 @@ Each domain file contains both the Zod schemas and the derived TypeScript types:
 
 ```typescript
 // packages/types/src/auth.ts
-import { z } from "zod";
-import { EnhancedResponseSchema } from "./response.ts";
-import { PlatformSchema } from "./common.ts";
+import { z } from 'zod';
+import { EnhancedResponseSchema } from './response.ts';
+import { PlatformSchema } from './common.ts';
 
 // Platform parameter schema
 export const PlatformParamSchema = z.object({
@@ -49,7 +53,9 @@ export const PlatformParamSchema = z.object({
 
 // Auth initialization request schema
 export const AuthInitRequestSchema = z.object({
-  successUrl: z.string().url().optional().describe('URL to redirect to on successful authentication'),
+  successUrl: z.string().url().optional().describe(
+    'URL to redirect to on successful authentication',
+  ),
   errorUrl: z.string().url().optional().describe('URL to redirect to on authentication error'),
 }).describe('Auth initialization request');
 
@@ -119,8 +125,8 @@ const handleAuthInit = async (c: Context): Promise<Response> => {
     data: {
       url: authUrl,
       state,
-      platform
-    }
+      platform,
+    },
   };
   return c.json(response);
 };
@@ -143,24 +149,31 @@ export class TwitterClient {
 
 ## Benefits of This Approach
 
-1. **Single Source of Truth**: The types package is the single source of truth for both types and validation schemas.
+1. **Single Source of Truth**: The types package is the single source of truth for both types and
+   validation schemas.
 
-2. **Type Safety**: Both the API and SDK benefit from type safety, reducing the risk of runtime errors.
+2. **Type Safety**: Both the API and SDK benefit from type safety, reducing the risk of runtime
+   errors.
 
-3. **Maintainability**: Changes to the data model only need to be made in one place (the types package).
+3. **Maintainability**: Changes to the data model only need to be made in one place (the types
+   package).
 
-4. **Clear Separation of Concerns**: Each domain file has a clear responsibility: defining the data model for a specific domain.
+4. **Clear Separation of Concerns**: Each domain file has a clear responsibility: defining the data
+   model for a specific domain.
 
-5. **Consistency**: The TypeScript types are always in sync with the Zod schemas, ensuring consistent validation and type checking.
+5. **Consistency**: The TypeScript types are always in sync with the Zod schemas, ensuring
+   consistent validation and type checking.
 
 ## Best Practices
 
-1. **Keep schemas and types together**: Define Zod schemas and derive TypeScript types in the same file.
+1. **Keep schemas and types together**: Define Zod schemas and derive TypeScript types in the same
+   file.
 
 2. **Organize by domain**: Group schemas and types by domain rather than by request/response.
 
 3. **Use descriptive names**: Use clear, descriptive names for schemas and types.
 
-4. **Add descriptions to schemas**: Use `.describe()` to add descriptions to schema properties for better documentation.
+4. **Add descriptions to schemas**: Use `.describe()` to add descriptions to schema properties for
+   better documentation.
 
 5. **Export both schemas and types**: Export both the Zod schemas and the derived TypeScript types.

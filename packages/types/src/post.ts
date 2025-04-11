@@ -4,9 +4,9 @@
  * TypeScript types are derived from Zod schemas for type safety
  */
 
-import { z } from "zod";
-import { PlatformSchema } from "./common.ts";
-import { EnhancedResponseSchema, ErrorDetailSchema } from "./response.ts";
+import { z } from 'zod';
+import { PlatformSchema } from './common.ts';
+import { EnhancedResponseSchema, ErrorDetailSchema } from './response.ts';
 
 /**
  * Media content schema
@@ -117,7 +117,9 @@ export const TargetSchema = z.object({
  */
 export const CreatePostRequestSchema = z.object({
   targets: z.array(TargetSchema).describe('Array of targets to post to (can be a single target)'),
-  content: z.array(PostContentSchema).describe('The content of the post, always an array of PostContent objects, even for a single post'),
+  content: z.array(PostContentSchema).describe(
+    'The content of the post, always an array of PostContent objects, even for a single post',
+  ),
 }).describe('Create post request');
 
 /**
@@ -133,20 +135,28 @@ export const RepostRequestSchema = z.object({
  * Quote post request schema
  */
 export const QuotePostRequestSchema = z.object({
-  targets: z.array(TargetSchema).describe('Array of targets to post to (must be on the same platform as the post being quoted)'),
+  targets: z.array(TargetSchema).describe(
+    'Array of targets to post to (must be on the same platform as the post being quoted)',
+  ),
   platform: PlatformSchema.describe('Platform of the post being quoted'),
   postId: z.string().describe('ID of the post to quote'),
-  content: z.array(PostContentSchema).describe('Content for the quote post(s), always an array, even for a single post'),
+  content: z.array(PostContentSchema).describe(
+    'Content for the quote post(s), always an array, even for a single post',
+  ),
 }).describe('Quote post request');
 
 /**
  * Reply to post request schema
  */
 export const ReplyToPostRequestSchema = z.object({
-  targets: z.array(TargetSchema).describe('Array of targets to post to (must be on the same platform as the post being replied to)'),
+  targets: z.array(TargetSchema).describe(
+    'Array of targets to post to (must be on the same platform as the post being replied to)',
+  ),
   platform: PlatformSchema.describe('Platform of the post being replied to'),
   postId: z.string().describe('ID of the post to reply to'),
-  content: z.array(PostContentSchema).describe('Content for the reply post(s), always an array, even for a single post'),
+  content: z.array(PostContentSchema).describe(
+    'Content for the reply post(s), always an array, even for a single post',
+  ),
 }).describe('Reply to post request');
 
 /**
@@ -170,7 +180,9 @@ export const DeletePostRequestSchema = z.object({
  * Like post request schema
  */
 export const LikePostRequestSchema = z.object({
-  targets: z.array(TargetSchema).describe('Array of targets to like the post (must be on the same platform as the post being liked)'),
+  targets: z.array(TargetSchema).describe(
+    'Array of targets to like the post (must be on the same platform as the post being liked)',
+  ),
   platform: PlatformSchema.describe('Platform of the post being liked'),
   postId: z.string().describe('ID of the post to like'),
 }).describe('Like post request');
@@ -179,7 +191,9 @@ export const LikePostRequestSchema = z.object({
  * Unlike post request schema
  */
 export const UnlikePostRequestSchema = z.object({
-  targets: z.array(TargetSchema).describe('Array of targets to unlike the post (must be on the same platform as the post being unliked)'),
+  targets: z.array(TargetSchema).describe(
+    'Array of targets to unlike the post (must be on the same platform as the post being unliked)',
+  ),
   platform: PlatformSchema.describe('Platform of the post being unliked'),
   postId: z.string().describe('ID of the post to unlike'),
 }).describe('Unlike post request');
@@ -198,7 +212,9 @@ export const PostResponseSchema = EnhancedResponseSchema(
 /**
  * Create post response schema (legacy)
  */
-export const CreatePostResponseLegacySchema = PostResponseSchema.describe('Create post response (legacy)');
+export const CreatePostResponseLegacySchema = PostResponseSchema.describe(
+  'Create post response (legacy)',
+);
 
 /**
  * Repost response schema
@@ -307,7 +323,9 @@ export const CreatePostTargetResultSchema = z.object({
  * Create post target error schema
  */
 export const CreatePostTargetErrorSchema = z.object({
-  platform: PlatformSchema.optional().describe('The platform where the error occurred (if applicable)'),
+  platform: PlatformSchema.optional().describe(
+    'The platform where the error occurred (if applicable)',
+  ),
   userId: z.string().optional().describe('The user ID where the error occurred (if applicable)'),
   error: z.string().describe('The error message'),
 }).describe('Create post target error');
@@ -318,7 +336,9 @@ export const CreatePostTargetErrorSchema = z.object({
 export const CreatePostResponseSchema = EnhancedResponseSchema(
   z.object({
     results: z.array(CreatePostTargetResultSchema).describe('Array of successful post results'),
-    errors: z.array(CreatePostTargetErrorSchema).optional().describe('Array of errors that occurred (if any)'),
+    errors: z.array(CreatePostTargetErrorSchema).optional().describe(
+      'Array of errors that occurred (if any)',
+    ),
   }),
 ).describe('Create post response');
 

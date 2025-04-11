@@ -11,7 +11,7 @@ export class UserProfileStorage {
 
   constructor(
     private env: Env,
-    private profileStore: PrefixedKvStore
+    private profileStore: PrefixedKvStore,
   ) {}
 
   /**

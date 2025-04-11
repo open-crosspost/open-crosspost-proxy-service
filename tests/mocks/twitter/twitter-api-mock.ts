@@ -1,18 +1,18 @@
-import { 
-  ApiPartialResponseError, 
-  ApiRequestError, 
-  ApiResponseError, 
-  TweetV2, 
+import {
+  ApiPartialResponseError,
+  ApiRequestError,
+  ApiResponseError,
+  TweetV2,
+  TweetV2DeleteTweetResult,
+  TweetV2LikeResult,
+  TweetV2PostTweetResult,
+  TweetV2RetweetResult,
+  TweetV2SingleResult,
   TwitterApi,
   UserV2,
-  TweetV2SingleResult,
-  TweetV2PostTweetResult,
-  TweetV2DeleteTweetResult,
-  TweetV2RetweetResult,
-  TweetV2LikeResult,
-  UserV2Result
-} from "twitter-api-v2";
-import { createMockTwitterError } from "../../utils/twitter-utils.ts";
+  UserV2Result,
+} from 'twitter-api-v2';
+import { createMockTwitterError } from '../../utils/twitter-utils.ts';
 
 /**
  * Mock Twitter API client for testing
@@ -35,12 +35,12 @@ export class TwitterApiMock {
   constructor(userId: string, errorScenario?: string) {
     this.userId = userId;
     this.errorScenario = errorScenario;
-    
+
     // Initialize default user
     this.users.set(userId, {
       id: userId,
-      name: "Test User",
-      username: "testuser",
+      name: 'Test User',
+      username: 'testuser',
     });
   }
 
@@ -56,15 +56,15 @@ export class TwitterApiMock {
       reply: this.reply.bind(this),
       deleteTweet: this.deleteTweet.bind(this),
       singleTweet: this.singleTweet.bind(this),
-      
+
       // Like operations
       like: this.like.bind(this),
       unlike: this.unlike.bind(this),
-      
+
       // Retweet operations
       retweet: this.retweet.bind(this),
       unretweet: this.unretweet.bind(this),
-      
+
       // User operations
       me: this.me.bind(this),
     };
@@ -89,18 +89,18 @@ export class TwitterApiMock {
    */
   async tweet(params: string | any): Promise<TweetV2PostTweetResult> {
     // Check for error scenarios
-    this.checkForErrors("tweet");
+    this.checkForErrors('tweet');
 
     // Handle string parameter (just the text)
     const tweetParams = typeof params === 'string' ? { text: params } : params;
 
     // Generate a unique ID
     const id = `tweet-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    
+
     // Create the tweet object
     const tweet: TweetV2 = {
       id,
-      text: tweetParams.text || "",
+      text: tweetParams.text || '',
       edit_history_tweet_ids: [id],
     };
 
@@ -120,7 +120,7 @@ export class TwitterApiMock {
    */
   async tweetThread(params: any[]): Promise<Array<TweetV2PostTweetResult>> {
     // Check for error scenarios
-    this.checkForErrors("tweetThread");
+    this.checkForErrors('tweetThread');
 
     // Create the thread
     const results: Array<TweetV2PostTweetResult> = [];
@@ -128,14 +128,14 @@ export class TwitterApiMock {
     for (let i = 0; i < params.length; i++) {
       const param = params[i];
       const tweetParams = typeof param === 'string' ? { text: param } : param;
-      
+
       // Generate a unique ID
       const id = `tweet-${Date.now()}-${Math.floor(Math.random() * 1000)}-${i}`;
-      
+
       // Create the tweet object
       const tweet: TweetV2 = {
         id,
-        text: tweetParams.text || "",
+        text: tweetParams.text || '',
         edit_history_tweet_ids: [id],
       };
 
@@ -158,28 +158,28 @@ export class TwitterApiMock {
    */
   async reply(text: string, tweetId: string, params?: any): Promise<TweetV2PostTweetResult> {
     // Check for error scenarios
-    this.checkForErrors("reply");
+    this.checkForErrors('reply');
 
     // Check if the tweet exists
-    if (!this.tweets.has(tweetId) && tweetId !== "mock-tweet-id") {
+    if (!this.tweets.has(tweetId) && tweetId !== 'mock-tweet-id') {
       throw new ApiResponseError(
-        "Tweet not found",
-        createMockTwitterError(34, "Tweet not found", 404)
+        'Tweet not found',
+        createMockTwitterError(34, 'Tweet not found', 404),
       );
     }
 
     // Generate a unique ID
     const id = `reply-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    
+
     // Create the reply tweet object
     const tweet: TweetV2 = {
       id,
-      text: text || "",
+      text: text || '',
       edit_history_tweet_ids: [id],
       in_reply_to_user_id: this.userId,
       referenced_tweets: [
         {
-          type: "replied_to",
+          type: 'replied_to',
           id: tweetId,
         },
       ],
@@ -201,13 +201,13 @@ export class TwitterApiMock {
    */
   async deleteTweet(tweetId: string): Promise<TweetV2DeleteTweetResult> {
     // Check for error scenarios
-    this.checkForErrors("deleteTweet");
+    this.checkForErrors('deleteTweet');
 
     // Check if the tweet exists
-    if (!this.tweets.has(tweetId) && tweetId !== "mock-tweet-id") {
+    if (!this.tweets.has(tweetId) && tweetId !== 'mock-tweet-id') {
       throw new ApiResponseError(
-        "Tweet not found",
-        createMockTwitterError(34, "Tweet not found", 404)
+        'Tweet not found',
+        createMockTwitterError(34, 'Tweet not found', 404),
       );
     }
 
@@ -230,7 +230,7 @@ export class TwitterApiMock {
    */
   async singleTweet(tweetId: string, options?: any): Promise<TweetV2SingleResult> {
     // Check for error scenarios
-    this.checkForErrors("singleTweet");
+    this.checkForErrors('singleTweet');
 
     // Check if the tweet exists
     if (!this.tweets.has(tweetId)) {
@@ -240,7 +240,7 @@ export class TwitterApiMock {
         text: `Mock tweet ${tweetId}`,
         edit_history_tweet_ids: [tweetId],
       };
-      
+
       return {
         data: tweet,
         includes: {},
@@ -262,7 +262,7 @@ export class TwitterApiMock {
    */
   async like(userId: string, tweetId: string): Promise<TweetV2LikeResult> {
     // Check for error scenarios
-    this.checkForErrors("like");
+    this.checkForErrors('like');
 
     // Add to likes
     this.likes.add(`${userId}-${tweetId}`);
@@ -283,7 +283,7 @@ export class TwitterApiMock {
    */
   async unlike(userId: string, tweetId: string): Promise<TweetV2LikeResult> {
     // Check for error scenarios
-    this.checkForErrors("unlike");
+    this.checkForErrors('unlike');
 
     // Remove from likes
     this.likes.delete(`${userId}-${tweetId}`);
@@ -304,7 +304,7 @@ export class TwitterApiMock {
    */
   async retweet(userId: string, tweetId: string): Promise<TweetV2RetweetResult> {
     // Check for error scenarios
-    this.checkForErrors("retweet");
+    this.checkForErrors('retweet');
 
     // Add to retweets
     this.retweets.add(`${userId}-${tweetId}`);
@@ -325,7 +325,7 @@ export class TwitterApiMock {
    */
   async unretweet(userId: string, tweetId: string): Promise<TweetV2RetweetResult> {
     // Check for error scenarios
-    this.checkForErrors("unretweet");
+    this.checkForErrors('unretweet');
 
     // Remove from retweets
     this.retweets.delete(`${userId}-${tweetId}`);
@@ -345,7 +345,7 @@ export class TwitterApiMock {
    */
   async me(options?: any): Promise<UserV2Result> {
     // Check for error scenarios
-    this.checkForErrors("me");
+    this.checkForErrors('me');
 
     // Return the current user
     return {
@@ -362,12 +362,12 @@ export class TwitterApiMock {
    */
   async uploadMedia(buffer: Uint8Array | string, options?: any): Promise<string> {
     // Check for error scenarios
-    this.checkForErrors("uploadMedia");
+    this.checkForErrors('uploadMedia');
 
     // Generate a mock media ID
     const mediaId = `media-${Date.now()}`;
     this.mediaIds.push(mediaId);
-    
+
     return mediaId;
   }
 
@@ -379,13 +379,13 @@ export class TwitterApiMock {
    */
   async mediaMetadata(mediaId: string, metadata: any): Promise<void> {
     // Check for error scenarios
-    this.checkForErrors("mediaMetadata");
+    this.checkForErrors('mediaMetadata');
 
     // Check if media ID exists
     if (!this.mediaIds.includes(mediaId)) {
       throw new ApiResponseError(
-        "Media not found",
-        createMockTwitterError(324, "Media not found", 404)
+        'Media not found',
+        createMockTwitterError(324, 'Media not found', 404),
       );
     }
 
@@ -401,13 +401,13 @@ export class TwitterApiMock {
    */
   async createMediaMetadata(mediaId: string, metadata: any): Promise<void> {
     // Check for error scenarios
-    this.checkForErrors("createMediaMetadata");
+    this.checkForErrors('createMediaMetadata');
 
     // Check if media ID exists
     if (!this.mediaIds.includes(mediaId)) {
       throw new ApiResponseError(
-        "Media not found",
-        createMockTwitterError(324, "Media not found", 404)
+        'Media not found',
+        createMockTwitterError(324, 'Media not found', 404),
       );
     }
 
@@ -423,36 +423,36 @@ export class TwitterApiMock {
     if (!this.errorScenario) return;
 
     // Check if the error scenario matches the current operation
-    if (this.errorScenario === operation || this.errorScenario === "all") {
+    if (this.errorScenario === operation || this.errorScenario === 'all') {
       this.throwError();
     }
 
     // Check for specific error scenarios
-    if (this.errorScenario === "rate_limit") {
+    if (this.errorScenario === 'rate_limit') {
       throw new ApiResponseError(
-        "Rate limit exceeded",
-        createMockTwitterError(88, "Rate limit exceeded", 429)
+        'Rate limit exceeded',
+        createMockTwitterError(88, 'Rate limit exceeded', 429),
       );
     }
 
-    if (this.errorScenario === "auth_error") {
+    if (this.errorScenario === 'auth_error') {
       throw new ApiResponseError(
-        "Invalid or expired token",
-        createMockTwitterError(89, "Invalid or expired token", 401)
+        'Invalid or expired token',
+        createMockTwitterError(89, 'Invalid or expired token', 401),
       );
     }
 
-    if (this.errorScenario === "network_error") {
+    if (this.errorScenario === 'network_error') {
       // Create a simplified network error
-      const error = new Error("Network error") as any;
-      error.code = "NETWORK_ERROR";
+      const error = new Error('Network error') as any;
+      error.code = 'NETWORK_ERROR';
       throw error;
     }
 
-    if (this.errorScenario === "partial_response") {
+    if (this.errorScenario === 'partial_response') {
       // Create a simplified partial response error
-      const error = new Error("Partial response") as any;
-      error.code = "PARTIAL_RESPONSE";
+      const error = new Error('Partial response') as any;
+      error.code = 'PARTIAL_RESPONSE';
       throw error;
     }
   }
@@ -462,60 +462,60 @@ export class TwitterApiMock {
    */
   private throwError(): void {
     switch (this.errorScenario) {
-      case "rate_limit":
+      case 'rate_limit':
         throw new ApiResponseError(
-          "Rate limit exceeded",
-          createMockTwitterError(88, "Rate limit exceeded", 429)
+          'Rate limit exceeded',
+          createMockTwitterError(88, 'Rate limit exceeded', 429),
         );
-      case "auth_error":
+      case 'auth_error':
         throw new ApiResponseError(
-          "Invalid or expired token",
-          createMockTwitterError(89, "Invalid or expired token", 401)
+          'Invalid or expired token',
+          createMockTwitterError(89, 'Invalid or expired token', 401),
         );
-      case "not_found":
+      case 'not_found':
         throw new ApiResponseError(
-          "Resource not found",
-          createMockTwitterError(34, "Resource not found", 404)
+          'Resource not found',
+          createMockTwitterError(34, 'Resource not found', 404),
         );
-      case "forbidden":
+      case 'forbidden':
         throw new ApiResponseError(
-          "Forbidden",
-          createMockTwitterError(87, "Forbidden", 403)
+          'Forbidden',
+          createMockTwitterError(87, 'Forbidden', 403),
         );
-      case "duplicate":
+      case 'duplicate':
         throw new ApiResponseError(
-          "Duplicate content",
-          createMockTwitterError(187, "Duplicate content", 400)
+          'Duplicate content',
+          createMockTwitterError(187, 'Duplicate content', 400),
         );
-      case "content_policy":
+      case 'content_policy':
         throw new ApiResponseError(
-          "Content policy violation",
-          createMockTwitterError(226, "Content policy violation", 400)
+          'Content policy violation',
+          createMockTwitterError(226, 'Content policy violation', 400),
         );
-      case "media_error":
+      case 'media_error':
         throw new ApiResponseError(
-          "Media upload failed",
-          createMockTwitterError(324, "Media upload failed", 400)
+          'Media upload failed',
+          createMockTwitterError(324, 'Media upload failed', 400),
         );
-      case "service_error":
+      case 'service_error':
         throw new ApiResponseError(
-          "Twitter service error",
-          createMockTwitterError(130, "Over capacity", 503)
+          'Twitter service error',
+          createMockTwitterError(130, 'Over capacity', 503),
         );
-      case "network_error":
+      case 'network_error':
         // Create a simplified network error
-        const networkError = new Error("Network error") as any;
-        networkError.code = "NETWORK_ERROR";
+        const networkError = new Error('Network error') as any;
+        networkError.code = 'NETWORK_ERROR';
         throw networkError;
-      case "partial_response":
+      case 'partial_response':
         // Create a simplified partial response error
-        const partialError = new Error("Partial response") as any;
-        partialError.code = "PARTIAL_RESPONSE";
+        const partialError = new Error('Partial response') as any;
+        partialError.code = 'PARTIAL_RESPONSE';
         throw partialError;
       default:
         throw new ApiResponseError(
-          "Unknown error",
-          createMockTwitterError(131, "Internal error", 500)
+          'Unknown error',
+          createMockTwitterError(131, 'Internal error', 500),
         );
     }
   }
@@ -529,7 +529,7 @@ export class TwitterApiMock {
  */
 export function createMockTwitterApi(
   userId: string,
-  errorScenario?: string
+  errorScenario?: string,
 ): TwitterApi {
   return new TwitterApiMock(userId, errorScenario) as unknown as TwitterApi;
 }

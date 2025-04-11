@@ -1,4 +1,4 @@
-import { ApiErrorCode } from "@crosspost/types";
+import { ApiErrorCode } from '@crosspost/types';
 
 /**
  * Create a mock error response from Twitter API
@@ -10,7 +10,7 @@ import { ApiErrorCode } from "@crosspost/types";
 export function createMockTwitterError(
   code: number,
   message: string,
-  statusCode: number
+  statusCode: number,
 ): any {
   return {
     code: statusCode,

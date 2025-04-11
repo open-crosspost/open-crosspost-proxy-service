@@ -3,8 +3,8 @@
  * Defines schemas and types for the enhanced API response format
  */
 
-import { z } from "zod";
-import type { PlatformName } from "./common.ts";
+import { z } from 'zod';
+import type { PlatformName } from './common.ts';
 
 /**
  * Standard API response schema
@@ -128,7 +128,20 @@ export type ErrorDetail = z.infer<typeof ErrorDetailSchema>;
 export type EnhancedErrorResponse = z.infer<typeof EnhancedErrorResponseSchema>;
 export type SuccessDetail = z.infer<typeof SuccessDetailSchema>;
 export type MultiStatusResponse = z.infer<typeof MultiStatusResponseSchema>;
-export type ApiResponse<T> = { data: T; meta?: { rateLimit?: { remaining: number; limit: number; reset: number }; pagination?: { page: number; perPage: number; total: number; totalPages: number; nextCursor?: string; prevCursor?: string } } };
+export type ApiResponse<T> = {
+  data: T;
+  meta?: {
+    rateLimit?: { remaining: number; limit: number; reset: number };
+    pagination?: {
+      page: number;
+      perPage: number;
+      total: number;
+      totalPages: number;
+      nextCursor?: string;
+      prevCursor?: string;
+    };
+  };
+};
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 
 /**
@@ -146,7 +159,10 @@ export interface EnhancedApiResponse<T> {
  * @param meta Optional metadata
  * @returns An enhanced API response
  */
-export function createEnhancedApiResponse<T>(data: T, meta?: EnhancedResponseMeta): EnhancedApiResponse<T> {
+export function createEnhancedApiResponse<T>(
+  data: T,
+  meta?: EnhancedResponseMeta,
+): EnhancedApiResponse<T> {
   return {
     success: true,
     data,
@@ -219,7 +235,7 @@ export function createErrorDetail(
   recoverable: boolean,
   platform?: PlatformName,
   userId?: string,
-  details?: Record<string, any>
+  details?: Record<string, any>,
 ): ErrorDetail {
   return {
     platform,
@@ -242,7 +258,7 @@ export function createErrorDetail(
 export function createSuccessDetail(
   platform: PlatformName,
   userId: string,
-  additionalData?: Record<string, any>
+  additionalData?: Record<string, any>,
 ): SuccessDetail {
   return {
     platform,
@@ -260,7 +276,7 @@ export function createSuccessDetail(
  */
 export function createMultiStatusResponse(
   results: SuccessDetail[],
-  errors: ErrorDetail[]
+  errors: ErrorDetail[],
 ): MultiStatusResponse {
   const total = results.length + errors.length;
   const succeeded = results.length;

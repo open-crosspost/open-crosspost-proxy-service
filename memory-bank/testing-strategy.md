@@ -2,13 +2,17 @@
 
 ## Testing Philosophy
 
-The Twitter API Proxy testing strategy focuses on ensuring reliability, correctness, and maintainability of the codebase. Our approach prioritizes:
+The Twitter API Proxy testing strategy focuses on ensuring reliability, correctness, and
+maintainability of the codebase. Our approach prioritizes:
 
-1. **Service Testing**: Testing the service endpoints against a mock Twitter API to verify end-to-end functionality.
+1. **Service Testing**: Testing the service endpoints against a mock Twitter API to verify
+   end-to-end functionality.
 2. **SDK Testing**: Testing the SDK against mock service responses to verify client-side behavior.
-3. **Error Handling**: Verifying that errors are properly caught, handled, and communicated to clients.
+3. **Error Handling**: Verifying that errors are properly caught, handled, and communicated to
+   clients.
 4. **Type Safety**: Leveraging TypeScript's type system to catch errors at compile time.
-5. **Security**: Ensuring that authentication, authorization, and data protection mechanisms work correctly.
+5. **Security**: Ensuring that authentication, authorization, and data protection mechanisms work
+   correctly.
 
 ## Testing Tools
 
@@ -24,9 +28,11 @@ We use Deno's built-in testing capabilities:
 
 Tests are organized into the following categories:
 
-1. **Service Tests**: Located in `tests/service/` directory, testing the service endpoints against a mock Twitter API.
+1. **Service Tests**: Located in `tests/service/` directory, testing the service endpoints against a
+   mock Twitter API.
 2. **SDK Tests**: Located in `tests/sdk/` directory, testing the SDK against mock service responses.
-3. **Mocks**: Located in `tests/mocks/` directory, containing mock implementations of external dependencies.
+3. **Mocks**: Located in `tests/mocks/` directory, containing mock implementations of external
+   dependencies.
 4. **Utils**: Located in `tests/utils/` directory, containing test utilities.
 
 ## Testing Strategies
@@ -35,10 +41,13 @@ Tests are organized into the following categories:
 
 The primary focus is on testing the service endpoints against a mock Twitter API:
 
-1. **HTTP-Based Testing**: Test the service endpoints by making HTTP requests and verifying the responses.
+1. **HTTP-Based Testing**: Test the service endpoints by making HTTP requests and verifying the
+   responses.
 2. **Mock Twitter API**: Use a mock Twitter API to simulate responses and error scenarios.
-3. **Error Propagation**: Verify that errors from the Twitter API are properly propagated to clients.
-4. **Authentication Flow**: Test the complete authentication flow from client to service to platform.
+3. **Error Propagation**: Verify that errors from the Twitter API are properly propagated to
+   clients.
+4. **Authentication Flow**: Test the complete authentication flow from client to service to
+   platform.
 
 ### SDK Testing
 
@@ -59,25 +68,28 @@ For both service and SDK tests, we use mocks to isolate the system under test:
 
 #### Mocking Strategies with Deno
 
-When mocking functions in Deno tests, there are several approaches depending on the nature of the function being mocked:
+When mocking functions in Deno tests, there are several approaches depending on the nature of the
+function being mocked:
 
 ##### Approach 1: Using `mock.stub` for Configurable Properties
 
-For functions that are defined as configurable properties, you can use the `stub` function from `@std/testing/mock`:
+For functions that are defined as configurable properties, you can use the `stub` function from
+`@std/testing/mock`:
 
 ```typescript
 // Import the mock utilities
-import * as mock from "jsr:@std/testing/mock";
+import * as mock from 'jsr:@std/testing/mock';
 
 // Create a stub for a function
 using functionStub = mock.stub(
-  moduleObject, 
-  "functionName", 
-  (param1: Type1, param2: Type2) => ReturnValue
+  moduleObject,
+  'functionName',
+  (param1: Type1, param2: Type2) => ReturnValue,
 );
 ```
 
 Key points:
+
 1. Use the `using` keyword to ensure the stub is automatically restored after the test
 2. Match the function signature exactly in the stub implementation
 3. Use underscore prefix for unused parameters: `_param1`, `_param2`
@@ -87,9 +99,9 @@ If you prefer not to use the `using` keyword (which is a newer feature), you can
 
 ```typescript
 const functionStub = mock.stub(
-  moduleObject, 
-  "functionName", 
-  (param1: Type1, param2: Type2) => ReturnValue
+  moduleObject,
+  'functionName',
+  (param1: Type1, param2: Type2) => ReturnValue,
 );
 
 // Make sure to restore in afterEach
@@ -100,13 +112,14 @@ afterEach(() => {
 
 ##### Approach 2: Creating Mock Module Implementations
 
-For modules with read-only exports (which is common with ES modules), you can't use `mock.stub` directly. Instead, create a mock implementation of the entire module:
+For modules with read-only exports (which is common with ES modules), you can't use `mock.stub`
+directly. Instead, create a mock implementation of the entire module:
 
 1. Create a mock implementation file in your tests/mocks directory:
 
 ```typescript
 // tests/mocks/module-name-mock.ts
-import { SomeType } from "@some/package";
+import { SomeType } from '@some/package';
 
 // Export the same interface as the original module
 export async function someFunction(param1: string, param2: number): Promise<SomeType> {
@@ -119,18 +132,19 @@ export async function someFunction(param1: string, param2: number): Promise<Some
 
 ```typescript
 // Import the mock implementation instead of the real one
-import * as moduleUtils from "../../mocks/module-name-mock.ts";
+import * as moduleUtils from '../../mocks/module-name-mock.ts';
 ```
 
-This approach is particularly useful for modules that create new instances of classes or have complex dependencies that are difficult to mock individually.
+This approach is particularly useful for modules that create new instances of classes or have
+complex dependencies that are difficult to mock individually.
 
 Example: Mocking a utility module that verifies platform access:
 
 ```typescript
 // tests/mocks/near-auth-utils-mock.ts
-import { ApiError, ApiErrorCode, PlatformName } from "@crosspost/types";
-import { Context } from "../../deps.ts";
-import { mockToken } from "./near-auth-service-mock.ts";
+import { ApiError, ApiErrorCode, PlatformName } from '@crosspost/types';
+import { Context } from '../../deps.ts';
+import { mockToken } from './near-auth-service-mock.ts';
 
 export async function verifyPlatformAccess(
   signerId: string,
@@ -148,7 +162,7 @@ For mocking entire objects or classes:
 // Create a mock implementation
 const mockObject = {
   method1: mock.fn(() => mockResult1),
-  method2: mock.fn(() => mockResult2)
+  method2: mock.fn(() => mockResult2),
 };
 
 // Replace the real object with the mock
@@ -166,7 +180,8 @@ We aim for high test coverage of critical paths:
 
 ## Best Practices
 
-1. **Test Independence**: Each test should be independent and not rely on the state from other tests.
+1. **Test Independence**: Each test should be independent and not rely on the state from other
+   tests.
 2. **Clear Assertions**: Each test should have clear assertions that verify specific behavior.
 3. **Descriptive Names**: Test names should clearly describe what is being tested.
 4. **Setup and Teardown**: Properly set up and tear down test resources.

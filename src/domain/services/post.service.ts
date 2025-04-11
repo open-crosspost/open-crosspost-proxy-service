@@ -1,4 +1,4 @@
-import { PlatformName, Platform } from '@crosspost/types';
+import { Platform, PlatformName } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
 import { DeleteResult, LikeResult, PostContent, PostResult } from '@crosspost/types';
 import { TwitterPost } from '../../infrastructure/platform/twitter/twitter-post.ts';
@@ -14,7 +14,7 @@ export class PostService {
 
   constructor(env: Env, platformPosts?: Map<string, PlatformPost>) {
     this.env = env;
-    
+
     if (platformPosts) {
       // Use the provided platform posts map
       this.platformPosts = platformPosts;

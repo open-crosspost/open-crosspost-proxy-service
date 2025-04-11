@@ -162,14 +162,14 @@ bun add @crosspost/types
 
 ```typescript
 // Import types
-import { PostRequest, PostResponse, PlatformName } from '@crosspost/types';
+import { PlatformName, PostRequest, PostResponse } from '@crosspost/types';
 
 // Use types in your code
 const request: PostRequest = {
   platform: 'twitter',
   content: {
-    text: 'Hello, world!'
-  }
+    text: 'Hello, world!',
+  },
 };
 ```
 
@@ -187,7 +187,7 @@ bun add @crosspost/near-simple-signing
 const signer = new NearSigner({
   networkId: 'testnet',
   nodeUrl: 'https://rpc.testnet.near.org',
-  walletUrl: 'https://wallet.testnet.near.org'
+  walletUrl: 'https://wallet.testnet.near.org',
 });
 
 // Connect to NEAR wallet
@@ -212,15 +212,15 @@ const client = new CrosspostClient({
   baseUrl: 'https://api.crosspost.example',
   auth: {
     type: 'near',
-    signer: signer
-  }
+    signer: signer,
+  },
 });
 
 // Create a post on Twitter
 const response = await client.twitter.createPost({
   content: {
-    text: 'Hello from Crosspost SDK!'
-  }
+    text: 'Hello from Crosspost SDK!',
+  },
 });
 ```
 
@@ -255,6 +255,7 @@ bun run test
 ```
 
 See the individual package READMEs for more details:
+
 - [@crosspost/types](./packages/types/README.md)
 - [@crosspost/near-simple-signing](./packages/near-simple-signing/README.md)
 - [@crosspost/sdk](./packages/sdk/README.md)

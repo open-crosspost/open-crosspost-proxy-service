@@ -160,7 +160,7 @@ export class TwitterError extends PlatformError {
       originalResponse: error.data,
       statusCode: error.code,
       headers: error.headers,
-      allErrors: twitterErrors
+      allErrors: twitterErrors,
     };
 
     if (firstError) {
@@ -285,7 +285,7 @@ export class TwitterError extends PlatformError {
     // Check for Twitter service errors
     if (
       [TwitterErrorCode.OVER_CAPACITY, TwitterErrorCode.INTERNAL_ERROR].includes(
-        twitterErrorCode as TwitterErrorCode
+        twitterErrorCode as TwitterErrorCode,
       )
     ) {
       return new TwitterError(

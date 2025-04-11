@@ -1,10 +1,12 @@
 # Authentication and API Call Flows
 
-This document outlines the key sequence of events for user authentication, platform account linking, and subsequent API calls within the Social Media API Proxy.
+This document outlines the key sequence of events for user authentication, platform account linking,
+and subsequent API calls within the Social Media API Proxy.
 
 ## Flow 1: Initial NEAR Account Authorization & Platform Account Linking
 
-This flow describes how a user authorizes their NEAR account with the proxy and then links a specific social media platform account (e.g., Twitter) to it.
+This flow describes how a user authorizes their NEAR account with the proxy and then links a
+specific social media platform account (e.g., Twitter) to it.
 
 ```mermaid
 sequenceDiagram
@@ -13,7 +15,7 @@ sequenceDiagram
     participant AuthCtrl as AuthController
     participant AuthSvc as AuthService
     participant PlatformAuth as PlatformAuth Impl (e.g., TwitterAuth)
-    participant TokenMgr as TokenManager
+    participant TokenMgr as NearAuthService
     participant NearAuthSvc as NearAuthService (via TokenMgr)
     participant TokenStore as TokenStorage (via TokenMgr)
     participant PlatformOAuth as Platform OAuth Provider
@@ -69,19 +71,38 @@ sequenceDiagram
 
 **Description:**
 
-1.  **NEAR Authorization:** The client first authorizes their NEAR account (`signerId`) with the proxy by sending a signed message. `TokenManager` (via `NearAuthService`) records this authorization.
-2.  **Initiate Linking:** The client requests to link a platform account, providing their NEAR signature and desired redirect URLs (`successUrl`, `errorUrl`). The proxy validates the signature, checks if the NEAR account is authorized, and then asks the `AuthService` to begin the platform's OAuth flow.
-3.  **Platform OAuth:** `AuthService` gets the platform-specific `PlatformAuth` implementation, calls its `initializeAuth` method to get the platform's authorization URL, `state`, and PKCE `codeVerifier`. This state information (including the original `signerId` and redirect URLs) is temporarily stored in KV by `TokenManager`, keyed by the `state`. The proxy returns the platform's URL to the client.
-4.  **User Grant:** The client redirects the user to the platform. The user logs in and grants the requested permissions.
-5.  **Callback Handling:** The platform redirects the user back to the proxy's callback URL with an authorization `code` and the original `state`.
-6.  **Token Exchange & Linking:** The proxy's `AuthController` passes the `code` and `state` to `AuthService`. `AuthService` retrieves the stored state (including `signerId`, `successUrl`, `codeVerifier`) from KV using the `state` parameter. It then calls the platform-specific `PlatformAuth.exchangeCodeForTokens` method. Upon successful exchange, `AuthService` uses `TokenManager` to securely save the obtained tokens (via `TokenStorage`) and link the platform `userId` to the original `signerId` (via `NearAuthService`). The temporary state is deleted from KV.
-7.  **Client Redirect:** The proxy redirects the client application to the original `successUrl`, often appending details like the `userId` and `platform`.
+1. **NEAR Authorization:** The client first authorizes their NEAR account (`signerId`) with the
+   proxy by sending a signed message. `NearAuthService` (via `NearAuthService`) records this
+   authorization.
+2. **Initiate Linking:** The client requests to link a platform account, providing their NEAR
+   signature and desired redirect URLs (`successUrl`, `errorUrl`). The proxy validates the
+   signature, checks if the NEAR account is authorized, and then asks the `AuthService` to begin the
+   platform's OAuth flow.
+3. **Platform OAuth:** `AuthService` gets the platform-specific `PlatformAuth` implementation, calls
+   its `initializeAuth` method to get the platform's authorization URL, `state`, and PKCE
+   `codeVerifier`. This state information (including the original `signerId` and redirect URLs) is
+   temporarily stored in KV by `NearAuthService`, keyed by the `state`. The proxy returns the
+   platform's URL to the client.
+4. **User Grant:** The client redirects the user to the platform. The user logs in and grants the
+   requested permissions.
+5. **Callback Handling:** The platform redirects the user back to the proxy's callback URL with an
+   authorization `code` and the original `state`.
+6. **Token Exchange & Linking:** The proxy's `AuthController` passes the `code` and `state` to
+   `AuthService`. `AuthService` retrieves the stored state (including `signerId`, `successUrl`,
+   `codeVerifier`) from KV using the `state` parameter. It then calls the platform-specific
+   `PlatformAuth.exchangeCodeForTokens` method. Upon successful exchange, `AuthService` uses
+   `NearAuthService` to securely save the obtained tokens (via `TokenStorage`) and link the platform
+   `userId` to the original `signerId` (via `NearAuthService`). The temporary state is deleted from
+   KV.
+7. **Client Redirect:** The proxy redirects the client application to the original `successUrl`,
+   often appending details like the `userId` and `platform`.
 
 ---
 
 ## Flow 2: Subsequent API Calls (e.g., Creating a Post)
 
-This flow describes how an authorized client application makes API calls (like creating a post) on behalf of the user using their NEAR signature.
+This flow describes how an authorized client application makes API calls (like creating a post) on
+behalf of the user using their NEAR signature.
 
 ```mermaid
 sequenceDiagram
@@ -91,7 +112,7 @@ sequenceDiagram
     participant NearAuthUtil as near-auth.utils
     participant Controller as API Controller (e.g., PostController)
     participant Service as Domain Service (e.g., PostService)
-    participant TokenMgr as TokenManager
+    participant TokenMgr as NearAuthService
     participant NearAuthSvc as NearAuthService (via TokenMgr)
     participant TokenStore as TokenStorage (via TokenMgr)
     participant PlatformImpl as Platform Impl (e.g., TwitterPost)
@@ -161,15 +182,40 @@ sequenceDiagram
 
 **Description:**
 
-1.  **Client Request:** The client prepares the request data and uses the user's NEAR wallet to sign relevant details (e.g., timestamp, nonce, recipient). The signature and related data are sent in the `Authorization: Bearer <JSON_Payload>` header.
-2.  **Signature Validation:** The `AuthMiddleware` intercepts the request. It uses `near-auth.utils.extractAndValidateNearAuth` to parse the header, validate the cryptographic signature against the provided public key and message components, and check if the derived `signerId` is authorized using `TokenManager.getNearAuthorizationStatus`.
-3.  **Context Update:** If validation and authorization succeed, the `signerId` is added to the request context.
-4.  **Controller Logic:** The request proceeds to the appropriate API controller (e.g., `PostController`). The controller retrieves the `signerId` from the context and extracts necessary parameters (like target `platform`, `userId`, post `content`) from the request body or path.
-5.  **Service Delegation:** The controller calls the relevant domain service method (e.g., `PostService.createPost`), passing the `signerId`, platform/user identifiers, and request data.
-6.  **Token Retrieval:** The service uses the `userId` and `platform` to request the necessary `AuthToken` from `TokenManager`. `TokenManager` retrieves the encrypted token from `TokenStorage` and decrypts it.
-7.  **Platform Interaction:** The service calls the appropriate method on the platform-specific implementation (e.g., `TwitterPost.createPost`).
-8.  **Client Instantiation & Refresh:** The platform implementation (`TwitterPost`) typically gets an authenticated client instance from its corresponding `PlatformClient` (`TwitterClient`). `TwitterClient.getClientForUser` retrieves the token again via `TokenManager` and instantiates the underlying API library client (e.g., `TwitterApi`).
-    *   **Auto-Refresh (Twitter Example):** If using the `TwitterApiAutoTokenRefresher`, an initial API call might fail with a 401 if the token is expired. The plugin automatically attempts to refresh the token using the stored refresh token. If successful, its `onTokenUpdate` callback notifies `TokenManager` to save the new token, and the original API call is retried. If refresh fails (e.g., invalid refresh token), `onTokenRefreshError` notifies `TokenManager` to delete the token, and an error is propagated back.
-    *   **Manual Refresh (Alternative):** If not using an auto-refresher, the platform implementation would need to catch the 401 error, explicitly call `BasePlatformAuth.refreshToken`, and then retry the API call with the new token.
-9.  **API Call:** The authenticated platform client makes the actual call to the external social media API.
-10. **Response Handling:** The result (success or error) is propagated back through the layers (Platform Implementation -> Service -> Controller -> Client).
+1. **Client Request:** The client prepares the request data and uses the user's NEAR wallet to sign
+   relevant details (e.g., timestamp, nonce, recipient). The signature and related data are sent in
+   the `Authorization: Bearer <JSON_Payload>` header.
+2. **Signature Validation:** The `AuthMiddleware` intercepts the request. It uses
+   `near-auth.utils.extractAndValidateNearAuth` to parse the header, validate the cryptographic
+   signature against the provided public key and message components, and check if the derived
+   `signerId` is authorized using `NearAuthService.getNearAuthorizationStatus`.
+3. **Context Update:** If validation and authorization succeed, the `signerId` is added to the
+   request context.
+4. **Controller Logic:** The request proceeds to the appropriate API controller (e.g.,
+   `PostController`). The controller retrieves the `signerId` from the context and extracts
+   necessary parameters (like target `platform`, `userId`, post `content`) from the request body or
+   path.
+5. **Service Delegation:** The controller calls the relevant domain service method (e.g.,
+   `PostService.createPost`), passing the `signerId`, platform/user identifiers, and request data.
+6. **Token Retrieval:** The service uses the `userId` and `platform` to request the necessary
+   `AuthToken` from `NearAuthService`. `NearAuthService` retrieves the encrypted token from
+   `TokenStorage` and decrypts it.
+7. **Platform Interaction:** The service calls the appropriate method on the platform-specific
+   implementation (e.g., `TwitterPost.createPost`).
+8. **Client Instantiation & Refresh:** The platform implementation (`TwitterPost`) typically gets an
+   authenticated client instance from its corresponding `PlatformClient` (`TwitterClient`).
+   `TwitterClient.getClientForUser` retrieves the token again via `NearAuthService` and instantiates
+   the underlying API library client (e.g., `TwitterApi`).
+   - **Auto-Refresh (Twitter Example):** If using the `TwitterApiAutoTokenRefresher`, an initial API
+     call might fail with a 401 if the token is expired. The plugin automatically attempts to
+     refresh the token using the stored refresh token. If successful, its `onTokenUpdate` callback
+     notifies `NearAuthService` to save the new token, and the original API call is retried. If
+     refresh fails (e.g., invalid refresh token), `onTokenRefreshError` notifies `NearAuthService`
+     to delete the token, and an error is propagated back.
+   - **Manual Refresh (Alternative):** If not using an auto-refresher, the platform implementation
+     would need to catch the 401 error, explicitly call `BasePlatformAuth.refreshToken`, and then
+     retry the API call with the new token.
+9. **API Call:** The authenticated platform client makes the actual call to the external social
+   media API.
+10. **Response Handling:** The result (success or error) is propagated back through the layers
+    (Platform Implementation -> Service -> Controller -> Client).

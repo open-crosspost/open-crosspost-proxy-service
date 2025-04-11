@@ -1,4 +1,4 @@
-import { DeletePostRequest, createSuccessDetail } from '@crosspost/types';
+import { createSuccessDetail, DeletePostRequest } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
@@ -41,7 +41,7 @@ export class DeleteController extends BasePostController {
         async (target) => {
           // Find posts for this target
           const targetPosts = request.posts.filter(
-            post => post.platform === target.platform && post.userId === target.userId
+            (post) => post.platform === target.platform && post.userId === target.userId,
           );
 
           if (targetPosts.length === 0) {
@@ -51,12 +51,12 @@ export class DeleteController extends BasePostController {
 
           // Process the first matching post (we could process all, but for simplicity let's do one)
           const post = targetPosts[0];
-          
+
           // Delete the post
           const deleteResult = await this.postService.deletePost(
             post.platform,
             post.userId,
-            post.postId
+            post.postId,
           );
 
           // Return success detail
@@ -68,11 +68,11 @@ export class DeleteController extends BasePostController {
               success: deleteResult.success,
             },
           );
-        }
+        },
       );
 
       // Filter out null results (targets with no matching posts)
-      const filteredResults = successResults.filter(result => result !== null);
+      const filteredResults = successResults.filter((result) => result !== null);
 
       return this.createMultiStatusResponse(c, filteredResults, errorDetails);
     } catch (error) {

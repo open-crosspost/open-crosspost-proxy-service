@@ -1,4 +1,4 @@
-import { QuotePostRequest, createSuccessDetail } from '@crosspost/types';
+import { createSuccessDetail, QuotePostRequest } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
@@ -66,7 +66,7 @@ export class QuoteController extends BasePostController {
               quotedPostId: request.postId,
             },
           );
-        }
+        },
       );
 
       // Create a multi-status response using the base controller method

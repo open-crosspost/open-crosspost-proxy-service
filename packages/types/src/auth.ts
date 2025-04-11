@@ -4,9 +4,9 @@
  * TypeScript types are derived from Zod schemas for type safety
  */
 
-import { z } from "zod";
-import { EnhancedResponseSchema } from "./response.ts";
-import { PlatformSchema } from "./common.ts";
+import { z } from 'zod';
+import { EnhancedResponseSchema } from './response.ts';
+import { PlatformSchema } from './common.ts';
 
 // Platform parameter schema
 export const PlatformParamSchema = z.object({
@@ -15,7 +15,9 @@ export const PlatformParamSchema = z.object({
 
 // Auth initialization request schema
 export const AuthInitRequestSchema = z.object({
-  successUrl: z.string().url().optional().describe('URL to redirect to on successful authentication'),
+  successUrl: z.string().url().optional().describe(
+    'URL to redirect to on successful authentication',
+  ),
   errorUrl: z.string().url().optional().describe('URL to redirect to on authentication error'),
 }).describe('Auth initialization request');
 
@@ -25,7 +27,7 @@ export const AuthUrlResponseSchema = EnhancedResponseSchema(
     url: z.string().describe('Authentication URL to redirect the user to'),
     state: z.string().describe('State parameter for CSRF protection'),
     platform: PlatformSchema,
-  })
+  }),
 ).describe('Auth URL response');
 
 // Auth callback query schema
@@ -41,7 +43,7 @@ export const AuthCallbackResponseSchema = EnhancedResponseSchema(
     platform: PlatformSchema,
     userId: z.string().describe('User ID'),
     redirectUrl: z.string().optional().describe('URL to redirect the user to after authentication'),
-  })
+  }),
 ).describe('Auth callback response');
 
 // Auth status response schema
@@ -55,7 +57,7 @@ export const AuthStatusResponseSchema = EnhancedResponseSchema(
       expired: z.boolean().describe('Whether the token is expired'),
       expiresAt: z.string().optional().describe('When the token expires'),
     }),
-  })
+  }),
 ).describe('Auth status response');
 
 // Auth revoke response schema
@@ -64,7 +66,7 @@ export const AuthRevokeResponseSchema = EnhancedResponseSchema(
     success: z.boolean().describe('Whether the revocation was successful'),
     platform: PlatformSchema,
     userId: z.string().describe('User ID'),
-  })
+  }),
 ).describe('Auth revoke response');
 
 // Connected account schema
@@ -78,7 +80,7 @@ export const ConnectedAccountSchema = z.object({
 
 // Connected accounts response schema
 export const ConnectedAccountsResponseSchema = EnhancedResponseSchema(
-  z.array(ConnectedAccountSchema)
+  z.array(ConnectedAccountSchema),
 ).describe('Connected accounts response');
 
 // NEAR authorization request schema
@@ -92,7 +94,7 @@ export const NearAuthorizationResponseSchema = EnhancedResponseSchema(
     success: z.boolean().describe('Whether the authorization was successful'),
     nearAccount: z.string().describe('NEAR account ID'),
     authorized: z.boolean().describe('Whether the account is authorized'),
-  })
+  }),
 ).describe('NEAR authorization response');
 
 // NEAR authorization status response schema
@@ -101,7 +103,7 @@ export const NearAuthorizationStatusResponseSchema = EnhancedResponseSchema(
     nearAccount: z.string().describe('NEAR account ID'),
     authorized: z.boolean().describe('Whether the account is authorized'),
     authorizedAt: z.string().optional().describe('When the account was authorized'),
-  })
+  }),
 ).describe('NEAR authorization status response');
 
 // Derive TypeScript types from Zod schemas

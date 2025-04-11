@@ -9,7 +9,6 @@ import { PlatformClient } from './platform-client.interface.ts';
  * Base implementation of the PlatformClient interface with common functionality
  */
 export abstract class BasePlatformClient implements PlatformClient {
-
   /**
    * Create a new base platform client
    * @param env Environment configuration
@@ -18,7 +17,7 @@ export abstract class BasePlatformClient implements PlatformClient {
   constructor(
     protected env: Env,
     protected platform: PlatformName,
-  ) { }
+  ) {}
 
   /**
    * Initialize the client with necessary credentials
@@ -143,7 +142,8 @@ export abstract class BasePlatformClient implements PlatformClient {
           recoverable = true; // Server errors might be temporary
         }
         // Add other status code mappings if needed (e.g., 400 for validation)
-      } else if ( // Check for network errors if status is not available
+      } else if (
+        // Check for network errors if status is not available
         err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT'
       ) {
         apiErrorCode = ApiErrorCode.NETWORK_ERROR;
@@ -161,7 +161,7 @@ export abstract class BasePlatformClient implements PlatformClient {
       error, // Original error
       status as StatusCode | undefined, // Pass status, cast needed
       undefined, // userId
-      undefined // details
+      undefined, // details
     );
   }
 }

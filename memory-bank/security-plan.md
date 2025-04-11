@@ -1,6 +1,7 @@
 # Social Media API Proxy Security Plan
 
-This document outlines the security plan for the Social Media API Proxy, focusing on protecting sensitive user data, particularly OAuth tokens stored in Deno KV.
+This document outlines the security plan for the Social Media API Proxy, focusing on protecting
+sensitive user data, particularly OAuth tokens stored in Deno KV.
 
 ## Security Objectives
 
@@ -16,8 +17,10 @@ The security enhancements are being implemented in three phases:
 
 ### Phase 1: Core Security (Completed)
 
-- **Enhanced Encryption with Key Versioning**: Implemented versioned encryption for tokens stored in Deno KV
-- **Token Access Logging**: Implemented comprehensive logging for all token operations with PII redaction
+- **Enhanced Encryption with Key Versioning**: Implemented versioned encryption for tokens stored in
+  Deno KV
+- **Token Access Logging**: Implemented comprehensive logging for all token operations with PII
+  redaction
 - **Secure Default Configurations**: Enhanced environment configuration to ensure secure defaults
 
 ### Phase 2: Structural Enhancements (Planned)
@@ -29,7 +32,8 @@ The security enhancements are being implemented in three phases:
 ### Phase 3: Advanced Security Features (Planned)
 
 - **Key Rotation Mechanism**: Implement automatic key rotation on a schedule
-- **User-specific Key Derivation**: Implement key derivation functions for user-specific encryption keys
+- **User-specific Key Derivation**: Implement key derivation functions for user-specific encryption
+  keys
 - **Enhanced Token Revocation**: Implement immediate token invalidation for compromised tokens
 
 ## Security Best Practices
