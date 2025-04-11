@@ -1,190 +1,248 @@
-# Twitter API Proxy Testing Strategy
+# Open Crosspost Proxy Service: Testing Strategy
 
-## Testing Philosophy
+## Overview
 
-The Twitter API Proxy testing strategy focuses on ensuring reliability, correctness, and
-maintainability of the codebase. Our approach prioritizes:
+The testing strategy ensures reliability, correctness, and maintainability through comprehensive
+testing at multiple levels. We use Behavior-Driven Development (BDD) with Deno's native testing
+capabilities.
 
-1. **Service Testing**: Testing the service endpoints against a mock Twitter API to verify
-   end-to-end functionality.
-2. **SDK Testing**: Testing the SDK against mock service responses to verify client-side behavior.
-3. **Error Handling**: Verifying that errors are properly caught, handled, and communicated to
-   clients.
-4. **Type Safety**: Leveraging TypeScript's type system to catch errors at compile time.
-5. **Security**: Ensuring that authentication, authorization, and data protection mechanisms work
-   correctly.
-
-## Testing Tools
-
-We use Deno's built-in testing capabilities:
-
-1. **Deno.test**: Deno's native test runner for writing and running tests.
-2. **@std/testing/bdd**: BDD-style testing with `describe` and `it` functions.
-3. **@std/assert** and **@std/expect**: Assertion libraries for verifying test conditions.
-4. **Test Steps**: Using `t.step()` for organizing tests into logical groups.
-5. **Sanitizers**: Leveraging Deno's built-in sanitizers for resources, operations, and exits.
-
-## Test Organization
-
-Tests are organized into the following categories:
-
-1. **Service Tests**: Located in `tests/service/` directory, testing the service endpoints against a
-   mock Twitter API.
-2. **SDK Tests**: Located in `tests/sdk/` directory, testing the SDK against mock service responses.
-3. **Mocks**: Located in `tests/mocks/` directory, containing mock implementations of external
-   dependencies.
-4. **Utils**: Located in `tests/utils/` directory, containing test utilities.
-
-## Testing Strategies
-
-### Service Testing
-
-The primary focus is on testing the service endpoints against a mock Twitter API:
-
-1. **HTTP-Based Testing**: Test the service endpoints by making HTTP requests and verifying the
-   responses.
-2. **Mock Twitter API**: Use a mock Twitter API to simulate responses and error scenarios.
-3. **Error Propagation**: Verify that errors from the Twitter API are properly propagated to
-   clients.
-4. **Authentication Flow**: Test the complete authentication flow from client to service to
-   platform.
-
-### SDK Testing
-
-For SDK tests, we focus on testing against mock service responses:
-
-1. **Mock Service Responses**: Mock the service responses to test SDK behavior.
-2. **Error Handling**: Verify that errors from the service are properly propagated to SDK users.
-3. **Request Formation**: Verify that the SDK forms proper requests to the service.
-4. **Response Processing**: Verify that the SDK correctly processes service responses.
-
-### Mocking
-
-For both service and SDK tests, we use mocks to isolate the system under test:
-
-1. **Twitter API Mock**: Mock the Twitter API to simulate responses and error scenarios.
-2. **Twitter Client Mock**: Mock the Twitter client to control its behavior in tests.
-3. **Fetch Mock**: Mock the fetch function to simulate service responses in SDK tests.
-
-#### Mocking Strategies with Deno
-
-When mocking functions in Deno tests, there are several approaches depending on the nature of the
-function being mocked:
-
-##### Approach 1: Using `mock.stub` for Configurable Properties
-
-For functions that are defined as configurable properties, you can use the `stub` function from
-`@std/testing/mock`:
-
-```typescript
-// Import the mock utilities
-import * as mock from 'jsr:@std/testing/mock';
-
-// Create a stub for a function
-using functionStub = mock.stub(
-  moduleObject,
-  'functionName',
-  (param1: Type1, param2: Type2) => ReturnValue,
-);
+```mermaid
+flowchart TD
+    Unit[Unit Tests] --> Integration[Integration Tests]
+    Integration --> E2E[End-to-End Tests]
+    
+    subgraph "Test Layers"
+        Unit
+        Integration
+        E2E
+    end
+    
+    subgraph "Coverage"
+        Unit --> Components[Components]
+        Integration --> Flows[Workflows]
+        E2E --> Features[Features]
+    end
 ```
 
-Key points:
+## Testing Architecture
 
-1. Use the `using` keyword to ensure the stub is automatically restored after the test
-2. Match the function signature exactly in the stub implementation
-3. Use underscore prefix for unused parameters: `_param1`, `_param2`
-4. For asynchronous functions, return a Promise with the mock value
+### 1. Test Organization
 
-If you prefer not to use the `using` keyword (which is a newer feature), you can use this approach:
+```mermaid
+classDiagram
+    class ServiceTests {
+        +auth/
+        +post/
+        +media/
+        +rate-limit/
+    }
+    
+    class SDKTests {
+        +client/
+        +platforms/
+        +auth/
+    }
+    
+    class Mocks {
+        +twitter/
+        +near-auth/
+        +storage/
+    }
+    
+    ServiceTests --> Mocks
+    SDKTests --> Mocks
+```
+
+### 2. BDD Structure
+
+```mermaid
+flowchart TD
+    Describe[describe Block] --> Context[context Block]
+    Context --> It[it Block]
+    It --> Steps[Test Steps]
+    
+    subgraph "Test Organization"
+        Describe -- "Feature" --> Context
+        Context -- "Scenario" --> It
+        It -- "Behavior" --> Steps
+    end
+```
+
+## Test Categories
+
+### 1. Service Tests
+
+**Location:** `tests/service/` **Purpose:** Test service endpoints against mocked dependencies
 
 ```typescript
-const functionStub = mock.stub(
-  moduleObject,
-  'functionName',
-  (param1: Type1, param2: Type2) => ReturnValue,
-);
+describe('Post Creation', () => {
+  context('with valid input', () => {
+    it('creates a new post', async (t) => {
+      await t.step('prepare test data', async () => {
+        // Setup
+      });
 
-// Make sure to restore in afterEach
-afterEach(() => {
-  functionStub.restore();
+      await t.step('execute request', async () => {
+        // Action
+      });
+
+      await t.step('verify response', async () => {
+        // Assert
+      });
+    });
+  });
 });
 ```
 
-##### Approach 2: Creating Mock Module Implementations
+### 2. SDK Tests
 
-For modules with read-only exports (which is common with ES modules), you can't use `mock.stub`
-directly. Instead, create a mock implementation of the entire module:
-
-1. Create a mock implementation file in your tests/mocks directory:
+**Location:** `tests/sdk/` **Purpose:** Test SDK behavior with mocked service responses
 
 ```typescript
-// tests/mocks/module-name-mock.ts
-import { SomeType } from '@some/package';
+describe('TwitterClient', () => {
+  context('post operations', () => {
+    it('handles rate limits correctly', async (t) => {
+      // Test implementation
+    });
+  });
+});
+```
 
-// Export the same interface as the original module
-export async function someFunction(param1: string, param2: number): Promise<SomeType> {
-  // Mock implementation
-  return mockResult;
+### 3. Integration Tests
+
+**Location:** `tests/integration/` **Purpose:** Test complete workflows across components
+
+## Mocking Strategies
+
+### 1. Function Mocking
+
+```typescript
+// Using the 'using' keyword for automatic cleanup
+using functionStub = mock.stub(
+  moduleObject,
+  'functionName',
+  (param1: Type1) => mockResult,
+);
+
+// Alternative approach with manual cleanup
+const functionStub = mock.stub(
+  moduleObject,
+  'functionName',
+  (param1: Type1) => mockResult,
+);
+afterEach(() => functionStub.restore());
+```
+
+### 2. Module Mocking
+
+```typescript
+// tests/mocks/twitter-api-mock.ts
+export class TwitterApiMock implements TwitterApi {
+  async createPost(params: PostParams): Promise<PostResponse> {
+    return mockResponse;
+  }
 }
 ```
 
-2. Import the mock implementation instead of the real one in your tests:
+### 3. HTTP Mocking
 
 ```typescript
-// Import the mock implementation instead of the real one
-import * as moduleUtils from '../../mocks/module-name-mock.ts';
+// Mock HTTP responses
+const mockFetch = mock.fn(async (url: string) => ({
+  ok: true,
+  json: async () => mockData,
+  status: 200,
+}));
 ```
 
-This approach is particularly useful for modules that create new instances of classes or have
-complex dependencies that are difficult to mock individually.
+## Test Coverage Goals
 
-Example: Mocking a utility module that verifies platform access:
+### 1. Critical Paths (100%)
 
-```typescript
-// tests/mocks/near-auth-utils-mock.ts
-import { ApiError, ApiErrorCode, PlatformName } from '@crosspost/types';
-import { Context } from '../../deps.ts';
-import { mockToken } from './near-auth-service-mock.ts';
+- Authentication flows
+- Post operations
+- Error handling
+- Rate limiting
+- Token management
 
-export async function verifyPlatformAccess(
-  signerId: string,
-  platform: PlatformName,
-  userId: string,
-): Promise<any> {
-  // Mock implementation that returns the mock token
-  return mockToken;
-}
-```
+### 2. Edge Cases (100%)
 
-For mocking entire objects or classes:
+- Error scenarios
+- Boundary conditions
+- Race conditions
+- Resource cleanup
 
-```typescript
-// Create a mock implementation
-const mockObject = {
-  method1: mock.fn(() => mockResult1),
-  method2: mock.fn(() => mockResult2),
-};
+### 3. Integration Points (95%)
 
-// Replace the real object with the mock
-(serviceInstance as any).dependencyObject = mockObject;
-```
-
-## Test Coverage
-
-We aim for high test coverage of critical paths:
-
-1. **Authentication Flows**: 100% coverage of authentication logic.
-2. **Post Operations**: 100% coverage of post creation, deletion, and interaction.
-3. **Error Handling**: 100% coverage of error paths.
-4. **Rate Limiting**: 100% coverage of rate limiting logic.
+- Platform interactions
+- Storage operations
+- External services
 
 ## Best Practices
 
-1. **Test Independence**: Each test should be independent and not rely on the state from other
-   tests.
-2. **Clear Assertions**: Each test should have clear assertions that verify specific behavior.
-3. **Descriptive Names**: Test names should clearly describe what is being tested.
-4. **Setup and Teardown**: Properly set up and tear down test resources.
-5. **Error Cases**: Test both success and error cases.
-6. **Boundary Conditions**: Test boundary conditions and edge cases.
-7. **Performance**: Tests should run quickly to enable fast feedback loops.
+### 1. Test Structure
+
+- Use descriptive block names
+- Follow Given-When-Then pattern
+- Keep tests focused and atomic
+- Use proper setup and teardown
+
+### 2. Mocking
+
+- Mock at appropriate boundaries
+- Use type-safe mocks
+- Verify mock interactions
+- Clean up mocks properly
+
+### 3. Assertions
+
+- Use explicit assertions
+- Check both positive and negative cases
+- Verify error conditions
+- Test edge cases
+
+### 4. Performance
+
+- Optimize test execution
+- Parallelize when possible
+- Minimize test dependencies
+- Use efficient mocks
+
+## Tools and Libraries
+
+### 1. Core Testing
+
+- **Deno.test**: Test runner
+- **@std/testing/bdd**: BDD support
+- **@std/assert**: Assertions
+- **@std/expect**: Expectations
+
+### 2. Mocking
+
+- **@std/testing/mock**: Mock utilities
+- Custom mock implementations
+- HTTP request mocking
+- Storage mocking
+
+### 3. Coverage
+
+- Deno coverage tools
+- Coverage reporting
+- Branch coverage
+- Integration coverage
+
+## Continuous Integration
+
+### 1. Test Execution
+
+- Run on every PR
+- Matrix testing
+- Parallel execution
+- Coverage reports
+
+### 2. Quality Gates
+
+- Minimum coverage
+- No failing tests
+- Performance thresholds
+- Type checking

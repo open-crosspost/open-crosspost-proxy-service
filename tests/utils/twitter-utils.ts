@@ -1,4 +1,3 @@
-
 /**
  * Error type to mock
  */
@@ -25,7 +24,7 @@ export function createMockTwitterError(
   errorType: TwitterMockErrorType = TwitterMockErrorType.RESPONSE_ERROR,
   title?: string,
   type?: string,
-  detail?: string
+  detail?: string,
 ): any {
   // Base properties for all error types
   const mockError: any = {
@@ -56,7 +55,7 @@ export function createMockTwitterError(
       mockError.name = 'ApiRequestError';
       mockError.requestError = {
         message,
-        code: 'NETWORK_ERROR'
+        code: 'NETWORK_ERROR',
       };
       break;
 
@@ -65,7 +64,7 @@ export function createMockTwitterError(
       mockError.name = 'ApiPartialResponseError';
       mockError.rawContent = message;
       mockError.responseError = {
-        message
+        message,
       };
       mockError.request = {};
       mockError.response = {};

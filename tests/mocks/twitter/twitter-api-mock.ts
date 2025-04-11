@@ -8,7 +8,7 @@ import {
   TweetV2SingleResult,
   TwitterApi,
   UserV2,
-  UserV2Result
+  UserV2Result,
 } from 'twitter-api-v2';
 import { createMockTwitterError } from '../../utils/twitter-utils.ts';
 

@@ -1,71 +1,196 @@
-# Social Media API Proxy Security Plan
+# Open Crosspost Proxy Service: Security Plan
 
-This document outlines the security plan for the Social Media API Proxy, focusing on protecting
-sensitive user data, particularly OAuth tokens stored in Deno KV.
+## Overview
 
-## Security Objectives
+The security architecture of the Open Crosspost Proxy Service is designed to protect sensitive user
+data, particularly OAuth tokens, while providing secure and reliable access to social media
+platforms.
 
-1. **Data Protection**: Ensure all sensitive data is encrypted at rest and in transit
-2. **Access Control**: Implement proper authentication and authorization
-3. **Audit Trail**: Maintain comprehensive logs of security-relevant operations
-4. **Secure Configuration**: Validate and enforce secure configuration settings
-5. **Incident Response**: Prepare for security incidents with proper monitoring and alerting
+```mermaid
+flowchart TD
+    Client[Client Application] --> Auth[Authentication Layer]
+    Auth --> Token[Token Management]
+    Auth --> Access[Access Control]
+    
+    subgraph "Security Layers"
+        Auth
+        Token --> Encryption[Encryption Service]
+        Token --> Storage[Secure Storage]
+        Access --> Audit[Audit Logging]
+    end
+```
+
+## Core Security Components
+
+### 1. Authentication System
+
+```mermaid
+flowchart LR
+    A[Client] -->|1. Sign Message| B[NEAR Wallet]
+    B -->|2. Return Signature| A
+    A -->|3. Send Signature| C[Proxy Service]
+    C -->|4. Verify Signature| D[Auth Service]
+    D -->|5. Issue Token| C
+    C -->|6. Return Token| A
+```
+
+**Implementation:**
+
+- NEAR wallet signature-based authentication
+- API key validation for applications
+- OAuth token management for platforms
+- Signature verification and validation
+
+### 2. Token Security
+
+```mermaid
+classDiagram
+    class TokenManager {
+        +storeToken(token: Token)
+        +retrieveToken(id: string)
+        +rotateKey()
+        +revokeToken(id: string)
+    }
+    
+    class EncryptionService {
+        +encrypt(data: any)
+        +decrypt(data: any)
+        +generateKey()
+        +deriveKey(userId: string)
+    }
+    
+    TokenManager --> EncryptionService
+```
+
+**Features:**
+
+- AES-GCM encryption
+- Key versioning support
+- Secure key storage
+- Token lifecycle management
+
+### 3. Access Control
+
+```mermaid
+flowchart TD
+    Request[API Request] --> CORS[CORS Check]
+    CORS --> Auth[Auth Validation]
+    Auth --> Rate[Rate Limiting]
+    Rate --> Action[Authorized Action]
+```
+
+**Implementation:**
+
+- CORS restrictions
+- Origin validation
+- Rate limiting
+- Permission checks
 
 ## Implementation Phases
 
-The security enhancements are being implemented in three phases:
+### Phase 1: Foundation Security ✅
 
-### Phase 1: Core Security (Completed)
+1. **Token Encryption**
+   - Implemented AES-GCM encryption
+   - Added key versioning support
+   - Established secure key management
 
-- **Enhanced Encryption with Key Versioning**: Implemented versioned encryption for tokens stored in
-  Deno KV
-- **Token Access Logging**: Implemented comprehensive logging for all token operations with PII
-  redaction
-- **Secure Default Configurations**: Enhanced environment configuration to ensure secure defaults
+2. **Access Control**
+   - NEAR wallet integration
+   - API key validation
+   - CORS configuration
 
-### Phase 2: Structural Enhancements (Planned)
+3. **Audit Logging**
+   - PII redaction
+   - Operation logging
+   - Access tracking
 
-- **Metadata Separation**: Store sensitive token data separately from non-sensitive metadata
-- **Token Expiry Management**: Add explicit expiry tracking in the KV store
-- **Anomaly Detection**: Monitor for unusual token access patterns
+### Phase 2: Enhanced Security 🔄
 
-### Phase 3: Advanced Security Features (Planned)
+1. **Token Management**
+   - Metadata separation
+   - Expiry tracking
+   - Access patterns monitoring
 
-- **Key Rotation Mechanism**: Implement automatic key rotation on a schedule
-- **User-specific Key Derivation**: Implement key derivation functions for user-specific encryption
-  keys
-- **Enhanced Token Revocation**: Implement immediate token invalidation for compromised tokens
+2. **Key Management**
+   - Automatic key rotation
+   - User-specific key derivation
+   - Key backup procedures
 
-## Security Best Practices
+3. **Monitoring**
+   - Anomaly detection
+   - Alert system
+   - Security metrics
 
-### Encryption
+### Phase 3: Advanced Features 📋
 
-- Use AES-GCM for authenticated encryption
-- Use proper key sizes (16, 24, or 32 bytes)
-- Generate cryptographically secure random IVs
-- Never reuse IVs with the same key
-- Implement proper key management
+1. **Zero-Trust Architecture**
+   - Request-level verification
+   - Context-based access
+   - Continuous validation
 
-### Access Control
+2. **Threat Prevention**
+   - Rate limit optimization
+   - DDoS protection
+   - Abuse prevention
 
-- Validate all API requests with proper authentication
-- Implement NEAR wallet signature verification
-- Use API keys for client applications
-- Validate origins against allowed list
-- Implement proper CORS restrictions
+3. **Compliance**
+   - Audit improvements
+   - Policy enforcement
+   - Compliance reporting
 
-### Logging and Monitoring
+## Security Measures
 
-- Redact PII in all logs
-- Implement structured logging
-- Create alerts for security events
-- Monitor for unusual patterns
-- Maintain audit logs for security operations
+### 1. Data Protection
 
-### Secure Coding
+- Encryption at rest and in transit
+- Secure key management
+- Data minimization
+- Regular security audits
 
-- Validate all input data
-- Use parameterized queries
-- Implement proper error handling
-- Follow the principle of least privilege
-- Keep dependencies up to date
+### 2. Access Security
+
+- Multi-factor authentication
+- Strict CORS policies
+- Token validation
+- Rate limiting
+
+### 3. Monitoring
+
+- Real-time alerts
+- Access logging
+- Error tracking
+- Performance monitoring
+
+### 4. Incident Response
+
+- Alert procedures
+- Response playbooks
+- Recovery plans
+- Stakeholder communication
+
+## Best Practices
+
+1. **Encryption**
+   - Use strong algorithms (AES-GCM)
+   - Implement proper key sizes
+   - Secure IV generation
+   - Regular key rotation
+
+2. **Authentication**
+   - Validate all requests
+   - Verify signatures
+   - Check permissions
+   - Monitor access patterns
+
+3. **Development**
+   - Input validation
+   - Error handling
+   - Dependency management
+   - Code review
+
+4. **Operations**
+   - Regular updates
+   - Security patches
+   - Configuration management
+   - Access control

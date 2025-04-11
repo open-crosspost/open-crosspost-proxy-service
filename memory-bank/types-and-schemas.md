@@ -1,179 +1,254 @@
-# Types and Schemas Organization
-
-This document outlines the organization of types and schemas in the Crosspost project.
+# Open Crosspost Proxy Service: Types and Schemas
 
 ## Overview
 
-The project uses a centralized approach for type safety and validation:
+The type system provides a centralized, type-safe approach to data validation and type checking
+across the entire application. Built around Zod schemas, it ensures consistency between runtime
+validation and compile-time type checking.
 
-1. **Zod Schemas**: Defined in the `packages/types/src` directory, these provide runtime validation
-   of API requests and responses.
-2. **TypeScript Types**: Derived from Zod schemas using `z.infer<typeof schemaName>`, these provide
-   static type checking during development.
-
-This approach ensures that types and schemas are always in sync, as the TypeScript types are derived
-directly from the Zod schemas.
-
-## Types Package (`packages/types`)
-
-The types package is the single source of truth for both Zod schemas and TypeScript types. It's
-organized by domain rather than by request/response:
-
-```
-packages/types/src/
-├── index.ts                # Main exports
-├── auth.ts                 # Auth schemas and derived types
-├── post.ts                 # Post schemas and derived types
-├── media.ts                # Media schemas and derived types
-├── leaderboard.ts          # Leaderboard schemas and derived types
-├── rate-limit.ts           # Rate limit schemas and derived types
-├── common.ts               # Common schemas and types
-├── response.ts             # Response schemas and types
-└── errors/                 # Error schemas and types
-    ├── index.ts            # Error exports
-    ├── api-error.ts        # API error schemas and types
-    ├── base-error.ts       # Base error schemas and types
-    └── platform-error.ts   # Platform error schemas and types
+```mermaid
+flowchart TD
+    Schema[Zod Schema] --> Types[TypeScript Types]
+    Schema --> Validation[Runtime Validation]
+    Types --> Static[Static Type Checking]
+    
+    subgraph "Type System"
+        Schema
+        Types
+        Validation
+        Static
+    end
 ```
 
-### Schema and Type Definition
+## Architecture
 
-Each domain file contains both the Zod schemas and the derived TypeScript types:
+### 1. Core Components
+
+```mermaid
+classDiagram
+    class Schema {
+        +validate()
+        +parse()
+        +safeParse()
+    }
+    
+    class Type {
+        <<interface>>
+        +properties
+        +methods
+    }
+    
+    class Validator {
+        +middleware
+        +utils
+    }
+    
+    Schema --> Type : generates
+    Schema --> Validator : powers
+```
+
+### 2. Package Structure
+
+```mermaid
+flowchart TD
+    Types[types Package] --> Domain[Domain Types]
+    Types --> Common[Common Types]
+    Types --> Errors[Error Types]
+    
+    subgraph "Organization"
+        Domain --> Auth[auth.ts]
+        Domain --> Post[post.ts]
+        Domain --> Media[media.ts]
+        Common --> Base[common.ts]
+        Common --> Response[response.ts]
+        Errors --> ApiError[api-error.ts]
+        Errors --> PlatformError[platform-error.ts]
+    end
+```
+
+## Type Definitions
+
+### 1. Domain Types
 
 ```typescript
-// packages/types/src/auth.ts
+// auth.ts
 import { z } from 'zod';
-import { EnhancedResponseSchema } from './response.ts';
-import { PlatformSchema } from './common.ts';
 
-// Platform parameter schema
-export const PlatformParamSchema = z.object({
-  platform: z.string().describe('Social media platform'),
-}).describe('Platform parameter');
+export const AuthRequestSchema = z.object({
+  platform: z.string(),
+  successUrl: z.string().url().optional(),
+  errorUrl: z.string().url().optional(),
+}).describe('Authentication request');
 
-// Auth initialization request schema
-export const AuthInitRequestSchema = z.object({
-  successUrl: z.string().url().optional().describe(
-    'URL to redirect to on successful authentication',
-  ),
-  errorUrl: z.string().url().optional().describe('URL to redirect to on authentication error'),
-}).describe('Auth initialization request');
-
-// Derive TypeScript types from Zod schemas
-export type PlatformParam = z.infer<typeof PlatformParamSchema>;
-export type AuthInitRequest = z.infer<typeof AuthInitRequestSchema>;
+export type AuthRequest = z.infer<typeof AuthRequestSchema>;
 ```
 
-### Enhanced Response Types
-
-The enhanced response types provide a consistent format for API responses:
+### 2. Response Types
 
 ```typescript
-// packages/types/src/response.ts
-import { z } from "zod";
-
-// Define the schema
-export const EnhancedResponseSchema = <T extends z.ZodTypeAny>(schema: T) => 
+// response.ts
+export const EnhancedResponseSchema = <T extends z.ZodTypeAny>(schema: T) =>
   z.object({
     success: z.boolean(),
     data: schema,
     meta: z.object({
-      // metadata properties...
+      rateLimit: z.object({
+        remaining: z.number(),
+        reset: z.number(),
+      }).optional(),
     }).optional(),
   });
 
-// Derive the type
-export type EnhancedApiResponse<T> = {
-  success: boolean;
-  data: T;
-  meta?: {
-    rateLimit?: { ... };
-    pagination?: { ... };
-  };
-};
+export type EnhancedResponse<T> = z.infer<
+  ReturnType<typeof EnhancedResponseSchema<z.ZodType<T>>>
+>;
 ```
 
-## API Usage
-
-The API imports schemas and types from the types package:
-
-### Validation Middleware
+### 3. Error Types
 
 ```typescript
-// src/middleware/validation.middleware.ts
-import { AuthInitRequestSchema } from '@crosspost/types/deno_dist/auth.ts';
+// errors/api-error.ts
+export const ApiErrorSchema = z.object({
+  code: z.enum(['VALIDATION_ERROR', 'AUTH_ERROR']),
+  message: z.string(),
+  details: z.record(z.unknown()).optional(),
+});
 
-// Use schema for validation
-const result = AuthInitRequestSchema.safeParse(request.body);
-if (!result.success) {
-  return c.json({ error: result.error }, 400);
-}
+export type ApiError = z.infer<typeof ApiErrorSchema>;
 ```
 
-### Controllers
+## Usage Patterns
+
+### 1. API Validation
 
 ```typescript
-// src/controllers/auth.controller.ts
-import { AuthInitRequest, AuthUrlResponse } from '@crosspost/types/deno_dist/auth.ts';
-
-// Use types for type safety
-const handleAuthInit = async (c: Context): Promise<Response> => {
-  const body: AuthInitRequest = await c.req.json();
-  // Implementation...
-  const response: AuthUrlResponse = {
-    success: true,
-    data: {
-      url: authUrl,
-      state,
-      platform,
-    },
-  };
-  return c.json(response);
-};
+// Middleware usage
+app.use(async (c, next) => {
+  const result = AuthRequestSchema.safeParse(await c.req.json());
+  if (!result.success) {
+    return c.json({ error: result.error }, 400);
+  }
+  return next();
+});
 ```
 
-## SDK Usage
-
-The SDK uses the derived types from the types package:
+### 2. SDK Integration
 
 ```typescript
-// packages/sdk/src/platforms/twitter-client.ts
-import { PostCreateRequest, PostResponse } from '@crosspost/types';
-
+// SDK client usage
 export class TwitterClient {
-  async createPost(request: PostCreateRequest): Promise<PostResponse> {
-    // Implementation...
+  async createPost(
+    request: PostCreateRequest,
+  ): Promise<EnhancedResponse<PostResponse>> {
+    // Implementation
   }
 }
 ```
 
-## Benefits of This Approach
+### 3. Error Handling
 
-1. **Single Source of Truth**: The types package is the single source of truth for both types and
-   validation schemas.
-
-2. **Type Safety**: Both the API and SDK benefit from type safety, reducing the risk of runtime
-   errors.
-
-3. **Maintainability**: Changes to the data model only need to be made in one place (the types
-   package).
-
-4. **Clear Separation of Concerns**: Each domain file has a clear responsibility: defining the data
-   model for a specific domain.
-
-5. **Consistency**: The TypeScript types are always in sync with the Zod schemas, ensuring
-   consistent validation and type checking.
+```typescript
+// Error response creation
+const createErrorResponse = (
+  error: ApiError,
+): EnhancedResponse<ErrorResponse> => ({
+  success: false,
+  data: {
+    error: error.code,
+    message: error.message,
+    details: error.details,
+  },
+});
+```
 
 ## Best Practices
 
-1. **Keep schemas and types together**: Define Zod schemas and derive TypeScript types in the same
-   file.
+### 1. Schema Definition
 
-2. **Organize by domain**: Group schemas and types by domain rather than by request/response.
+- Use descriptive schema names
+- Add property descriptions
+- Include validation rules
+- Define clear error messages
 
-3. **Use descriptive names**: Use clear, descriptive names for schemas and types.
+### 2. Type Generation
 
-4. **Add descriptions to schemas**: Use `.describe()` to add descriptions to schema properties for
-   better documentation.
+- Derive types from schemas
+- Use meaningful type names
+- Document type constraints
+- Maintain type exports
 
-5. **Export both schemas and types**: Export both the Zod schemas and the derived TypeScript types.
+### 3. Validation
+
+- Validate at system boundaries
+- Use type guards when needed
+- Handle validation errors
+- Provide clear feedback
+
+### 4. Organization
+
+- Group by domain
+- Maintain clear hierarchy
+- Use index files
+- Document relationships
+
+## Implementation Examples
+
+### 1. Request Validation
+
+```typescript
+export const PostCreateSchema = z.object({
+  content: z.object({
+    text: z.string().min(1).max(280),
+    media: z.array(z.string().url()).optional(),
+  }),
+  platform: z.enum(['twitter']),
+}).describe('Post creation request');
+
+export type PostCreateRequest = z.infer<typeof PostCreateSchema>;
+```
+
+### 2. Response Formatting
+
+```typescript
+export const PostResponseSchema = z.object({
+  id: z.string(),
+  url: z.string().url(),
+  timestamp: z.number(),
+}).describe('Post creation response');
+
+export type PostResponse = z.infer<typeof PostResponseSchema>;
+```
+
+### 3. Error Handling
+
+```typescript
+export const ErrorDetailSchema = z.object({
+  code: z.enum(['RATE_LIMIT', 'INVALID_TOKEN']),
+  message: z.string(),
+  recoverable: z.boolean(),
+}).describe('Error detail');
+
+export type ErrorDetail = z.infer<typeof ErrorDetailSchema>;
+```
+
+## Benefits
+
+1. **Type Safety**
+   - Compile-time checking
+   - Runtime validation
+   - Error prevention
+
+2. **Consistency**
+   - Single source of truth
+   - Unified validation
+   - Clear contracts
+
+3. **Developer Experience**
+   - Auto-completion
+   - Documentation
+   - Error messages
+
+4. **Maintainability**
+   - Centralized types
+   - Easy updates
+   - Clear dependencies

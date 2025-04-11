@@ -1,32 +1,37 @@
 # Social Media API Proxy System Patterns
 
-## Core Design Patterns
+## Core Architecture
 
-### 1. Platform Abstraction Pattern
-
-The system implements a platform abstraction layer that separates the core proxy functionality from
-platform-specific implementations. This allows for easy extension to other social media platforms.
+The Open Crosspost Proxy Service uses a layered architecture with clear separation of concerns,
+enabling platform-agnostic design and extensibility.
 
 ```mermaid
 flowchart TD
-    Client[Client] --> API[API Layer]
-    API --> Domain[Domain Services]
-    Domain --> Abstraction[Platform Abstraction]
+    Client[Client Applications] --> API[API Layer]
+    API --> Controllers[Controllers]
+    Controllers --> Services[Domain Services]
+    Services --> PlatformAbstraction[Platform Abstraction]
     
-    subgraph "Platform Interfaces"
-        Abstraction --> Auth[PlatformAuth]
-        Abstraction --> Client[PlatformClient]
-        Abstraction --> Post[PlatformPost]
-        Abstraction --> Media[PlatformMedia]
-        Abstraction --> Profile[PlatformProfile]
-    end
+    PlatformAbstraction --> Auth[PlatformAuth]
+    PlatformAbstraction --> Client[PlatformClient]
+    PlatformAbstraction --> Post[PlatformPost]
+    PlatformAbstraction --> Media[PlatformMedia]
+    PlatformAbstraction --> Profile[PlatformProfile]
     
-    Auth --> TwitterAuth[Twitter Auth]
-    Client --> TwitterClient[Twitter Client]
-    Post --> TwitterPost[Twitter Post]
-    Media --> TwitterMedia[Twitter Media]
-    Profile --> TwitterProfile[Twitter Profile]
+    Services --> Security[Security Services]
+    Security --> NearAuth[NEAR Auth Service]
+    Security --> TokenStorage[Token Storage]
+    
+    Services --> Storage[Storage Services]
+    Storage --> KVStore[KV Store Utilities]
 ```
+
+## Key Design Patterns
+
+### 1. Platform Abstraction Pattern
+
+The platform abstraction layer separates core proxy functionality from platform-specific
+implementations, allowing easy extension to other social media platforms.
 
 Each platform interface has a specific responsibility:
 
@@ -36,63 +41,27 @@ Each platform interface has a specific responsibility:
 - **PlatformMedia**: Manages media uploads and attachments
 - **PlatformProfile**: Manages user profile operations
 
-### 2. Authentication Patterns
+### 2. NEAR-Centric Authentication Pattern
 
-#### 2.1 Platform-Specific OAuth Proxy Pattern
-
-The system implements a platform-specific OAuth Proxy pattern, handling the complete OAuth flow with
-social media platforms through platform-specific routes while providing a simplified authentication
-interface to clients.
+The system uses NEAR wallet signatures for authentication, providing a secure way to authorize
+actions without exposing OAuth tokens to clients.
 
 ```mermaid
 sequenceDiagram
     participant Client
+    participant NearWallet
     participant Proxy
+    participant TokenStorage
     participant Platform
     
-    Client->>Proxy: Request Auth URL (platform-specific, with NEAR signature)
-    Proxy->>Proxy: Validate NEAR Signature
-    Proxy->>KV: Check NEAR Account Authorization Status
-    alt NEAR Account Authorized
-        Proxy->>Client: Return Auth URL
-        Client->>Platform: Redirect to Auth URL
-        Platform->>Proxy: Callback to platform-specific endpoint
-    else NEAR Account Not Authorized
-        Proxy->>Client: Return 403 Error (Authorization Required)
-    end
-    Proxy->>Platform: Exchange Code for Tokens
-    Platform->>Proxy: Return Tokens
-    Proxy->>KV: Store Tokens
-    Proxy->>Client: Return Success (Redirect to Client Success URL)
-```
-
-The platform-specific routes follow this pattern:
-
-- `/auth/{platform}/login` - Initialize authentication for a specific platform
-- `/auth/{platform}/callback` - Handle callback from a specific platform
-- `/auth/{platform}/refresh` - Refresh tokens for a specific platform
-- `/auth/{platform}/revoke` - Revoke tokens for a specific platform
-- `/auth/{platform}/status` - Check token status for a specific platform
-
-#### 2.2 NEAR Wallet Signature Authentication Pattern
-
-The system supports authentication using NEAR wallet signatures, allowing users to authenticate and
-authorize actions using their NEAR wallet.
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant NEAR Wallet
-    participant Proxy
-    participant Platform
-    
-    Client->>NEAR Wallet: Request Signature
-    NEAR Wallet->>Client: Return Signed Message
+    Client->>NearWallet: Request Signature
+    NearWallet->>Client: Return Signed Message
     Client->>Proxy: Send Signature + Request
     Proxy->>Proxy: Validate Signature
-    Proxy->>Proxy: Check Account Authorization (KV Check)
+    Proxy->>Proxy: Check Account Authorization
     alt Authorized
-      Proxy->>Platform: Execute Action with Stored Token
+      Proxy->>TokenStorage: Retrieve Platform Token
+      Proxy->>Platform: Execute Action with Token
       Platform->>Proxy: Return Result
     else Not Authorized
       Proxy->>Client: Return 403 Error
@@ -100,84 +69,33 @@ sequenceDiagram
     Proxy->>Client: Return Result
 ```
 
-This pattern enables:
+Benefits:
 
-- Secure authentication without exposing OAuth tokens to the client
+- Secure authentication without exposing OAuth tokens
 - Multiple platform accounts linked to a single NEAR wallet
 - Cross-platform actions authorized by a single signature
 - Decentralized identity management
 
-#### 2.3 NEAR-Centric Token Management Pattern
+### 3. Token Management Pattern
 
-The system implements a NEAR-centric token management pattern where platform tokens are stored
-securely and accessed via a central `NearAuthService`, which also handles the link between NEAR
-accounts (`signerId`) and platform accounts (`userId`).
+The system implements a centralized token management approach where platform tokens are stored
+securely and accessed via a central `NearAuthService`.
 
-```mermaid
-flowchart TD
-    subgraph "Service Layer"
-        AuthService(AuthService)
-        OtherServices(Other Domain Services)
-    end
+Key components:
 
-    subgraph "Platform Abstraction"
-        BasePlatformAuth(BasePlatformAuth)
-        PlatformClient(PlatformClient)
-    end
+- **NearAuthService**: Central coordinator for token operations
+- **TokenStorage**: Securely stores encrypted platform tokens
+- **NearAuthService**: Manages NEAR account authorization and platform account linking
 
-    subgraph "Security Infrastructure"
-        NearAuthService(NearAuthService)
-        NearAuthService(NearAuthService)
-        TokenStorage(TokenStorage)
-    end
+### 4. Centralized Schema and Type Pattern
 
-    AuthService --> NearAuthService
-    OtherServices --> NearAuthService
-    BasePlatformAuth --> NearAuthService
-    BasePlatformAuth --> PlatformClient
-
-    NearAuthService --> NearAuthService
-    NearAuthService --> TokenStorage
-
-    PlatformClient -- Token Refresh Callback --> NearAuthService
-```
-
-Key components of this pattern:
-
-- **NearAuthService**: Central coordinator for all token operations. Interacts with `TokenStorage`
-  for persistence and `NearAuthService` for linking/authorization. Provides a unified interface for
-  services and platform layers.
-- **TokenStorage**: Responsible for securely storing (encrypting) and retrieving platform
-  `AuthToken` data, keyed by `userId` and `platform`.
-- **NearAuthService**: Manages NEAR account authorization status and the mapping between `signerId`
-  (NEAR account) and platform accounts (`userId`, `platform`). Does _not_ store actual tokens.
-- **AuthService/Other Domain Services**: Utilize `NearAuthService` to get/save tokens and check
-  access based on `signerId`.
-- **BasePlatformAuth**: Uses `NearAuthService` to retrieve tokens needed for platform interactions
-  and potentially trigger refreshes.
-- **PlatformClient**: May trigger token updates back to `NearAuthService` via callbacks (e.g., from
-  auto-refresh plugins).
-
-This pattern ensures:
-
-- Clear separation of concerns: Token storage, NEAR linking, and platform interaction logic are
-  distinct.
-- Single point of access for token operations via `NearAuthService`.
-- Secure token persistence via `TokenStorage`.
-- Centralized NEAR account linking and authorization via `NearAuthService`.
-- Improved testability by isolating dependencies.
-
-### 3. Centralized Schema and Type Pattern
-
-The system implements a Centralized Schema and Type pattern that provides a single source of truth
-for both TypeScript types and Zod schemas. TypeScript types are derived from Zod schemas using
-`z.infer<typeof schemaName>`, ensuring consistency between validation and type checking.
+The system uses a single source of truth for both TypeScript types and Zod schemas, with TypeScript
+types derived from Zod schemas.
 
 ```mermaid
 flowchart TD
     Schema[Zod Schema] --> DerivedType[TypeScript Type]
     Schema --> Validation[Request Validation]
-    Schema --> Documentation[OpenAPI Documentation]
     DerivedType --> TypeChecking[Static Type Checking]
     DerivedType --> SDK[SDK Type Safety]
     
@@ -185,155 +103,94 @@ flowchart TD
         Schema
         DerivedType
     end
-    
-    subgraph "API Usage"
-        Validation
-        TypeChecking
-    end
-    
-    subgraph "SDK Usage"
-        SDK
-    end
 ```
 
-This pattern ensures:
+Benefits:
 
-- Single source of truth for data models
 - Consistency between validation and type checking
 - Reduced maintenance overhead
 - Improved developer experience
 - Better type safety across the codebase
 
-### 4. Base Platform Classes Pattern
+### 5. Base Platform Classes Pattern
 
-The system implements a Base Platform Classes pattern that provides common functionality for
-platform-specific implementations.
+Base platform classes provide common functionality for platform-specific implementations, reducing
+code duplication and ensuring consistent behavior.
 
-```mermaid
-flowchart TD
-    PlatformInterface[Platform Interface] --> BasePlatform[Base Platform Class]
-    BasePlatform --> PlatformImpl[Platform Implementation]
-    
-    BasePlatform --> ErrorHandling[Error Handling]
-    BasePlatform --> CommonFunctionality[Common Functionality]
-    BasePlatform --> StandardizedApproach[Standardized Approach]
-```
-
-The Base Platform Classes pattern includes:
+Components:
 
 - **BasePlatformClient**: Base implementation of PlatformClient interface
 - **BasePlatformAuth**: Base implementation of PlatformAuth interface
 - **Common error handling**: Standardized error handling for all platform operations
-- **Common functionality**: Shared functionality across platform implementations
 
-This pattern ensures:
+### 6. KV Utility Pattern
 
-- Reduced code duplication
-- Consistent error handling
-- Standardized approach to platform operations
-- Easier implementation of new platforms
-- Improved maintainability
+Standardized interfaces for interacting with Deno KV, with error handling, prefixed keys, and
+transaction support.
 
-### 5. KV Utility Pattern
-
-The system implements a KV Utility pattern that provides a standardized interface for interacting
-with Deno KV, with error handling, prefixed keys, and other utilities.
-
-```mermaid
-flowchart TD
-    Component[Application Component] --> KvStore[KvStore Utility]
-    Component --> PrefixedKvStore[PrefixedKvStore Utility]
-    
-    KvStore --> DenoKv[Deno KV]
-    PrefixedKvStore --> KvStore
-    
-    KvStore --> ErrorHandling[Error Handling]
-    KvStore --> Transactions[Transaction Support]
-    
-    PrefixedKvStore --> PrefixManagement[Prefix Management]
-```
-
-The KV Utility pattern includes:
+Components:
 
 - **KvStore**: Static utility class for direct KV operations
 - **PrefixedKvStore**: Instance-based utility for working with prefixed keys
-- **Error handling**: Standardized error handling for all KV operations
-- **Transaction support**: Simplified transaction handling
 
-## Data Flow Patterns
-
-### NEAR Account Authorization Flow
+## Authentication Flow
 
 ```mermaid
-flowchart TD
-    subgraph Authorize
-        ReqAuth[POST /auth/authorize/near Request] --> ExtractAuth[Extract NEAR Auth from Header]
-        ExtractAuth --> ValidateSigAuth[Validate Signature]
-        ValidateSigAuth --> StoreAuth[Store Authorization in KV]
-        StoreAuth --> SuccessAuth[Return Success (200)]
-        ValidateSigAuth -- Invalid --> ErrorAuth[Return Error (401)]
-        StoreAuth -- Error --> ErrorAuth[Return Error (500)]
-    end
+sequenceDiagram
+    participant ClientApp
+    participant NearWallet
+    participant ProxyService
+    participant TokenStorage
+    participant NearAuthSvc
+    participant PlatformAPI
 
-    subgraph Unauthorize
-        ReqUnauth[DELETE /auth/unauthorize/near Request] --> ExtractUnauth[Extract NEAR Auth from Header]
-        ExtractUnauth --> ValidateSigUnauth[Validate Signature]
-        ValidateSigUnauth --> DeleteAuth[Delete Authorization from KV]
-        DeleteAuth --> SuccessUnauth[Return Success (200)]
-        ValidateSigUnauth -- Invalid --> ErrorUnauth[Return Error (401)]
-        DeleteAuth -- Error --> ErrorUnauth[Return Error (500)]
-    end
-    
-    subgraph CheckStatus
-        ReqStatus[GET /auth/authorize/near/status Request] --> ExtractStatus[Extract NEAR Auth from Header]
-        ExtractStatus --> ValidateSigStatus[Validate Signature]
-        ValidateSigStatus --> CheckKV[Check Authorization in KV]
-        CheckKV --> ReturnStatus[Return Status (200)]
-        ValidateSigStatus -- Invalid --> ErrorStatus[Return Error (401)]
-        CheckKV -- Error --> ErrorStatus[Return Error (500)]
-    end
+    %% Step 1: NEAR Authorization %%
+    ClientApp->>NearWallet: Request signature
+    NearWallet-->>ClientApp: Return signed message
+    ClientApp->>ProxyService: POST /auth/authorize/near
+    ProxyService->>NearAuthSvc: Authorize NEAR account
+    NearAuthSvc-->>ProxyService: Success
+    ProxyService-->>ClientApp: 200 OK
+
+    %% Step 2: Platform Account Linking %%
+    ClientApp->>ProxyService: POST /auth/{platform}/login
+    ProxyService->>NearAuthSvc: Check authorization status
+    ProxyService->>NearAuthSvc: Store auth state
+    ProxyService-->>ClientApp: Return auth URL
+
+    %% Step 3: Platform OAuth %%
+    ClientApp->>PlatformAPI: Redirect to auth URL
+    PlatformAPI->>ProxyService: Callback with code & state
+    ProxyService->>PlatformAPI: Exchange code for tokens
+    ProxyService->>TokenStorage: Securely store tokens
+    ProxyService->>NearAuthSvc: Link platform account to NEAR account
+    ProxyService-->>ClientApp: Redirect to success URL
 ```
 
-### Post Creation Flow
+## Error Handling Pattern
 
-```mermaid
-flowchart TD
-    Start[API Request] --> ValidateSignature[Validate NEAR Signature]
-    ValidateSignature --> ExtractAccount[Extract NEAR Account]
-    ExtractAccount --> GetTokens[Retrieve Tokens]
-    GetTokens --> CheckTokens{Tokens Valid?}
-    CheckTokens -->|No| RefreshToken[Refresh Token]
-    CheckTokens -->|Yes| ProcessMedia{Has Media?}
-    RefreshToken --> ProcessMedia
-    
-    ProcessMedia -->|Yes| UploadMedia[Upload Media]
-    ProcessMedia -->|No| CreatePost[Create Post]
-    UploadMedia --> CreatePost
-    
-    CreatePost --> HandleResponse[Handle Response]
-    HandleResponse --> ReturnResponse[Return Response]
-```
-
-## Error Handling Patterns
+The system uses a standardized error handling approach with consistent error types, status codes,
+and response formats.
 
 ```mermaid
 flowchart TD
     Error[Error Occurs] --> Classify{Classify Error}
-    Classify -->|Auth Error| HandleAuth[Handle Auth Error]
-    Classify -->|Rate Limit| HandleRate[Handle Rate Limit]
-    Classify -->|Platform API| HandlePlatform[Handle Platform Error]
-    Classify -->|Validation| HandleValidation[Handle Validation Error]
-    Classify -->|Internal| HandleInternal[Handle Internal Error]
+    Classify -->|Auth Error| HandleAuth[Refresh or Revoke Token]
+    Classify -->|Rate Limit| HandleRate[Apply Backoff Strategy]
+    Classify -->|Platform API| HandlePlatform[Retry or Fail Gracefully]
+    Classify -->|Validation| HandleValidation[Return Validation Details]
+    Classify -->|Internal| HandleInternal[Log and Alert]
     
-    HandleAuth --> RefreshOrRevoke[Refresh or Revoke Token]
-    HandleRate --> Backoff[Apply Backoff Strategy]
-    HandlePlatform --> RetryOrFail[Retry or Fail Gracefully]
-    HandleValidation --> ReturnDetails[Return Validation Details]
-    HandleInternal --> LogAndAlert[Log and Alert]
-    
-    RefreshOrRevoke --> ReturnError[Return Error Response]
-    Backoff --> ReturnError
-    RetryOrFail --> ReturnError
-    ReturnDetails --> ReturnError
-    LogAndAlert --> ReturnError
+    HandleAuth --> StandardResponse[Return Standardized Error Response]
+    HandleRate --> StandardResponse
+    HandlePlatform --> StandardResponse
+    HandleValidation --> StandardResponse
+    HandleInternal --> StandardResponse
 ```
+
+Key components:
+
+- **ApiError**: For application-level errors with code, status, details, and recoverable flag
+- **PlatformError**: For platform-specific errors with original error details
+- **Standardized status codes**: Consistent mapping from error codes to HTTP status codes
+- **Detailed error responses**: Rich error details for better client feedback

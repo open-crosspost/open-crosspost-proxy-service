@@ -1,10 +1,13 @@
-import { describe, it, beforeEach } from 'jsr:@std/testing/bdd';
-import { assertEquals, assertInstanceOf, assertThrows, assert, fail } from 'jsr:@std/assert';
+import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
+import { assert, assertEquals, assertInstanceOf, assertThrows, fail } from 'jsr:@std/assert';
 import { TwitterCreatePost } from '../../../../src/infrastructure/platform/twitter/post/create.ts';
-import { TwitterError, TwitterErrorCode } from '../../../../src/infrastructure/platform/twitter/twitter-error.ts';
+import {
+  TwitterError,
+  TwitterErrorCode,
+} from '../../../../src/infrastructure/platform/twitter/twitter-error.ts';
 import { TwitterClientMock } from '../../../mocks/twitter/twitter-client-mock.ts';
-import { ApiErrorCode, MediaContent, Platform, PostContent, PlatformError } from '@crosspost/types';
-import { ApiRequestError, ApiResponseError, ApiPartialResponseError } from 'twitter-api-v2';
+import { ApiErrorCode, MediaContent, Platform, PlatformError, PostContent } from '@crosspost/types';
+import { ApiPartialResponseError, ApiRequestError, ApiResponseError } from 'twitter-api-v2';
 import { createMockTwitterError } from '../../../utils/twitter-utils.ts';
 import { enhanceErrorWithContext } from '../../../../src/utils/error-handling.utils.ts';
 
@@ -23,10 +26,10 @@ describe('TwitterCreatePost', () => {
       const twitterClient = new TwitterClientMock({});
       const twitterMedia = new TwitterMediaMock();
       const createPost = new TwitterCreatePost(twitterClient, twitterMedia as any);
-      
+
       // Create a post
       const result = await createPost.createPost('test-user-id', { text: 'Test post' });
-      
+
       // Verify result
       assertEquals(typeof result.id, 'string');
       assertEquals(typeof result.text, 'string');
@@ -38,16 +41,16 @@ describe('TwitterCreatePost', () => {
       const twitterClient = new TwitterClientMock({});
       const twitterMedia = new TwitterMediaMock();
       const createPost = new TwitterCreatePost(twitterClient, twitterMedia as any);
-      
+
       // Create content with media
       const content: PostContent = {
         text: 'Test post with media',
-        media: [{ data: 'https://example.com/image.jpg', mimeType: 'image/jpeg' }]
+        media: [{ data: 'https://example.com/image.jpg', mimeType: 'image/jpeg' }],
       };
-      
+
       // Create a post with media
       const result = await createPost.createPost('test-user-id', content);
-      
+
       // Verify result
       assertEquals(typeof result.id, 'string');
       assertEquals(typeof result.text, 'string');
@@ -60,16 +63,16 @@ describe('TwitterCreatePost', () => {
       const twitterClient = new TwitterClientMock({});
       const twitterMedia = new TwitterMediaMock();
       const createPost = new TwitterCreatePost(twitterClient, twitterMedia as any);
-      
+
       // Create a thread
       const threadContent = [
         { text: 'First tweet in thread' },
-        { text: 'Second tweet in thread' }
+        { text: 'Second tweet in thread' },
       ];
-      
+
       // Create a thread
       const result = await createPost.createPost('test-user-id', threadContent);
-      
+
       // Verify result
       assertEquals(typeof result.id, 'string');
       assertEquals(typeof result.text, 'string');
@@ -86,7 +89,7 @@ describe('TwitterCreatePost', () => {
   //     const twitterClient = new TwitterClientMock({}, 'rate_limit');
   //     const twitterMedia = new TwitterMediaMock();
   //     const createPost = new TwitterCreatePost(twitterClient, twitterMedia as any);
-      
+
   //     try {
   //       await createPost.createPost('test-user-id', { text: 'Test post' });
   //       fail('Expected error was not thrown');
@@ -99,7 +102,7 @@ describe('TwitterCreatePost', () => {
   //       assertEquals(error.recoverable, true);
   //       assert(error.message.includes('Failed to createPost'));
   //       assert(error.message.includes('Twitter rate limit exceeded'));
-        
+
   //       // Verify error details
   //       assert(error.details);
   //       assertEquals(error.details.twitterErrorCode, TwitterErrorCode.RATE_LIMIT_EXCEEDED);
@@ -111,7 +114,7 @@ describe('TwitterCreatePost', () => {
   //     const twitterClient = new TwitterClientMock({}, 'auth_error');
   //     const twitterMedia = new TwitterMediaMock();
   //     const createPost = new TwitterCreatePost(twitterClient, twitterMedia as any);
-      
+
   //     try {
   //       await createPost.createPost('test-user-id', { text: 'Test post' });
   //       fail('Expected error was not thrown');
@@ -121,11 +124,11 @@ describe('TwitterCreatePost', () => {
   //       assertEquals(error.code, ApiErrorCode.UNAUTHORIZED);
   //       assertEquals(error.status, 401);
   //       assertEquals(error.platform, Platform.TWITTER);
-        
+
   //       // Verify error message contains operation context
   //       assert(error.message.includes('Failed to createPost'));
   //       assert(error.message.includes('Twitter authentication error'));
-        
+
   //       // Verify error details
   //       assert(error.details);
   //       assertEquals(error.details.twitterErrorCode, TwitterErrorCode.INVALID_OR_EXPIRED_TOKEN);
@@ -140,23 +143,23 @@ describe('TwitterCreatePost', () => {
       const twitterClient = new TwitterClientMock({}, 'tweetThread');
       const twitterMedia = new TwitterMediaMock();
       const createPost = new TwitterCreatePost(twitterClient, twitterMedia as any);
-      
+
       // Create a thread
       const threadContent = [
         { text: 'First tweet in thread' },
-        { text: 'Second tweet in thread' }
+        { text: 'Second tweet in thread' },
       ];
-      
+
       try {
         await createPost.createPost('test-user-id', threadContent);
         fail('Expected error was not thrown');
       } catch (error) {
         // Verify error is properly transformed
         assertInstanceOf(error, TwitterError);
-        
+
         // Verify error message contains operation context
         assert(error.message.includes('Failed to createThread'));
-        
+
         // Verify original error details are preserved
         assert(error.details);
       }
@@ -170,10 +173,10 @@ describe('TwitterError.fromTwitterApiError', () => {
     // Create a mock ApiResponseError with media error
     const mediaError = createMockTwitterError(323, 'The media you tried to upload is too large.');
     const responseError = new ApiResponseError('Media error', mediaError);
-    
+
     // Transform the error
     const twitterError = TwitterError.fromTwitterApiError(responseError, 'test-user-id');
-    
+
     // Verify transformation
     assertEquals(twitterError.code, ApiErrorCode.MEDIA_UPLOAD_FAILED);
     assertEquals(twitterError.status, 400);
@@ -186,10 +189,10 @@ describe('TwitterError.fromTwitterApiError', () => {
   // it('should correctly transform ApiResponseError with rate limit error code', () => {
   //   // Create a mock ApiResponseError with rate limit error
   //   const rateLimitError = createMockTwitterError(88, 'Rate limit exceeded');
-    
+
   //   // Transform the error
   //   const twitterError = TwitterError.fromTwitterApiError(rateLimitError, 'test-user-id');
-    
+
   //   // Verify transformation
   //   assertEquals(twitterError.code, ApiErrorCode.RATE_LIMITED);
   //   assertEquals(twitterError.status, 429);
@@ -204,7 +207,7 @@ describe('TwitterError.fromTwitterApiError', () => {
   //   const authError = createMockTwitterError(89, 'Invalid or expired token');
   //   // Transform the error
   //   const twitterError = TwitterError.fromTwitterApiError(authError, 'test-user-id');
-    
+
   //   // Verify transformation
   //   assertEquals(twitterError.code, ApiErrorCode.UNAUTHORIZED);
   //   assertEquals(twitterError.status, 401);
@@ -218,10 +221,13 @@ describe('TwitterError.fromTwitterApiError', () => {
     // Create a mock ApiResponseError with duplicate content error
     const duplicateError = createMockTwitterError(187, 'Status is a duplicate');
     const responseError = new ApiResponseError('Duplicate error', duplicateError);
-    
+
     // Transform the error
-    const twitterError = TwitterError.fromTwitterApiError(responseError as unknown as ApiResponseError, 'test-user-id');
-    
+    const twitterError = TwitterError.fromTwitterApiError(
+      responseError as unknown as ApiResponseError,
+      'test-user-id',
+    );
+
     // Verify transformation
     assertEquals(twitterError.code, ApiErrorCode.DUPLICATE_CONTENT);
     assertEquals(twitterError.status, 400);
@@ -233,12 +239,15 @@ describe('TwitterError.fromTwitterApiError', () => {
 
   it('should correctly transform ApiResponseError with content policy violation error code', () => {
     // Create a mock ApiResponseError with content policy violation error
-    const policyError = createMockTwitterError(226, 'This request looks like it might be automated');
+    const policyError = createMockTwitterError(
+      226,
+      'This request looks like it might be automated',
+    );
     const responseError = new ApiResponseError('Policy error', policyError);
-    
+
     // Transform the error
     const twitterError = TwitterError.fromTwitterApiError(responseError, 'test-user-id');
-    
+
     // Verify transformation
     assertEquals(twitterError.code, ApiErrorCode.CONTENT_POLICY_VIOLATION);
     assertEquals(twitterError.status, 400);
@@ -252,10 +261,10 @@ describe('TwitterError.fromTwitterApiError', () => {
     // Create a mock ApiResponseError with resource not found error
     const notFoundError = createMockTwitterError(34, 'Resource not found');
     const responseError = new ApiResponseError('Not found error', notFoundError);
-    
+
     // Transform the error
     const twitterError = TwitterError.fromTwitterApiError(responseError, 'test-user-id');
-    
+
     // Verify transformation
     assertEquals(twitterError.code, ApiErrorCode.NOT_FOUND);
     assertEquals(twitterError.status, 404);
@@ -269,10 +278,10 @@ describe('TwitterError.fromTwitterApiError', () => {
     // Create a mock ApiResponseError with account suspended error
     const suspendedError = createMockTwitterError(64, 'Your account is suspended');
     const responseError = new ApiResponseError('Suspended error', suspendedError);
-    
+
     // Transform the error
     const twitterError = TwitterError.fromTwitterApiError(responseError, 'test-user-id');
-    
+
     // Verify transformation
     assertEquals(twitterError.code, ApiErrorCode.FORBIDDEN);
     assertEquals(twitterError.status, 403);
@@ -286,10 +295,10 @@ describe('TwitterError.fromTwitterApiError', () => {
     // Create a mock ApiResponseError with service error
     const serviceError = createMockTwitterError(130, 'Over capacity');
     const responseError = new ApiResponseError('Service error', serviceError);
-    
+
     // Transform the error
     const twitterError = TwitterError.fromTwitterApiError(responseError, 'test-user-id');
-    
+
     // Verify transformation
     assertEquals(twitterError.code, ApiErrorCode.PLATFORM_UNAVAILABLE);
     assertEquals(twitterError.status, 503);
@@ -302,10 +311,10 @@ describe('TwitterError.fromTwitterApiError', () => {
   it('should correctly transform generic Error', () => {
     // Create a generic Error
     const genericError = new Error('Generic error');
-    
+
     // Transform the error
     const twitterError = TwitterError.fromTwitterApiError(genericError, 'test-user-id');
-    
+
     // Verify transformation
     assertEquals(twitterError.code, ApiErrorCode.UNKNOWN_ERROR);
     assertEquals(twitterError.status, 500);
@@ -317,10 +326,10 @@ describe('TwitterError.fromTwitterApiError', () => {
   it('should correctly transform unknown error types', () => {
     // Create an unknown error type
     const unknownError = 'This is not an Error object';
-    
+
     // Transform the error
     const twitterError = TwitterError.fromTwitterApiError(unknownError, 'test-user-id');
-    
+
     // Verify transformation
     assertEquals(twitterError.code, ApiErrorCode.UNKNOWN_ERROR);
     assertEquals(twitterError.status, 500);
@@ -341,12 +350,12 @@ describe('enhanceErrorWithContext', () => {
       new Error('Original error'),
       { detail: 'Test detail' },
       false,
-      'test-user-id'
+      'test-user-id',
     );
-    
+
     // Enhance the error with context
     const enhancedError = enhanceErrorWithContext(twitterError, 'testOperation');
-    
+
     // Verify the error message is enhanced
     assert(enhancedError.message.includes('Failed to testOperation'));
     assert(enhancedError.message.includes('Original error message'));
@@ -361,12 +370,12 @@ describe('enhanceErrorWithContext', () => {
       new Error('Original error'),
       { detail: 'Test detail' },
       false,
-      'test-user-id'
+      'test-user-id',
     );
-    
+
     // Enhance the error with the same context
     const enhancedError = enhanceErrorWithContext(twitterError, 'testOperation');
-    
+
     // Verify the error message is not duplicated
     assertEquals(enhancedError.message, 'Failed to testOperation: Original error message');
     assert(!enhancedError.message.includes('Failed to testOperation: Failed to testOperation'));
@@ -384,9 +393,9 @@ describe('TwitterError', () => {
       new Error('Original error'),
       { detail: 'Test detail' },
       false,
-      'test-user-id'
+      'test-user-id',
     );
-    
+
     // Verify error structure follows application pattern
     assertEquals(twitterError.platform, Platform.TWITTER);
     assertEquals(twitterError.code, ApiErrorCode.PLATFORM_ERROR);
@@ -394,7 +403,7 @@ describe('TwitterError', () => {
     assertEquals(twitterError.recoverable, false);
     assertEquals(twitterError.userId, 'test-user-id');
     assertEquals(twitterError.details?.detail, 'Test detail');
-    
+
     // Verify it extends PlatformError
     assert(twitterError instanceof PlatformError);
   });
