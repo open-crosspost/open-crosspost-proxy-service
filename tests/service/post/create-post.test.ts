@@ -1,4 +1,4 @@
-import { ApiErrorCode, Platform, PlatformError } from '@crosspost/types';
+import { ApiErrorCode, Platform, PlatformError, PostContent } from '@crosspost/types';
 import { assertArrayIncludes, assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { CreateController } from '../../../src/controllers/post/create.controller.ts';
@@ -262,7 +262,7 @@ describe('Post Creation Controller', () => {
     (mixedResultServices.postService as any).createPost = (
       platform: Platform,
       userId: string,
-      content: any,
+      content: PostContent | PostContent[],
     ) => {
       if (userId === 'failing-user-id') {
         return Promise.reject(
@@ -336,12 +336,12 @@ describe('Post Creation Controller', () => {
     (errorServices.postService as any).createPost = (
       platform: Platform,
       userId: string,
-      content: any,
+      content: PostContent | PostContent[],
     ) => {
       return Promise.reject(
         new PlatformError(
           'Rate limit exceeded',
-          Platform.TWITTER,
+          platform,
           ApiErrorCode.RATE_LIMITED,
           true, // Recoverable
           undefined,

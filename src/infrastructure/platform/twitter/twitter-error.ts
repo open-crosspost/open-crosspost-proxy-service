@@ -24,6 +24,25 @@ export enum TwitterErrorCode {
 }
 
 /**
+ * Map of Twitter error codes to API error codes
+ */
+const twitterErrorToApiErrorCode: Record<number, ApiErrorCode> = {
+  88: ApiErrorCode.RATE_LIMITED,
+  89: ApiErrorCode.UNAUTHORIZED,
+  32: ApiErrorCode.UNAUTHORIZED,
+  34: ApiErrorCode.NOT_FOUND,
+  87: ApiErrorCode.FORBIDDEN,
+  64: ApiErrorCode.FORBIDDEN,
+  187: ApiErrorCode.DUPLICATE_CONTENT,
+  130: ApiErrorCode.PLATFORM_UNAVAILABLE,
+  131: ApiErrorCode.PLATFORM_ERROR,
+  324: ApiErrorCode.MEDIA_UPLOAD_FAILED,
+  323: ApiErrorCode.MEDIA_UPLOAD_FAILED,
+  93: ApiErrorCode.MEDIA_UPLOAD_FAILED,
+  226: ApiErrorCode.CONTENT_POLICY_VIOLATION,
+};
+
+/**
  * Twitter Error class for Twitter-specific errors
  * Extends PlatformError to ensure it can be handled generically
  */
@@ -179,6 +198,12 @@ export class TwitterError extends PlatformError {
       }
     }
 
+    // Map Twitter error code to API error code
+    let apiErrorCode = ApiErrorCode.PLATFORM_ERROR;
+    let statusCode = error.code || 502;
+    let recoverable = false;
+    let errorMessage = `Twitter API error: ${twitterErrorMessage}`;
+
     // Check for rate limit errors
     if (error.rateLimitError || twitterErrorCode === TwitterErrorCode.RATE_LIMIT_EXCEEDED) {
       return new TwitterError(
@@ -210,91 +235,51 @@ export class TwitterError extends PlatformError {
       );
     }
 
-    // Check for duplicate content
-    if (twitterErrorCode === TwitterErrorCode.DUPLICATE_STATUS) {
-      return new TwitterError(
-        `Duplicate content: ${twitterErrorMessage}`,
-        ApiErrorCode.DUPLICATE_CONTENT,
-        400,
-        error,
-        errorDetails,
-        true, // Duplicate content can be fixed by modifying content
-        userId,
-      );
-    }
+    // Use the mapping for other error codes
+    if (twitterErrorCode !== undefined && twitterErrorToApiErrorCode[twitterErrorCode]) {
+      apiErrorCode = twitterErrorToApiErrorCode[twitterErrorCode];
 
-    // Check for forbidden content
-    if (twitterErrorCode === TwitterErrorCode.FORBIDDEN_CONTENT) {
-      return new TwitterError(
-        `Content policy violation: ${twitterErrorMessage}`,
-        ApiErrorCode.CONTENT_POLICY_VIOLATION,
-        400,
-        error,
-        errorDetails,
-        false, // Content policy violations are not recoverable
-        userId,
-      );
-    }
+      // Set appropriate status code and recoverable flag based on error type
+      switch (apiErrorCode) {
+        case ApiErrorCode.DUPLICATE_CONTENT:
+          statusCode = 400;
+          recoverable = true;
+          errorMessage = `Duplicate content: ${twitterErrorMessage}`;
+          break;
+        case ApiErrorCode.CONTENT_POLICY_VIOLATION:
+          statusCode = 400;
+          recoverable = false;
+          errorMessage = `Content policy violation: ${twitterErrorMessage}`;
+          break;
+        case ApiErrorCode.NOT_FOUND:
+          statusCode = 404;
+          recoverable = false;
+          errorMessage = `Resource not found: ${twitterErrorMessage}`;
+          break;
+        case ApiErrorCode.FORBIDDEN:
+          statusCode = 403;
+          recoverable = false;
+          errorMessage = `Account suspended: ${twitterErrorMessage}`;
+          break;
+        case ApiErrorCode.MEDIA_UPLOAD_FAILED:
+          statusCode = 400;
+          recoverable = true;
+          errorMessage = `Media upload failed: ${twitterErrorMessage}`;
+          break;
+        case ApiErrorCode.PLATFORM_UNAVAILABLE:
+          statusCode = 503;
+          recoverable = true;
+          errorMessage = `Twitter service error: ${twitterErrorMessage}`;
+          break;
+      }
 
-    // Check for resource not found
-    if (twitterErrorCode === TwitterErrorCode.RESOURCE_NOT_FOUND) {
       return new TwitterError(
-        `Resource not found: ${twitterErrorMessage}`,
-        ApiErrorCode.NOT_FOUND,
-        404,
+        errorMessage,
+        apiErrorCode,
+        statusCode,
         error,
         errorDetails,
-        false, // Not found errors are not recoverable
-        userId,
-      );
-    }
-
-    // Check for account suspended
-    if (twitterErrorCode === TwitterErrorCode.ACCOUNT_SUSPENDED) {
-      return new TwitterError(
-        `Account suspended: ${twitterErrorMessage}`,
-        ApiErrorCode.FORBIDDEN,
-        403,
-        error,
-        errorDetails,
-        false, // Account suspension is not recoverable
-        userId,
-      );
-    }
-
-    // Check for media errors
-    if (
-      [
-        TwitterErrorCode.MEDIA_ID_NOT_FOUND,
-        TwitterErrorCode.MEDIA_TYPE_NOT_SUPPORTED,
-        TwitterErrorCode.MEDIA_TOO_LARGE,
-        TwitterErrorCode.INVALID_MEDIA,
-      ].includes(twitterErrorCode as TwitterErrorCode)
-    ) {
-      return new TwitterError(
-        `Media upload failed: ${twitterErrorMessage}`,
-        ApiErrorCode.MEDIA_UPLOAD_FAILED,
-        400,
-        error,
-        errorDetails,
-        true, // Media errors may be recoverable by adjusting media
-        userId,
-      );
-    }
-
-    // Check for Twitter service errors
-    if (
-      [TwitterErrorCode.OVER_CAPACITY, TwitterErrorCode.INTERNAL_ERROR].includes(
-        twitterErrorCode as TwitterErrorCode,
-      )
-    ) {
-      return new TwitterError(
-        `Twitter service error: ${twitterErrorMessage}`,
-        ApiErrorCode.PLATFORM_UNAVAILABLE,
-        503,
-        error,
-        errorDetails,
-        true, // Service errors are typically recoverable
+        recoverable,
         userId,
       );
     }

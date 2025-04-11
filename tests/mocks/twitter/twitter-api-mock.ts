@@ -1,6 +1,4 @@
 import {
-  ApiPartialResponseError,
-  ApiRequestError,
   ApiResponseError,
   TweetV2,
   TweetV2DeleteTweetResult,
@@ -10,7 +8,7 @@ import {
   TweetV2SingleResult,
   TwitterApi,
   UserV2,
-  UserV2Result,
+  UserV2Result
 } from 'twitter-api-v2';
 import { createMockTwitterError } from '../../utils/twitter-utils.ts';
 
@@ -164,7 +162,7 @@ export class TwitterApiMock {
     if (!this.tweets.has(tweetId) && tweetId !== 'mock-tweet-id') {
       throw new ApiResponseError(
         'Tweet not found',
-        createMockTwitterError(34, 'Tweet not found', 404),
+        createMockTwitterError(34, 'Tweet not found'),
       );
     }
 
@@ -207,7 +205,7 @@ export class TwitterApiMock {
     if (!this.tweets.has(tweetId) && tweetId !== 'mock-tweet-id') {
       throw new ApiResponseError(
         'Tweet not found',
-        createMockTwitterError(34, 'Tweet not found', 404),
+        createMockTwitterError(34, 'Tweet not found'),
       );
     }
 
@@ -385,7 +383,7 @@ export class TwitterApiMock {
     if (!this.mediaIds.includes(mediaId)) {
       throw new ApiResponseError(
         'Media not found',
-        createMockTwitterError(324, 'Media not found', 404),
+        createMockTwitterError(324, 'Media not found'),
       );
     }
 
@@ -407,7 +405,7 @@ export class TwitterApiMock {
     if (!this.mediaIds.includes(mediaId)) {
       throw new ApiResponseError(
         'Media not found',
-        createMockTwitterError(324, 'Media not found', 404),
+        createMockTwitterError(324, 'Media not found'),
       );
     }
 
@@ -431,14 +429,14 @@ export class TwitterApiMock {
     if (this.errorScenario === 'rate_limit') {
       throw new ApiResponseError(
         'Rate limit exceeded',
-        createMockTwitterError(88, 'Rate limit exceeded', 429),
+        createMockTwitterError(88, 'Rate limit exceeded'),
       );
     }
 
     if (this.errorScenario === 'auth_error') {
       throw new ApiResponseError(
         'Invalid or expired token',
-        createMockTwitterError(89, 'Invalid or expired token', 401),
+        createMockTwitterError(89, 'Invalid or expired token'),
       );
     }
 
@@ -465,42 +463,42 @@ export class TwitterApiMock {
       case 'rate_limit':
         throw new ApiResponseError(
           'Rate limit exceeded',
-          createMockTwitterError(88, 'Rate limit exceeded', 429),
+          createMockTwitterError(88, 'Rate limit exceeded'),
         );
       case 'auth_error':
         throw new ApiResponseError(
           'Invalid or expired token',
-          createMockTwitterError(89, 'Invalid or expired token', 401),
+          createMockTwitterError(89, 'Invalid or expired token'),
         );
       case 'not_found':
         throw new ApiResponseError(
           'Resource not found',
-          createMockTwitterError(34, 'Resource not found', 404),
+          createMockTwitterError(34, 'Resource not found'),
         );
       case 'forbidden':
         throw new ApiResponseError(
           'Forbidden',
-          createMockTwitterError(87, 'Forbidden', 403),
+          createMockTwitterError(87, 'Forbidden'),
         );
       case 'duplicate':
         throw new ApiResponseError(
           'Duplicate content',
-          createMockTwitterError(187, 'Duplicate content', 400),
+          createMockTwitterError(187, 'Duplicate content'),
         );
       case 'content_policy':
         throw new ApiResponseError(
           'Content policy violation',
-          createMockTwitterError(226, 'Content policy violation', 400),
+          createMockTwitterError(226, 'Content policy violation'),
         );
       case 'media_error':
         throw new ApiResponseError(
           'Media upload failed',
-          createMockTwitterError(324, 'Media upload failed', 400),
+          createMockTwitterError(324, 'Media upload failed'),
         );
       case 'service_error':
         throw new ApiResponseError(
           'Twitter service error',
-          createMockTwitterError(130, 'Over capacity', 503),
+          createMockTwitterError(130, 'Over capacity'),
         );
       case 'network_error':
         // Create a simplified network error
@@ -515,7 +513,7 @@ export class TwitterApiMock {
       default:
         throw new ApiResponseError(
           'Unknown error',
-          createMockTwitterError(131, 'Internal error', 500),
+          createMockTwitterError(131, 'Internal error'),
         );
     }
   }

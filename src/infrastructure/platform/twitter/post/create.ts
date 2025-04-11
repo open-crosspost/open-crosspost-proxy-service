@@ -15,7 +15,7 @@ export class TwitterCreatePost extends TwitterPostBase {
    * @param content The content of the post
    * @returns The created post result
    */
-  async createPost(userId: string, content: PostContent): Promise<PostResult> {
+  async createPost(userId: string, content: PostContent | PostContent[]): Promise<PostResult> {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
 

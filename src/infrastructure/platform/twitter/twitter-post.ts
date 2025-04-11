@@ -48,7 +48,7 @@ export class TwitterPost implements PlatformPost {
    * @param content The content of the post
    * @returns The created post result
    */
-  async createPost(userId: string, content: PostContent): Promise<PostResult> {
+  async createPost(userId: string, content: PostContent | PostContent[]): Promise<PostResult> {
     return await this.createPostService.createPost(userId, content);
   }
 
