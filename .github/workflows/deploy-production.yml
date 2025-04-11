@@ -31,7 +31,7 @@ jobs:
           deno-version: v2.x
 
       - name: Cache dependencies
-        run: deno cache deps.ts
+        run: deno task cache
 
       - name: Format check
         run: deno fmt --check
