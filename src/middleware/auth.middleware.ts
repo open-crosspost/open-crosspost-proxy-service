@@ -29,7 +29,7 @@ export class AuthMiddleware {
           throw new ApiError(
             'NearAuthService not initialized',
             ApiErrorCode.INTERNAL_ERROR,
-            500
+            500,
           );
         }
 
@@ -50,7 +50,7 @@ export class AuthMiddleware {
           'NEAR authentication failed',
           ApiErrorCode.UNAUTHORIZED,
           401,
-          { originalError: error instanceof Error ? error.message : String(error) }
+          { originalError: error instanceof Error ? error.message : String(error) },
         );
       }
     };

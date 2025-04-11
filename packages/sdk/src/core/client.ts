@@ -4,24 +4,33 @@ import { StatusCode } from 'hono/utils/http-status';
  */
 
 import {
-  // Post Types
-  CreatePostRequest, CreatePostResponse,
-  RepostRequest, RepostResponse,
-  QuotePostRequest, QuotePostResponse,
-  ReplyToPostRequest, ReplyToPostResponse,
-  LikePostRequest, LikePostResponse,
-  UnlikePostRequest, UnlikePostResponse,
-  DeletePostRequest, DeletePostResponse,
-
-  // Auth Types
-  AuthStatusResponse, AuthRevokeResponse,
-  NearAuthorizationResponse, ConnectedAccountsResponse,
-
-  // Common Types
-  Platform, EnhancedApiResponse,
-
   // Error Types
-  ApiError, PlatformError, ApiErrorCode,
+  ApiError,
+  ApiErrorCode,
+  AuthRevokeResponse,
+  // Auth Types
+  AuthStatusResponse,
+  ConnectedAccountsResponse,
+  // Post Types
+  CreatePostRequest,
+  CreatePostResponse,
+  DeletePostRequest,
+  DeletePostResponse,
+  EnhancedApiResponse,
+  LikePostRequest,
+  LikePostResponse,
+  NearAuthorizationResponse,
+  // Common Types
+  Platform,
+  PlatformError,
+  QuotePostRequest,
+  QuotePostResponse,
+  ReplyToPostRequest,
+  ReplyToPostResponse,
+  RepostRequest,
+  RepostResponse,
+  UnlikePostRequest,
+  UnlikePostResponse,
 } from '@crosspost/types';
 
 // Import NearAuthData from the signing package
@@ -136,7 +145,7 @@ export class CrosspostClient {
    */
   async loginToPlatform(
     platform: Platform,
-    options?: { successUrl?: string; errorUrl?: string; }
+    options?: { successUrl?: string; errorUrl?: string },
   ): Promise<EnhancedApiResponse<any>> { // TODO: Refine response type based on actual API
     return this.request('POST', `/auth/${platform}/login`, options || {});
   }
@@ -251,7 +260,11 @@ export class CrosspostClient {
     // API endpoint uses postId in the path, assuming the first post ID for the URL
     const postId = request.posts[0]?.postId || '';
     if (!postId) {
-       throw new ApiError('Post ID is required for deletion path', ApiErrorCode.VALIDATION_ERROR, 400);
+      throw new ApiError(
+        'Post ID is required for deletion path',
+        ApiErrorCode.VALIDATION_ERROR,
+        400,
+      );
     }
     return this.request('DELETE', `/api/post/${postId}`, request);
   }
@@ -267,7 +280,7 @@ export class CrosspostClient {
         const encodedAuthData = btoa(JSON.stringify(this.nearAuthData));
         headers['Authorization'] = `NEAR ${encodedAuthData}`;
       } catch (e) {
-        console.error("Failed to encode NearAuthData for Authorization header:", e);
+        console.error('Failed to encode NearAuthData for Authorization header:', e);
         // Handle encoding error if necessary, maybe throw or log
       }
     }
@@ -303,76 +316,87 @@ export class CrosspostClient {
         // Try parsing JSON regardless of status code, as errors might be in JSON body
         let responseData: any;
         try {
-           responseData = await response.json();
+          responseData = await response.json();
         } catch (jsonError) {
-           // If JSON parsing fails, throw a specific error or handle based on status
-           if (!response.ok) {
-              throw new ApiError(
-                 `API request failed with status ${response.status} and non-JSON response`,
-                 ApiErrorCode.NETWORK_ERROR, // Or a more specific code
-                 response.status as any,
-                 { originalStatusText: response.statusText }
-              );
-           }
-           // If response was ok but JSON failed, maybe it was an empty 204 response?
-           if (response.status === 204) return {} as T; // Handle No Content
-           // Otherwise, rethrow JSON parse error or a custom error
-           throw new ApiError(
-              `Failed to parse JSON response: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`,
-              ApiErrorCode.INTERNAL_ERROR, // Or NETWORK_ERROR?
-              response.status as any
-           );
+          // If JSON parsing fails, throw a specific error or handle based on status
+          if (!response.ok) {
+            throw new ApiError(
+              `API request failed with status ${response.status} and non-JSON response`,
+              ApiErrorCode.NETWORK_ERROR, // Or a more specific code
+              response.status as any,
+              { originalStatusText: response.statusText },
+            );
+          }
+          // If response was ok but JSON failed, maybe it was an empty 204 response?
+          if (response.status === 204) return {} as T; // Handle No Content
+          // Otherwise, rethrow JSON parse error or a custom error
+          throw new ApiError(
+            `Failed to parse JSON response: ${
+              jsonError instanceof Error ? jsonError.message : String(jsonError)
+            }`,
+            ApiErrorCode.INTERNAL_ERROR, // Or NETWORK_ERROR?
+            response.status as any,
+          );
         }
-
 
         if (!response.ok) {
           lastError = this.handleErrorResponse(responseData, response.status);
           // Retry only on 5xx errors or potentially recoverable errors if defined
-          const shouldRetry = response.status >= 500 || (lastError instanceof ApiError && lastError.recoverable);
+          const shouldRetry = response.status >= 500 ||
+            (lastError instanceof ApiError && lastError.recoverable);
           if (shouldRetry && attempt < this.retries) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
+            await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
             continue; // Retry
           }
           throw lastError; // Throw error if not retrying or retries exhausted
         }
 
         // Handle cases where API indicates failure within a 2xx response
-         if (responseData && typeof responseData === 'object' && 'success' in responseData && !responseData.success && responseData.error) {
-            lastError = this.handleErrorResponse(responseData, response.status);
-            // Decide if this specific type of "successful" response with an error payload should be retried
-            const shouldRetry = (lastError instanceof ApiError && lastError.recoverable);
-             if (shouldRetry && attempt < this.retries) {
-               await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
-               continue; // Retry
-             }
-            throw lastError;
-         }
-
+        if (
+          responseData && typeof responseData === 'object' && 'success' in responseData &&
+          !responseData.success && responseData.error
+        ) {
+          lastError = this.handleErrorResponse(responseData, response.status);
+          // Decide if this specific type of "successful" response with an error payload should be retried
+          const shouldRetry = lastError instanceof ApiError && lastError.recoverable;
+          if (shouldRetry && attempt < this.retries) {
+            await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
+            continue; // Retry
+          }
+          throw lastError;
+        }
 
         return responseData as T; // Success
-
       } catch (error) {
         clearTimeout(timeoutId); // Clear timeout on error
         lastError = error as Error; // Store the error
 
         // Handle fetch/network errors specifically for retries
-        const isNetworkError = error instanceof TypeError || (error instanceof DOMException && error.name === 'AbortError');
+        const isNetworkError = error instanceof TypeError ||
+          (error instanceof DOMException && error.name === 'AbortError');
         if (isNetworkError && attempt < this.retries) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
+          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
           continue; // Retry network error
         }
 
         // If it's not a known ApiError/PlatformError or a retryable network error, wrap it
         if (!(error instanceof ApiError || error instanceof PlatformError)) {
-           if (error instanceof DOMException && error.name === 'AbortError') {
-              throw new ApiError(`Request timed out after ${this.timeout}ms`, ApiErrorCode.NETWORK_ERROR, 408, { url });
-           }
-           throw new ApiError(
-              error instanceof Error ? error.message : 'An unexpected error occurred during the request',
-              ApiErrorCode.INTERNAL_ERROR,
-              500,
-              { originalError: String(error) }
-           );
+          if (error instanceof DOMException && error.name === 'AbortError') {
+            throw new ApiError(
+              `Request timed out after ${this.timeout}ms`,
+              ApiErrorCode.NETWORK_ERROR,
+              408,
+              { url },
+            );
+          }
+          throw new ApiError(
+            error instanceof Error
+              ? error.message
+              : 'An unexpected error occurred during the request',
+            ApiErrorCode.INTERNAL_ERROR,
+            500,
+            { originalError: String(error) },
+          );
         }
 
         throw error; // Re-throw known ApiError/PlatformError or final network error
@@ -380,7 +404,8 @@ export class CrosspostClient {
     }
 
     // Should not be reachable if retries >= 0, but needed for type safety
-    throw lastError || new ApiError('Request failed after multiple retries', ApiErrorCode.INTERNAL_ERROR, 500);
+    throw lastError ||
+      new ApiError('Request failed after multiple retries', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   // --- Error Handling using @crosspost/types ---
@@ -391,8 +416,8 @@ export class CrosspostClient {
     // Ensure code is a valid ApiErrorCode or default
     const codeString = errorData?.code || data?.code || ApiErrorCode.UNKNOWN_ERROR;
     const code = Object.values(ApiErrorCode).includes(codeString as ApiErrorCode)
-                 ? codeString as ApiErrorCode
-                 : ApiErrorCode.UNKNOWN_ERROR;
+      ? codeString as ApiErrorCode
+      : ApiErrorCode.UNKNOWN_ERROR;
 
     const details = errorData?.details || data?.details || {};
     const recoverable = errorData?.recoverable ?? data?.recoverable ?? false;
@@ -400,9 +425,8 @@ export class CrosspostClient {
 
     // Add original response data to details if not already present
     if (typeof details === 'object' && !details.originalResponse) {
-       details.originalResponse = data; // Include the raw error payload for debugging
+      details.originalResponse = data; // Include the raw error payload for debugging
     }
-
 
     if (platform && Object.values(Platform).includes(platform as Platform)) {
       // If platform is specified and valid, it's a PlatformError
@@ -412,7 +436,7 @@ export class CrosspostClient {
         code, // Use the parsed code
         status as any, // Cast status
         details,
-        recoverable
+        recoverable,
       );
     } else {
       // Otherwise, it's a general ApiError
@@ -421,7 +445,7 @@ export class CrosspostClient {
         code, // Use the parsed code
         status as any, // Cast status
         details,
-        recoverable
+        recoverable,
       );
     }
   }

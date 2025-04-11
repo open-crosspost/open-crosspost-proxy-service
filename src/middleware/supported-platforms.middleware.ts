@@ -27,7 +27,7 @@ export class PlatformMiddleware {
         throw new ApiError(
           'Platform parameter is required',
           ApiErrorCode.VALIDATION_ERROR,
-          400
+          400,
         );
       }
 
@@ -36,7 +36,7 @@ export class PlatformMiddleware {
           `Unsupported platform: ${platform}`,
           ApiErrorCode.VALIDATION_ERROR,
           400,
-          { platform }
+          { platform },
         );
       }
 

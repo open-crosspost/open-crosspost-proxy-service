@@ -35,8 +35,13 @@ app.use('*', errorMiddleware());
 app.use('*', corsMiddleware());
 
 // Initialize app and get dependencies
-const { authController, leaderboardController, rateLimitController, postControllers, nearAuthService } =
-  initializeApp();
+const {
+  authController,
+  leaderboardController,
+  rateLimitController,
+  postControllers,
+  nearAuthService,
+} = initializeApp();
 
 // Initialize middleware with dependencies
 AuthMiddleware.initialize(nearAuthService);

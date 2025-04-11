@@ -23,7 +23,7 @@ export class ValidationMiddleware {
             'Validation Error',
             ApiErrorCode.VALIDATION_ERROR,
             400,
-            { validationErrors: result.error.errors }
+            { validationErrors: result.error.errors },
           );
         }
 
@@ -38,7 +38,7 @@ export class ValidationMiddleware {
           'Invalid JSON in request body',
           ApiErrorCode.VALIDATION_ERROR,
           400,
-          { originalError: error instanceof Error ? error.message : String(error) }
+          { originalError: error instanceof Error ? error.message : String(error) },
         );
       }
     };
@@ -59,7 +59,7 @@ export class ValidationMiddleware {
           'Validation Error',
           ApiErrorCode.VALIDATION_ERROR,
           400,
-          { validationErrors: result.error.errors }
+          { validationErrors: result.error.errors },
         );
       }
 
@@ -84,7 +84,7 @@ export class ValidationMiddleware {
           'Validation Error',
           ApiErrorCode.VALIDATION_ERROR,
           400,
-          { validationErrors: result.error.errors }
+          { validationErrors: result.error.errors },
         );
       }
 

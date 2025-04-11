@@ -16,7 +16,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.x
+          deno-version: v2.x
 
       - name: Cache dependencies
         run: deno cache deps.ts
@@ -45,7 +45,7 @@ jobs:
   #     - name: Setup Deno
   #       uses: denoland/setup-deno@v1
   #       with:
-  #         deno-version: v1.x
+  #         deno-version: v2.x
 
   #     - name: Deploy to Deno Deploy
   #       uses: denoland/deployctl@v1

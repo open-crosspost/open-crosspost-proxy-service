@@ -165,7 +165,7 @@ export class UsageRateLimitMiddleware {
           throw new ApiError(
             'NEAR account ID not found in context',
             ApiErrorCode.UNAUTHORIZED,
-            401
+            401,
           );
         }
 
@@ -183,12 +183,12 @@ export class UsageRateLimitMiddleware {
             `Rate limit exceeded for NEAR account ${signerId}. Maximum ${result.limit} requests per day allowed.`,
             ApiErrorCode.RATE_LIMITED,
             429,
-            { 
+            {
               limit: result.limit,
               current: result.current,
               reset: result.reset,
-              signerId 
-            }
+              signerId,
+            },
           );
         }
 
@@ -206,7 +206,7 @@ export class UsageRateLimitMiddleware {
           'Error checking rate limit',
           ApiErrorCode.INTERNAL_ERROR,
           500,
-          { originalError: error instanceof Error ? error.message : String(error) }
+          { originalError: error instanceof Error ? error.message : String(error) },
         );
       }
     };
