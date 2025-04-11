@@ -18,8 +18,19 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install types package dependencies
+        working-directory: ./packages/types
+        run: bun install
+
+      - name: Build types package
+        working-directory: ./packages/types
+        run: bun run build
+
       - name: Cache dependencies
-        run: deno cache deps.ts
+        run: deno task cache
 
       - name: Format check
         run: deno fmt --check
