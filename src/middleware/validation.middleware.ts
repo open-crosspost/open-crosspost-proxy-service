@@ -1,3 +1,4 @@
+import { ApiError, ApiErrorCode } from '@crosspost/types';
 import { Context, Next } from '../../deps.ts';
 import { z } from '../../deps.ts';
 
@@ -18,20 +19,27 @@ export class ValidationMiddleware {
         const result = schema.safeParse(body);
 
         if (!result.success) {
-          return c.json({
-            error: 'Validation Error',
-            details: result.error.errors,
-          }, 400);
+          throw new ApiError(
+            'Validation Error',
+            ApiErrorCode.VALIDATION_ERROR,
+            400,
+            { validationErrors: result.error.errors }
+          );
         }
 
         // Store validated data in context
         c.set('validatedBody', result.data);
         await next();
       } catch (error) {
-        return c.json({
-          error: 'Invalid JSON',
-          message: error instanceof Error ? error.message : 'Failed to parse request body',
-        }, 400);
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        throw new ApiError(
+          'Invalid JSON in request body',
+          ApiErrorCode.VALIDATION_ERROR,
+          400,
+          { originalError: error instanceof Error ? error.message : String(error) }
+        );
       }
     };
   }
@@ -47,10 +55,12 @@ export class ValidationMiddleware {
       const result = schema.safeParse(params);
 
       if (!result.success) {
-        return c.json({
-          error: 'Validation Error',
-          details: result.error.errors,
-        }, 400);
+        throw new ApiError(
+          'Validation Error',
+          ApiErrorCode.VALIDATION_ERROR,
+          400,
+          { validationErrors: result.error.errors }
+        );
       }
 
       // Store validated data in context
@@ -70,10 +80,12 @@ export class ValidationMiddleware {
       const result = schema.safeParse(query);
 
       if (!result.success) {
-        return c.json({
-          error: 'Validation Error',
-          details: result.error.errors,
-        }, 400);
+        throw new ApiError(
+          'Validation Error',
+          ApiErrorCode.VALIDATION_ERROR,
+          400,
+          { validationErrors: result.error.errors }
+        );
       }
 
       // Store validated data in context

@@ -84,7 +84,6 @@ export interface NearAuthData {
 
   /**
    * Recipient of the message
-   * @default 'crosspost.near'
    */
   recipient?: string;
 

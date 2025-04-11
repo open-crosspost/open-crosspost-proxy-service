@@ -147,5 +147,6 @@ export function initializeApp() {
     leaderboardController,
     rateLimitController,
     postControllers,
+    nearAuthService,
   };
 }

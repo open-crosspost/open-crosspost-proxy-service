@@ -34,9 +34,12 @@ const app = new Hono();
 app.use('*', errorMiddleware());
 app.use('*', corsMiddleware());
 
-// Initialize controllers
-const { authController, leaderboardController, rateLimitController, postControllers } =
+// Initialize app and get dependencies
+const { authController, leaderboardController, rateLimitController, postControllers, nearAuthService } =
   initializeApp();
+
+// Initialize middleware with dependencies
+AuthMiddleware.initialize(nearAuthService);
 
 // Health check route
 app.get('/health', (c) => c.json({ status: 'ok' }));

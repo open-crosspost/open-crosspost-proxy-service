@@ -5,6 +5,7 @@ import {
   createEnhancedErrorResponse,
   createErrorDetail,
   ErrorDetail,
+  Platform,
   PlatformError,
 } from '@crosspost/types';
 import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.ts';
@@ -70,7 +71,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
               err.message,
               err.code,
               err.recoverable,
-              err.platform as any, // Type cast needed due to platform string vs enum
+              err.platform as Platform,
               err.userId,
               err.details,
             ),
@@ -98,7 +99,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
             e.message,
             e.code,
             e.recoverable,
-            e.platform as any, // Type cast needed due to platform string vs enum
+            e.platform as Platform,
             e.userId,
             e.details,
           )

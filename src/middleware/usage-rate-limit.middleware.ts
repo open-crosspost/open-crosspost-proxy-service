@@ -1,5 +1,5 @@
 import { Context, MiddlewareHandler, Next } from '../../deps.ts';
-import { ApiError } from '@crosspost/types';
+import { ApiError, ApiErrorCode } from '@crosspost/types';
 import { PrefixedKvStore } from '../utils/kv-store.utils.ts';
 
 /**
@@ -163,9 +163,9 @@ export class UsageRateLimitMiddleware {
 
         if (!signerId) {
           throw new ApiError(
-            ErrorType.AUTHENTICATION,
             'NEAR account ID not found in context',
-            401,
+            ApiErrorCode.UNAUTHORIZED,
+            401
           );
         }
 
@@ -180,9 +180,15 @@ export class UsageRateLimitMiddleware {
           c.header('X-RateLimit-Reset', Math.floor(result.reset / 1000).toString());
 
           throw new ApiError(
-            ErrorType.RATE_LIMIT,
             `Rate limit exceeded for NEAR account ${signerId}. Maximum ${result.limit} requests per day allowed.`,
+            ApiErrorCode.RATE_LIMITED,
             429,
+            { 
+              limit: result.limit,
+              current: result.current,
+              reset: result.reset,
+              signerId 
+            }
           );
         }
 
@@ -197,9 +203,10 @@ export class UsageRateLimitMiddleware {
           throw error;
         }
         throw new ApiError(
-          ErrorType.INTERNAL,
           'Error checking rate limit',
+          ApiErrorCode.INTERNAL_ERROR,
           500,
+          { originalError: error instanceof Error ? error.message : String(error) }
         );
       }
     };
