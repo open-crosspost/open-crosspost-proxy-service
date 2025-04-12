@@ -10,7 +10,7 @@ export interface CrosspostClientConfig {
    */
   baseUrl?: string;
   /**
-   * NEAR authentication data obtained from @crosspost/near-simple-signing (TODO)
+   * NEAR authentication data obtained from near-sign-verify
    */
   signature?: NearSignatureData;
   /**

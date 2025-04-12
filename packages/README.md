@@ -71,7 +71,6 @@ npm test
 
 # Run tests for a specific package
 npm run test:types
-npm run test:near-simple-signing
 npm run test:sdk
 ```
 
@@ -83,7 +82,6 @@ npm run lint
 
 # Lint a specific package
 npm run lint:types
-npm run lint:near-simple-signing
 npm run lint:sdk
 ```
 
@@ -97,7 +95,6 @@ npm run publish
 
 # Publish a specific package to npm
 cd types && npm publish
-cd near-simple-signing && npm publish
 cd sdk && npm publish
 ```
 
@@ -106,7 +103,6 @@ cd sdk && npm publish
 ```bash
 # Publish to JSR
 cd types && deno publish
-cd near-simple-signing && deno publish
 ```
 
 ## License
