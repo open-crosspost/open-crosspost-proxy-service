@@ -10,34 +10,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm ci
-        working-directory: packages
+        run: |
+          cd packages
+          bun install
 
-      # Build and publish @crosspost/types
-      - name: Build types package
-        run: npm run build
-        working-directory: packages/types
+      # Build and publish all packages
+      - name: Build packages
+        run: |
+          cd packages
+          bun run build
 
-      - name: Publish types package
-        run: npm publish
-        working-directory: packages/types
+      # Publish types package
+      - name: Publish @crosspost/types
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd packages/types
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          npm publish --access public
 
-      # Build and publish @crosspost/sdk
-      - name: Build SDK package
-        run: npm run build
-        working-directory: packages/sdk
-
-      - name: Publish SDK package
-        run: npm publish
-        working-directory: packages/sdk
+      # Publish sdk package
+      - name: Publish @crosspost/sdk
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd packages/sdk
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          npm publish --access public
