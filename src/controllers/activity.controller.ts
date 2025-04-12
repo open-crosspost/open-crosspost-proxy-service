@@ -1,14 +1,12 @@
-import { Context } from '../../deps.ts';
-import {
-  ActivityTrackingService,
-  TimePeriod,
-} from '../domain/services/activity-tracking.service.ts';
 import {
   ApiErrorCode,
   createEnhancedErrorResponse,
   createErrorDetail,
   PlatformName,
+  TimePeriod,
 } from '@crosspost/types';
+import { Context } from '../../deps.ts';
+import { ActivityTrackingService } from '../domain/services/activity-tracking.service.ts';
 import { BaseController } from './base.controller.ts';
 
 /**

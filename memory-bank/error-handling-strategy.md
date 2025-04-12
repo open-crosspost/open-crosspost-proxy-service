@@ -80,6 +80,87 @@ flowchart TD
 - Provides typed error experience
 - Maintains error context for UI handling
 
+## SDK Error Utilities
+
+The SDK provides a comprehensive set of error utilities to help client applications handle errors
+consistently:
+
+### 1. Error Categories
+
+Errors are grouped into logical categories for easier classification and handling:
+
+```typescript
+export const ERROR_CATEGORIES = {
+  AUTH: [ApiErrorCode.UNAUTHORIZED, ApiErrorCode.FORBIDDEN],
+  VALIDATION: [ApiErrorCode.VALIDATION_ERROR, ApiErrorCode.INVALID_REQUEST],
+  NETWORK: [ApiErrorCode.NETWORK_ERROR],
+  PLATFORM: [ApiErrorCode.PLATFORM_ERROR, ApiErrorCode.PLATFORM_UNAVAILABLE],
+  CONTENT: [ApiErrorCode.CONTENT_POLICY_VIOLATION, ApiErrorCode.DUPLICATE_CONTENT],
+  RATE_LIMIT: [ApiErrorCode.RATE_LIMITED],
+  POST: [ApiErrorCode.POST_CREATION_FAILED, ApiErrorCode.POST_DELETION_FAILED, ...],
+  MEDIA: [ApiErrorCode.MEDIA_UPLOAD_FAILED],
+};
+```
+
+### 2. Error Type Checking
+
+The SDK provides functions to check error types:
+
+```typescript
+// Check if an error belongs to a specific category
+isErrorOfCategory(error, ERROR_CATEGORIES.AUTH);
+
+// Specialized error type checkers
+isAuthError(error);
+isValidationError(error);
+isNetworkError(error);
+isPlatformError(error);
+isContentError(error);
+isRateLimitError(error);
+isPostError(error);
+isMediaError(error);
+isRecoverableError(error);
+```
+
+### 3. Error Information Extraction
+
+Utilities to extract useful information from errors:
+
+```typescript
+// Get a user-friendly error message
+const message = getErrorMessage(error, 'Default message');
+
+// Extract error details if available
+const details = getErrorDetails(error);
+```
+
+### 4. Error Context Enrichment
+
+Utilities to add context to errors:
+
+```typescript
+// Add context to an error
+const enrichedError = enrichErrorWithContext(error, {
+  operation: 'createPost',
+  timestamp: Date.now(),
+});
+```
+
+### 5. API Wrapper
+
+A utility to wrap API calls with consistent error handling:
+
+```typescript
+// Wrap an API call with error handling
+const result = await apiWrapper(
+  async () => {
+    // API call implementation
+    return await fetch('/api/endpoint');
+  },
+  { operation: 'fetchData' }, // Optional context
+);
+```
+
 ## Best Practices
 
 1. **Use Proper Error Types**
@@ -97,7 +178,15 @@ flowchart TD
    - Maintain HTTP semantic meaning
    - Use proper status properties
 
+4. **Client-Side Error Handling**
+   - Use the SDK's error utilities for consistent error handling
+   - Check error types with the provided functions
+   - Add context to errors for better debugging
+   - Implement recovery strategies for recoverable errors
+
 ## Implementation Example
+
+### Server-Side Error Mapping
 
 ```typescript
 // Error code to status mapping
@@ -108,4 +197,26 @@ export const errorCodeToStatusCode: Record<ApiErrorCode, StatusCode> = {
   [ApiErrorCode.FORBIDDEN]: 403,
   [ApiErrorCode.RATE_LIMITED]: 429,
 };
+```
+
+### Client-Side Error Handling
+
+```typescript
+try {
+  await client.post.createPost({ content, platform });
+} catch (error) {
+  if (isAuthError(error)) {
+    // Handle authentication errors
+    redirectToLogin();
+  } else if (isRateLimitError(error)) {
+    // Handle rate limit errors
+    showRateLimitMessage(getErrorDetails(error)?.resetTime);
+  } else if (isContentError(error)) {
+    // Handle content policy violations
+    showContentPolicyMessage(getErrorMessage(error));
+  } else {
+    // Handle other errors
+    showGenericErrorMessage(getErrorMessage(error));
+  }
+}
 ```

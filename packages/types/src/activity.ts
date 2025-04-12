@@ -9,6 +9,17 @@ import { EnhancedResponseSchema } from './response.ts';
 import { PlatformSchema } from './common.ts';
 
 /**
+ * Time periods for activity filtering
+ */
+export enum TimePeriod {
+  ALL_TIME = 'all',
+  YEARLY = 'yearly',
+  MONTHLY = 'monthly',
+  WEEKLY = 'weekly',
+  DAILY = 'daily',
+}
+
+/**
  * Activity leaderboard query schema
  */
 export const ActivityLeaderboardQuerySchema = z.object({
@@ -165,6 +176,59 @@ export const AccountPostsResponseSchema = EnhancedResponseSchema(
   }),
 ).describe('Account posts response');
 
+/**
+ * Interface for account activity data
+ */
+export interface AccountActivity {
+  signerId: string;
+  postCount: number;
+  firstPostTimestamp: number;
+  lastPostTimestamp: number;
+}
+
+/**
+ * Interface for platform-specific account activity data
+ */
+export interface PlatformAccountActivity extends AccountActivity {
+  platform: string;
+}
+
+/**
+ * Interface for post record data (storage optimized)
+ */
+export interface PostRecord {
+  id: string; // postId
+  p: string; // platform
+  t: number; // timestamp
+  u: string; // userId
+}
+
+/**
+ * Interface for post record data (API response)
+ */
+export interface PostRecordResponse {
+  postId: string;
+  platform: string;
+  timestamp: string;
+  userId: string;
+}
+
+/**
+ * Interface for leaderboard entry
+ */
+export interface LeaderboardEntry {
+  signerId: string;
+  postCount: number;
+  lastPostTimestamp: number;
+}
+
+/**
+ * Interface for platform-specific leaderboard entry
+ */
+export interface PlatformLeaderboardEntry extends LeaderboardEntry {
+  platform: string;
+}
+
 // Derive TypeScript types from Zod schemas
 export type ActivityLeaderboardQuery = z.infer<typeof ActivityLeaderboardQuerySchema>;
 export type AccountActivityEntry = z.infer<typeof AccountActivityEntrySchema>;
@@ -177,3 +241,7 @@ export type AccountPostsParams = z.infer<typeof AccountPostsParamsSchema>;
 export type AccountPostsQuery = z.infer<typeof AccountPostsQuerySchema>;
 export type AccountPost = z.infer<typeof AccountPostSchema>;
 export type AccountPostsResponse = z.infer<typeof AccountPostsResponseSchema>;
+
+// Legacy type aliases for backward compatibility
+export type LeaderboardQuery = ActivityLeaderboardQuery;
+export type LeaderboardResponse = ActivityLeaderboardResponse;

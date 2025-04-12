@@ -32,6 +32,15 @@ proper documentation.
      - `@crosspost/sdk`: Main API client with platform-specific implementations
    - Implemented comprehensive documentation for SDK usage
 
+5. **SDK Error Handling Improvements**: ✅ COMPLETED
+   - Implemented error categorization system for easier error type checking
+   - Created utility functions for error type detection (isAuthError, isRateLimitError, etc.)
+   - Added error information extraction utilities (getErrorMessage, getErrorDetails)
+   - Implemented error context enrichment for better debugging
+   - Created apiWrapper utility for consistent error handling
+   - Updated request.ts to use new error utilities
+   - Documented error handling approach in error-handling-strategy.md
+
 ### Current Focus Areas
 
 1. **Documentation Enhancement**:
@@ -53,7 +62,6 @@ proper documentation.
 
 4. **SDK Authentication Improvements**:
    - Implementing flexible authentication strategies (Direct and Cookie-based)
-   - Adding proper error handling for authentication failures
    - Supporting CSRF protection via token headers
    - Improving developer experience with simplified authentication flow
    - Ensuring secure cookie settings (`SameSite=Lax`, `Secure`, `HttpOnly`)

@@ -16,6 +16,23 @@ export { SystemApi } from './api/system.ts';
 // Export utility functions
 export { createNetworkError, handleErrorResponse } from './utils/error.ts';
 export {
+  apiWrapper,
+  enrichErrorWithContext,
+  ERROR_CATEGORIES,
+  getErrorDetails,
+  getErrorMessage,
+  isAuthError,
+  isContentError,
+  isErrorOfCategory,
+  isMediaError,
+  isNetworkError,
+  isPlatformError,
+  isPostError,
+  isRateLimitError,
+  isRecoverableError,
+  isValidationError,
+} from './utils/error-utils.ts';
+export {
   AUTH_COOKIE_NAME,
   AUTH_COOKIE_OPTIONS,
   clearAuthCookie,

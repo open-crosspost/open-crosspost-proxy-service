@@ -11,7 +11,7 @@ export const CSRF_HEADER_NAME = 'X-CSRF-Token';
 export const isDeno = (): boolean => { // monorepo builds primarily for Deno
   // we could expect that frontends in Deno environment will use this package,
   // and then we can determine auth solution there (ValTown, Smallweb, etc)
-  return typeof globalThis.Deno !== 'undefined';
+  return typeof (globalThis as any).Deno !== 'undefined';
 };
 
 /**

@@ -1,8 +1,14 @@
-import { ApiError, ApiErrorCode, Platform, PlatformError, PlatformName } from '@crosspost/types';
+import {
+  ApiError,
+  ApiErrorCode,
+  Platform,
+  PlatformError,
+  PlatformName,
+  TimePeriod,
+} from '@crosspost/types';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { ActivityController } from '../../../src/controllers/activity.controller.ts';
-import { TimePeriod } from '../../../src/domain/services/activity-tracking.service.ts';
 import { MockActivityTrackingService } from '../../mocks/activity-tracking-service-mock.ts';
 import { createMockContext } from '../../utils/test-utils.ts';
 
