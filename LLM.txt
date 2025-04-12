@@ -1,0 +1,42 @@
+# SDK Authentication and Error Handling Updates (April 12, 2025)
+
+## Summary
+
+This document summarizes the recent planning and updates related to the `@crosspost/sdk` package, focusing on authentication strategies and error handling improvements.
+
+## Key Decisions & Plans
+
+1.  **Authentication Strategy:**
+    *   The SDK will support two primary authentication methods:
+        *   **Direct Authentication:** Providing the `NearAuthData` object directly to the `CrosspostClient` constructor.
+        *   **Cookie-Based Authentication:** Automatically attempting to load `NearAuthData` from a secure cookie (`__crosspost_auth`) if not provided directly.
+    *   A new `client.setAuthentication(nearAuthData)` method will be added to explicitly set authentication and store it in the cookie.
+    *   The client constructor will no longer throw an immediate error if auth data is missing; instead, the check will occur within `makeRequest`.
+
+2.  **Cookie Security:**
+    *   The authentication cookie (`__crosspost_auth`) will use the following attributes for security: `HttpOnly=true`, `Secure=true`, `SameSite=Lax`, `Path=/`.
+    *   `SameSite=Lax` was chosen over `None` due to the lack of comprehensive server-side CSRF token validation in the current API implementation, making `None` insecure.
+
+3.  **CSRF Protection:**
+    *   The SDK will support the Double Submit Cookie pattern for CSRF protection.
+    *   It will read a CSRF token from a non-HttpOnly cookie (e.g., `XSRF-TOKEN`) provided by the backend.
+    *   This token will be sent back to the server in the `X-CSRF-Token` header on state-changing requests.
+    *   **Note:** This requires corresponding middleware implementation on the backend API to generate and validate these tokens.
+
+4.  **Error Handling:**
+    *   The SDK client constructor error (`throw("Need auth data")`) will be replaced with a proper `ApiError.unauthorized` thrown from `makeRequest` when authentication is required but missing.
+    *   Error handling utilities (`handleErrorResponse`, `createNetworkError`) will be reviewed and potentially refined for clarity.
+
+## Documentation Updates
+
+*   The following memory bank files have been updated to reflect these plans:
+    *   `memory-bank/sdk-architecture.md`
+    *   `memory-bank/security-plan.md`
+    *   `memory-bank/activeContext.md`
+    *   `memory-bank/progress.md`
+*   The SDK README (`packages/sdk/README.md`) has been updated with the new initialization options, authentication methods, and API reference details.
+
+## Next Steps
+
+*   Implement the planned changes within the `@crosspost/sdk` package (`client.ts`, `request.ts`, potentially adding cookie utility functions).
+*   Implement the necessary CSRF protection middleware on the backend API (separate task).

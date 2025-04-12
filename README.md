@@ -1,4 +1,4 @@
-# open crosspost proxy service
+# Open Crosspost Proxy Service
 
 Easily and securely connect your app to social media platforms (like Twitter) using NEAR wallet
 authentication. No more handling OAuth tokens on the client!
@@ -15,65 +15,112 @@ authentication. No more handling OAuth tokens on the client!
 ### Prerequisites
 
 - [Deno](https://deno.land/) (latest version)
+- [Bun](https://bun.sh/) (for package development)
 - NEAR Wallet
-- Twitter Developer Account (for Twitter API access)
+- Platform API keys
 
 ### Setup & Run
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/crosspost-proxy.git
-cd crosspost-proxy
-
 # Create .env file with required variables
 cp .env.example .env
-# Edit .env with your credentials
 
-# Start the development server
+# Install dependencies
+bun install
+
+# Start the development server (API, SDK, and Types in watch mode)
+bun run dev
+
+# Or start just the API
 deno task dev
 
-# Run tests (when available)
-deno task test
+# Run tests
+bun run test
 ```
 
-### Essential Environment Variables
+## Architecture
 
+The service uses a layered architecture with clear separation of concerns, to standardize
+authentication and social interactions and isolate platform-specific implementations:
+
+```mermaid
+flowchart TD
+    Client[Client Applications] --> API[API Layer]
+    API --> Controllers[Controllers]
+    Controllers --> Services[Domain Services]
+    Services --> PlatformAbstraction[Platform Abstraction]
+    
+    PlatformAbstraction --> Auth[PlatformAuth]
+    PlatformAbstraction --> Client[PlatformClient]
+    PlatformAbstraction --> Post[PlatformPost]
+    PlatformAbstraction --> Media[PlatformMedia]
+    PlatformAbstraction --> Profile[PlatformProfile]
+    
+    Auth --> TwitterAuth[Twitter Auth]
+    Client --> TwitterClient[Twitter Client]
+    Post --> TwitterPost[Twitter Post]
+    Media --> TwitterMedia[Twitter Media]
+    Profile --> TwitterProfile[Twitter Profile]
+    
+    Services --> Security[Security Services]
+    Security --> NearAuth[NEAR Auth Service]
+    Security --> TokenStorage[Token Storage]
+    
+    Services --> Storage[Storage Services]
+    Storage --> KVStore[KV Store Utilities]
 ```
-TWITTER_CLIENT_ID=your_client_id
-TWITTER_CLIENT_SECRET=your_client_secret
 
-ENCRYPTION_KEY=your_encryption_key
+## Authentication Flow
 
-ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
-```
-
-## How It Works
-
-### Authentication Flow
+The SDK
 
 ```mermaid
 sequenceDiagram
     participant ClientApp as Client Application
     participant NearWallet as NEAR Wallet
     participant ProxyService as Crosspost Proxy
-    participant DenoKV as Deno KV Storage
-    participant PlatformAPI as Social Media Platform API
+    participant TokenStorage as Token Storage
+    participant NearAuthSvc as NEAR Auth Service
+    participant PlatformAPI as Social Media Platform
 
-    ClientApp->>NearWallet: Request signature for API action
-    NearWallet-->>ClientApp: Provide signed message
-    ClientApp->>ProxyService: API Request + NEAR Auth Header
-    ProxyService->>ProxyService: 1. Verify NEAR Signature
-    ProxyService->>DenoKV: 2. Check if NEAR Account is Authorized
-    alt NEAR Account Authorized
-        ProxyService->>DenoKV: 3. Retrieve Platform User ID linked to NEAR Account
-        ProxyService->>DenoKV: 4. Retrieve Encrypted Platform Token
-        ProxyService->>ProxyService: 5. Decrypt Token
-        ProxyService->>PlatformAPI: 6. Execute API Call with User's Token
-        PlatformAPI-->>ProxyService: Platform Response
-        ProxyService-->>ClientApp: API Response
-    else NEAR Account Not Authorized
-        ProxyService-->>ClientApp: 403 Forbidden Error
-    end
+    %% Step 1: NEAR Authorization %%
+    ClientApp->>NearWallet: Request signature
+    NearWallet-->>ClientApp: Return signed message
+    ClientApp->>ProxyService: POST /auth/authorize/near (with NEAR Sig)
+    ProxyService->>NearAuthSvc: Authorize NEAR account
+    NearAuthSvc-->>ProxyService: Success
+    ProxyService-->>ClientApp: 200 OK
+
+    %% Step 2: Platform Account Linking %%
+    ClientApp->>ProxyService: POST /auth/{platform}/login (with NEAR Sig)
+    ProxyService->>ProxyService: Validate NEAR Signature
+    ProxyService->>NearAuthSvc: Check authorization status
+    NearAuthSvc-->>ProxyService: Authorized
+    ProxyService->>ProxyService: Generate auth URL & state
+    ProxyService->>NearAuthSvc: Store auth state with NEAR account
+    ProxyService-->>ClientApp: Return auth URL
+
+    %% Step 3: Platform OAuth %%
+    ClientApp->>PlatformAPI: Redirect to auth URL
+    PlatformAPI-->>ClientApp: User authorizes app
+    PlatformAPI->>ProxyService: Callback with code & state
+    ProxyService->>NearAuthSvc: Retrieve auth state
+    ProxyService->>PlatformAPI: Exchange code for tokens
+    PlatformAPI-->>ProxyService: Return tokens
+    ProxyService->>TokenStorage: Securely store tokens
+    ProxyService->>NearAuthSvc: Link platform account to NEAR account
+    ProxyService-->>ClientApp: Redirect to success URL
+
+    %% Step 4: Making API Calls %%
+    ClientApp->>NearWallet: Request signature for API call
+    NearWallet-->>ClientApp: Return signed message
+    ClientApp->>ProxyService: API Request with NEAR Signature
+    ProxyService->>ProxyService: Validate signature
+    ProxyService->>NearAuthSvc: Get platform account for NEAR account
+    ProxyService->>TokenStorage: Retrieve platform tokens
+    ProxyService->>PlatformAPI: Make API call with tokens
+    PlatformAPI-->>ProxyService: Return response
+    ProxyService-->>ClientApp: Return formatted response
 ```
 
 ### Three Simple Steps
@@ -120,40 +167,114 @@ POST /api/post                     # Create a post
 
 Example request:
 
-````json
+```json
 {
   "platform": "twitter",
-  "content": "Hello world from Crosspost Proxy!",
-  "mediaIds": ["optional-media-id-if-uploading-media"]
+  "content": {
+    "text": "Hello world from Crosspost Proxy!",
+    "media": [
+      {
+        "type": "image",
+        "body": "https://example.com/image.jpg"
+      }
+    ]
+  }
 }
-
-```bash
-Required header: `Authorization: Bearer ${JSON.stringify(signature)}`
-
-```bash
-POST /api/post/like/:id            # Like a post
-POST /api/post/reply               # Reply to a post
-POST /api/post/repost              # Repost content
-DELETE /api/post/:id               # Delete a post
-````
-
-### Media
-
-```bash
-POST /api/media/upload             # Upload media for attaching to posts
-GET /api/media/:id/status          # Check media upload status
 ```
 
-For all endpoints and details, see the OpenAPI Specification available at `/openapi.json` when
-running the server.
+All requests require the Authorization header with your NEAR signature.
 
-## Extending & Contributing
+## Project Structure
 
-This project uses a platform-agnostic design, making it easy to add support for additional social
-media platforms beyond Twitter.
+This project is organized as a monorepo with a Deno-first approach:
 
-Want to add support for LinkedIn, Mastodon, or another platform? Contributions are welcome! Just
-implement the platform interfaces in `src/infrastructure/platform/abstract/`.
+```
+open-crosspost-proxy-service/
+├── src/                # Deno API code
+├── packages/           # Shared packages
+│   ├── types/          # Shared type definitions
+│   │   ├── src/        # TypeScript source
+│   │   ├── mod.ts      # Deno entry point
+│   │   └── deno.json   # JSR package config
+│   └── sdk/            # Client SDK
+│       ├── src/        # TypeScript source
+│       ├── mod.ts      # Deno entry point
+│       └── deno.json   # JSR package config
+├── deno.json           # Deno config for API
+└── package.json        # Root package.json for monorepo
+```
+
+### Development Workflow
+
+- **Deno-first Development**: The API is built with Deno, and packages are designed to work with
+  Deno first.
+- **Dual Publishing**: Packages are published to both JSR (for Deno) and npm (for Node.js).
+- **Native Deno Imports**: Source files are directly importable by Deno without any conversion.
+- **Local Development**: During development, the API imports directly from local packages using
+  import maps.
+- **Production**: In production, the API imports packages from JSR.
+
+### Commands
+
+```bash
+# Start all development (API, SDK, Types in watch mode)
+bun run dev
+
+# Build all packages for both Deno and Node.js
+bun run build
+
+# Run all tests
+bun run test
+
+# Lint all code
+bun run lint
+```
+
+## SDK Packages
+
+We provide three SDK packages to simplify integration:
+
+### @crosspost/types
+
+```typescript
+import { PlatformName, PostCreateRequest } from '@crosspost/types';
+
+const request: PostCreateRequest = {
+  platform: 'twitter',
+  content: {
+    text: 'Hello, world!',
+  },
+};
+```
+
+### @crosspost/sdk
+
+```typescript
+import { CrosspostClient } from '@crosspost/sdk';
+
+const client = new CrosspostClient({
+  baseUrl: 'https://api.crosspost.example',
+  auth: {
+    type: 'near',
+    signer: signer,
+  },
+});
+
+const response = await client.twitter.createPost({
+  content: {
+    text: 'Hello from Crosspost SDK!',
+  },
+});
+```
+
+## Extending the Platform
+
+The project uses a platform-agnostic design, making it easy to add support for additional social
+media platforms:
+
+1. Implement the platform interfaces in `src/infrastructure/platform/abstract/`
+2. Add the platform-specific client to the SDK
+3. Update the platform enum in the types package
 
 ## License
 
