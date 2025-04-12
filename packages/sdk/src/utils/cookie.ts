@@ -23,7 +23,7 @@ export const isBrowser = (): boolean => {
 
 export const AUTH_COOKIE_OPTIONS: Cookies.CookieAttributes = {
   secure: true,
-  sameSite: 'lax', // how could we make this none?
+  sameSite: 'lax', // Restrict to same-site and top-level navigation
   path: '/',
   expires: 30, // 30 days
 };
