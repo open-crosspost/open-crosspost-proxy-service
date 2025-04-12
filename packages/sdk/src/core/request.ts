@@ -28,7 +28,7 @@ export interface RequestOptions {
 
 /**
  * Makes a request to the API with retry and error handling
- * 
+ *
  * @param method The HTTP method
  * @param path The API path
  * @param options The request options
@@ -39,7 +39,7 @@ export async function makeRequest<T>(
   method: string,
   path: string,
   options: RequestOptions,
-  data?: any
+  data?: any,
 ): Promise<T> {
   const url = `${options.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
   let lastError: Error | null = null;

@@ -3,6 +3,6 @@
   "compilerOptions": {
     "moduleResolution": "node",
     "outDir": "./dist",
-    "types": ["node"],
+    "types": ["node"]
   }
 }

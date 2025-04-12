@@ -1,13 +1,8 @@
-import {
-  ApiError,
-  ApiErrorCode,
-  Platform,
-  PlatformError,
-} from '@crosspost/types';
+import { ApiError, ApiErrorCode, Platform, PlatformError } from '@crosspost/types';
 
 /**
  * Handles error responses from the API and converts them to appropriate error objects.
- * 
+ *
  * @param data The error response data
  * @param status The HTTP status code
  * @returns An ApiError or PlatformError instance
@@ -16,7 +11,7 @@ export function handleErrorResponse(data: any, status: number): ApiError | Platf
   // Safely access nested error properties
   const errorData = data?.error || {};
   const message = errorData?.message || data?.message || 'An API error occurred';
-  
+
   // Ensure code is a valid ApiErrorCode or default
   const codeString = errorData?.code || data?.code || ApiErrorCode.UNKNOWN_ERROR;
   const code = Object.values(ApiErrorCode).includes(codeString as ApiErrorCode)
@@ -57,7 +52,7 @@ export function handleErrorResponse(data: any, status: number): ApiError | Platf
 
 /**
  * Creates a network error with appropriate details
- * 
+ *
  * @param error The original error
  * @param url The request URL
  * @param timeout The request timeout
@@ -72,11 +67,9 @@ export function createNetworkError(error: unknown, url: string, timeout: number)
       { url },
     );
   }
-  
+
   return new ApiError(
-    error instanceof Error
-      ? error.message
-      : 'An unexpected error occurred during the request',
+    error instanceof Error ? error.message : 'An unexpected error occurred during the request',
     ApiErrorCode.INTERNAL_ERROR,
     500,
     { originalError: String(error), url },

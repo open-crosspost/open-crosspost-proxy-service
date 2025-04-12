@@ -34,7 +34,8 @@ The SDK can be initialized in several ways depending on how you manage authentic
 
 **1. Cookie-Based Authentication (Recommended for Browsers)**
 
-If the user has previously authenticated via the API, the SDK can automatically use the authentication data stored in the `__crosspost_auth` cookie.
+If the user has previously authenticated via the API, the SDK can automatically use the
+authentication data stored in the `__crosspost_auth` cookie.
 
 ```typescript
 import { CrosspostClient } from '@crosspost/sdk';
@@ -49,6 +50,7 @@ const client = new CrosspostClient({
 ```
 
 The cookie is stored with secure attributes:
+
 - `secure: true` - Only sent over HTTPS
 - `sameSite: 'lax'` - Provides CSRF protection while allowing top-level navigation
 - `path: '/'` - Available across the entire domain
@@ -56,7 +58,8 @@ The cookie is stored with secure attributes:
 
 **2. Direct Authentication**
 
-Provide the `nearAuthData` object directly if you have obtained it through other means (e.g., server-side flow, manual signing).
+Provide the `nearAuthData` object directly if you have obtained it through other means (e.g.,
+server-side flow, manual signing).
 
 ```typescript
 import { CrosspostClient } from '@crosspost/sdk';
@@ -80,7 +83,9 @@ const client = new CrosspostClient({
 
 **3. Explicit Authentication**
 
-Initialize the client without authentication and set it later, for example, after a user logs in via a NEAR wallet connection. This method also stores the authentication data in the `__crosspost_auth` cookie for future use.
+Initialize the client without authentication and set it later, for example, after a user logs in via
+a NEAR wallet connection. This method also stores the authentication data in the `__crosspost_auth`
+cookie for future use.
 
 ```typescript
 import { CrosspostClient } from '@crosspost/sdk';
@@ -94,7 +99,7 @@ const client = new CrosspostClient({
 async function handleAuthentication(nearAuthData: NearAuthData) {
   try {
     // This sets the auth data in the client and stores it in the cookie
-    await client.setAuthentication(nearAuthData); 
+    await client.setAuthentication(nearAuthData);
     console.log('Authentication successful and stored.');
     // Client is now ready for authenticated requests
   } catch (error) {
@@ -155,7 +160,7 @@ await client.twitter.deletePost({
 ### Error Handling
 
 ```typescript
-import { ApiError, ApiErrorCode, PlatformError, CrosspostClient } from '@crosspost/sdk';
+import { ApiError, ApiErrorCode, CrosspostClient, PlatformError } from '@crosspost/sdk';
 
 try {
   // Ensure client is authenticated (either via cookie or direct data)
@@ -205,13 +210,15 @@ constructor(config?: CrosspostClientConfig)
 `CrosspostClientConfig` Options:
 
 - `baseUrl?: string`: Base URL of the Crosspost API. Defaults to the official endpoint.
-- `nearAuthData?: NearAuthData`: NEAR authentication data object. If not provided, the client attempts to load from the `__crosspost_auth` cookie.
+- `nearAuthData?: NearAuthData`: NEAR authentication data object. If not provided, the client
+  attempts to load from the `__crosspost_auth` cookie.
 - `timeout?: number`: Request timeout in milliseconds (default: 30000).
 - `retries?: number`: Number of retries for failed requests (network/5xx errors) (default: 2).
 
 #### Methods
 
-- `setAuthentication(nearAuthData: NearAuthData): Promise<void>`: Sets the provided `NearAuthData` in the client and stores it in the `__crosspost_auth` cookie for future use.
+- `setAuthentication(nearAuthData: NearAuthData): Promise<void>`: Sets the provided `NearAuthData`
+  in the client and stores it in the `__crosspost_auth` cookie for future use.
 
 #### Properties
 
@@ -222,21 +229,28 @@ constructor(config?: CrosspostClientConfig)
 
 #### `AuthApi` (`client.auth`)
 
-- `authorizeNearAccount(): Promise<NearAuthorizationResponse>`: Authorizes the current NEAR account (requires `nearAuthData` to be set).
-- `getNearAuthorizationStatus(): Promise<NearAuthorizationResponse>`: Checks if the current NEAR account is authorized.
-- `loginToPlatform(platform, options?): Promise<EnhancedApiResponse<any>>`: Initiates the OAuth login flow for a platform.
+- `authorizeNearAccount(): Promise<NearAuthorizationResponse>`: Authorizes the current NEAR account
+  (requires `nearAuthData` to be set).
+- `getNearAuthorizationStatus(): Promise<NearAuthorizationResponse>`: Checks if the current NEAR
+  account is authorized.
+- `loginToPlatform(platform, options?): Promise<EnhancedApiResponse<any>>`: Initiates the OAuth
+  login flow for a platform.
 - `refreshToken(platform): Promise<EnhancedApiResponse<any>>`: Refreshes the platform token.
-- `refreshProfile(platform): Promise<EnhancedApiResponse<any>>`: Refreshes the user's profile from the platform.
-- `getAuthStatus(platform): Promise<AuthStatusResponse>`: Gets the authentication status for a specific platform.
+- `refreshProfile(platform): Promise<EnhancedApiResponse<any>>`: Refreshes the user's profile from
+  the platform.
+- `getAuthStatus(platform): Promise<AuthStatusResponse>`: Gets the authentication status for a
+  specific platform.
 - `revokeAuth(platform): Promise<AuthRevokeResponse>`: Revokes access for a specific platform.
-- `getConnectedAccounts(): Promise<ConnectedAccountsResponse>`: Lists all platform accounts connected to the NEAR account.
+- `getConnectedAccounts(): Promise<ConnectedAccountsResponse>`: Lists all platform accounts
+  connected to the NEAR account.
 
 #### `PostApi` (`client.post`)
 
 - `createPost(request: CreatePostRequest): Promise<CreatePostResponse>`: Creates a new post.
 - `repost(request: RepostRequest): Promise<RepostResponse>`: Reposts an existing post.
 - `quotePost(request: QuotePostRequest): Promise<QuotePostResponse>`: Quotes an existing post.
-- `replyToPost(request: ReplyToPostRequest): Promise<ReplyToPostResponse>`: Replies to an existing post.
+- `replyToPost(request: ReplyToPostRequest): Promise<ReplyToPostResponse>`: Replies to an existing
+  post.
 - `likePost(request: LikePostRequest): Promise<LikePostResponse>`: Likes a post.
 - `unlikePost(request: UnlikePostRequest): Promise<UnlikePostResponse>`: Unlikes a post.
 - `deletePost(request: DeletePostRequest): Promise<DeletePostResponse>`: Deletes one or more posts.
@@ -246,12 +260,14 @@ constructor(config?: CrosspostClientConfig)
 The SDK supports the Double Submit Cookie pattern for CSRF protection:
 
 1. The backend API sets a CSRF token in a non-HttpOnly cookie named `XSRF-TOKEN`
-2. The SDK automatically reads this token and includes it in the `X-CSRF-Token` header for all state-changing requests (non-GET)
+2. The SDK automatically reads this token and includes it in the `X-CSRF-Token` header for all
+   state-changing requests (non-GET)
 3. The backend API validates that the token in the header matches the token in the cookie
 
 This protection is automatically enabled when the backend API is configured to use CSRF tokens.
 
-*(Note: Specific platform clients like `client.twitter` might be deprecated in favor of using the generic `client.post` API with platform targets specified in the request body.)*
+_(Note: Specific platform clients like `client.twitter` might be deprecated in favor of using the
+generic `client.post` API with platform targets specified in the request body.)_
 
 ## License
 

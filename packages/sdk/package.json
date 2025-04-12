@@ -35,7 +35,7 @@
   ],
   "author": "crosspost.near",
   "license": "MIT",
-  "dependencies": { 
+  "dependencies": {
     "@types/js-cookie": "^3.0.6",
     "js-cookie": "^3.0.5",
     "near-sign-verify": "^0.1.1"

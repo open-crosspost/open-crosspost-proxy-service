@@ -14,10 +14,7 @@ import type {
   UnlikePostRequest,
   UnlikePostResponse,
 } from '@crosspost/types';
-import {
-  ApiError,
-  ApiErrorCode,
-} from '@crosspost/types';
+import { ApiError, ApiErrorCode } from '@crosspost/types';
 import { makeRequest, type RequestOptions } from '../core/request.ts';
 
 /**
@@ -44,7 +41,7 @@ export class PostApi {
       'POST',
       '/api/post',
       this.options,
-      request
+      request,
     );
   }
 
@@ -58,7 +55,7 @@ export class PostApi {
       'POST',
       '/api/post/repost',
       this.options,
-      request
+      request,
     );
   }
 
@@ -72,7 +69,7 @@ export class PostApi {
       'POST',
       '/api/post/quote',
       this.options,
-      request
+      request,
     );
   }
 
@@ -86,7 +83,7 @@ export class PostApi {
       'POST',
       '/api/post/reply',
       this.options,
-      request
+      request,
     );
   }
 
@@ -101,7 +98,7 @@ export class PostApi {
       'POST',
       `/api/post/like/${request.postId}`,
       this.options,
-      request
+      request,
     );
   }
 
@@ -116,7 +113,7 @@ export class PostApi {
       'DELETE',
       `/api/post/like/${request.postId}`,
       this.options,
-      request
+      request,
     );
   }
 
@@ -139,7 +136,7 @@ export class PostApi {
       'DELETE',
       `/api/post/${postId}`,
       this.options,
-      request
+      request,
     );
   }
 }

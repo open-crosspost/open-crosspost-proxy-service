@@ -40,7 +40,8 @@ bun run test
 
 ## Architecture
 
-The service uses a layered architecture with clear separation of concerns, to standardize authentication and social interactions and isolate platform-specific implementations: 
+The service uses a layered architecture with clear separation of concerns, to standardize
+authentication and social interactions and isolate platform-specific implementations:
 
 ```mermaid
 flowchart TD
@@ -71,7 +72,7 @@ flowchart TD
 
 ## Authentication Flow
 
-The SDK 
+The SDK
 
 ```mermaid
 sequenceDiagram

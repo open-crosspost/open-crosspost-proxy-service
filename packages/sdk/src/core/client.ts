@@ -2,7 +2,7 @@ import type { NearAuthData as NearSignatureData } from 'near-sign-verify';
 import { AuthApi } from '../api/auth.ts';
 import { PostApi } from '../api/post.ts';
 import { type CrosspostClientConfig, DEFAULT_CONFIG } from './config.ts';
-import type {  RequestOptions } from './request.ts';
+import type { RequestOptions } from './request.ts';
 import { getAuthFromCookie, storeAuthInCookie } from '../utils/cookie.ts';
 
 /**
@@ -29,7 +29,7 @@ export class CrosspostClient {
     const baseUrl = config.baseUrl || DEFAULT_CONFIG.baseUrl; // you can deploy your own
     const timeout = config.timeout || DEFAULT_CONFIG.timeout;
     const retries = config.retries ?? DEFAULT_CONFIG.retries;
-    
+
     // Try to get auth data from config or cookie
     const signature = config.signature || getAuthFromCookie();
 
@@ -51,7 +51,7 @@ export class CrosspostClient {
   public async setAuthentication(signature: NearSignatureData): Promise<void> {
     // Update the client's auth data
     this.options.signature = signature;
-    
+
     // Store in cookie for persistence
     storeAuthInCookie(signature);
   }

@@ -31,7 +31,7 @@ export class AuthApi {
       'POST',
       '/auth/authorize/near',
       this.options,
-      {}
+      {},
     );
   }
 
@@ -43,7 +43,7 @@ export class AuthApi {
     return makeRequest<NearAuthorizationResponse>(
       'GET',
       '/auth/authorize/near/status',
-      this.options
+      this.options,
     );
   }
 
@@ -62,7 +62,7 @@ export class AuthApi {
       'POST',
       `/auth/${platform}/login`,
       this.options,
-      options || {}
+      options || {},
     );
   }
 
@@ -75,7 +75,7 @@ export class AuthApi {
     return makeRequest<EnhancedApiResponse<any>>(
       'POST',
       `/auth/${platform}/refresh`,
-      this.options
+      this.options,
     );
   }
 
@@ -88,7 +88,7 @@ export class AuthApi {
     return makeRequest<EnhancedApiResponse<any>>(
       'POST',
       `/auth/${platform}/refresh-profile`,
-      this.options
+      this.options,
     );
   }
 
@@ -101,7 +101,7 @@ export class AuthApi {
     return makeRequest<AuthStatusResponse>(
       'GET',
       `/auth/${platform}/status`,
-      this.options
+      this.options,
     );
   }
 
@@ -114,7 +114,7 @@ export class AuthApi {
     return makeRequest<AuthRevokeResponse>(
       'DELETE',
       `/auth/${platform}/revoke`,
-      this.options
+      this.options,
     );
   }
 
@@ -126,7 +126,7 @@ export class AuthApi {
     return makeRequest<ConnectedAccountsResponse>(
       'GET',
       '/auth/accounts',
-      this.options
+      this.options,
     );
   }
 }
