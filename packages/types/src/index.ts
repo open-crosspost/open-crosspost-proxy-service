@@ -16,5 +16,5 @@ export * from './errors/index.ts';
 export * from './auth.ts';
 export * from './post.ts';
 export * from './rate-limit.ts';
-export * from './leaderboard.ts';
+export * from './activity.ts';
 export * from './user-profile.ts';

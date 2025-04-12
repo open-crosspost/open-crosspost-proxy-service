@@ -3,11 +3,11 @@ import {
   AccountActivityQuerySchema,
   AccountPostsParamsSchema,
   AccountPostsQuerySchema,
+  ActivityLeaderboardQuerySchema,
   AuthCallbackQuerySchema,
   AuthInitRequestSchema,
   CreatePostRequestSchema,
   DeletePostRequestSchema,
-  LeaderboardQuerySchema,
   LikePostRequestSchema,
   NearAuthorizationRequestSchema,
   PlatformParamSchema,
@@ -34,7 +34,7 @@ app.use('*', corsMiddleware());
 
 const {
   authController,
-  leaderboardController,
+  activityController,
   rateLimitController,
   postControllers,
   nearAuthService,
@@ -188,33 +188,32 @@ post.delete(
   (c) => postControllers.unlike.handle(c),
 );
 
-// Leaderboard routes
-const leaderboard = new Hono();
-leaderboard.get(
+// Activity routes
+const activity = new Hono();
+activity.get(
   '/',
   AuthMiddleware.validateNearSignature(),
-  ValidationMiddleware.validateQuery(LeaderboardQuerySchema),
-  (c) => leaderboardController.getLeaderboard(c),
+  ValidationMiddleware.validateQuery(ActivityLeaderboardQuerySchema),
+  (c) => activityController.getLeaderboard(c),
 );
-leaderboard.get(
+activity.get(
   '/:signerId',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateParams(AccountActivityParamsSchema),
   ValidationMiddleware.validateQuery(AccountActivityQuerySchema),
-  (c) => leaderboardController.getAccountActivity(c),
+  (c) => activityController.getAccountActivity(c),
 );
-leaderboard.get(
+activity.get(
   '/:signerId/posts',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateParams(AccountPostsParamsSchema),
   ValidationMiddleware.validateQuery(AccountPostsQuerySchema),
-  (c) => leaderboardController.getAccountPosts(c),
+  (c) => activityController.getAccountPosts(c),
 );
 
 // Mount routes
 api.route('/post', post);
-api.route('/leaderboard', leaderboard);
-api.route('/activity', leaderboard);
+api.route('/activity', activity);
 app.route('/auth', auth);
 
 // Usage rate limits (associated with near account)

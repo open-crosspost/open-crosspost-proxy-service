@@ -40,8 +40,23 @@ export async function makeRequest<T>(
   path: string,
   options: RequestOptions,
   data?: any,
+  query?: Record<string, any>,
 ): Promise<T> {
-  const url = `${options.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  let url = `${options.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+
+  // Add query parameters if provided
+  if (query && Object.keys(query).length > 0) {
+    const queryParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null) {
+        queryParams.append(key, String(value));
+      }
+    }
+    const queryString = queryParams.toString();
+    if (queryString) {
+      url += `?${queryString}`;
+    }
+  }
   let lastError: Error | null = null;
 
   // Check if authentication data is available
@@ -130,7 +145,7 @@ export async function makeRequest<T>(
         throw lastError;
       }
 
-      return responseData as T; // Success
+      return responseData as T;
     } catch (error) {
       clearTimeout(timeoutId); // Clear timeout on error
       lastError = error as Error; // Store the error

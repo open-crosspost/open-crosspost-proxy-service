@@ -3,16 +3,23 @@ import { Context } from '../../deps.ts';
 import { RateLimitService } from '../domain/services/rate-limit.service.ts';
 import { UsageRateLimitMiddleware } from '../middleware/usage-rate-limit.middleware.ts';
 import { PrefixedKvStore } from '../utils/kv-store.utils.ts';
+import { BaseController } from './base.controller.ts';
 
 /**
  * Rate Limit Controller
  * Handles HTTP requests for rate limit-related operations
  */
-export class RateLimitController {
+export class RateLimitController extends BaseController {
   private rateLimitService: RateLimitService;
+  private usageRateLimitKvStore: PrefixedKvStore;
 
-  constructor(rateLimitService: RateLimitService) {
+  constructor(
+    rateLimitService: RateLimitService,
+    usageRateLimitKvStore?: PrefixedKvStore,
+  ) {
+    super();
     this.rateLimitService = rateLimitService;
+    this.usageRateLimitKvStore = usageRateLimitKvStore || new PrefixedKvStore(['usage_rate_limit']);
   }
 
   /**
@@ -23,8 +30,8 @@ export class RateLimitController {
   async getRateLimitStatus(c: Context): Promise<Response> {
     try {
       // Get parameters from the request
-      const platform = c.req.param('platform') as PlatformName;
-      const endpoint = c.req.param('endpoint');
+      const platform = c.get('platform') as PlatformName;
+      const endpoint = c.get('validatedParams')?.endpoint;
       const version = c.req.query('version');
 
       // Get the rate limit status
@@ -37,14 +44,7 @@ export class RateLimitController {
       // Return the result
       return c.json({ data: status });
     } catch (error) {
-      console.error('Error getting rate limit status:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+      return this.handleError(error, c);
     }
   }
 
@@ -56,7 +56,7 @@ export class RateLimitController {
   async getAllRateLimits(c: Context): Promise<Response> {
     try {
       // Get platform from the request
-      const platform = c.req.param('platform') as PlatformName;
+      const platform = c.get('platform') as PlatformName;
 
       // Get all rate limits for the platform
       const limits = await this.rateLimitService.getAllRateLimits(platform);
@@ -64,14 +64,7 @@ export class RateLimitController {
       // Return the result
       return c.json({ data: limits });
     } catch (error) {
-      console.error('Error getting all rate limits:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+      return this.handleError(error, c);
     }
   }
 
@@ -82,21 +75,11 @@ export class RateLimitController {
    */
   async getUsageRateLimit(c: Context): Promise<Response> {
     try {
-      // Get NEAR account ID from context (set by AuthMiddleware.validateNearSignature)
+      // Extract NEAR account ID from the validated signature
       const signerId = c.get('signerId') as string;
 
-      if (!signerId) {
-        return c.json({
-          error: {
-            type: 'authentication_error',
-            message: 'NEAR account ID not found in context',
-            status: 401,
-          },
-        }, 401);
-      }
-
       // Get endpoint from the request
-      const endpoint = c.req.param('endpoint') || 'post';
+      const endpoint = c.get('validatedParams')?.endpoint || 'post';
 
       // Get the current configuration
       const config = UsageRateLimitMiddleware.getConfig();
@@ -111,9 +94,8 @@ export class RateLimitController {
       const resetTime = nextDay.getTime();
 
       // Get current rate limit record
-      const kvStore = new PrefixedKvStore(['usage_rate_limit']);
       const key = [signerId, endpoint];
-      const record = await kvStore.get<{
+      const record = await this.usageRateLimitKvStore.get<{
         signerId: string;
         endpoint: string;
         count: number;
@@ -144,14 +126,7 @@ export class RateLimitController {
         },
       });
     } catch (error) {
-      console.error('Error getting usage rate limit:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+      return this.handleError(error, c);
     }
   }
 }

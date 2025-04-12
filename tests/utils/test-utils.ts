@@ -13,6 +13,7 @@ import { RateLimitService } from '../../src/domain/services/rate-limit.service.t
 export function createMockContext(options: {
   signerId?: string;
   validatedBody?: unknown;
+  validatedQuery?: Record<string, string>;
   params?: Record<string, string>;
   headers?: Record<string, string>;
 } = {}): Context {
@@ -58,6 +59,9 @@ export function createMockContext(options: {
     get: (key: string) => {
       if (key === 'signerId') return options.signerId || 'test.near';
       if (key === 'validatedBody') return options.validatedBody || {};
+      if (key === 'validatedParams') return options.params || {};
+      if (key === 'validatedQuery') return options.validatedQuery || {};
+      if (key === 'platform' && options.params?.platform) return options.params.platform;
       return undefined;
     },
     set: (key: string, value: unknown) => {},

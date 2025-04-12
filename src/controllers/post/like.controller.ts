@@ -60,8 +60,7 @@ export class LikeController extends BasePostController {
 
       return this.createMultiStatusResponse(c, successResults, errorDetails);
     } catch (error) {
-      this.handleError(error, c);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 }

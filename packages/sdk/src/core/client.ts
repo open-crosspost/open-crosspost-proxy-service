@@ -1,6 +1,8 @@
 import type { NearAuthData } from 'near-sign-verify';
+import { ActivityApi } from '../api/activity.ts';
 import { AuthApi } from '../api/auth.ts';
 import { PostApi } from '../api/post.ts';
+import { SystemApi } from '../api/system.ts';
 import { type CrosspostClientConfig, DEFAULT_CONFIG } from './config.ts';
 import type { RequestOptions } from './request.ts';
 import { getAuthFromCookie, storeAuthInCookie } from '../utils/cookie.ts';
@@ -11,6 +13,8 @@ import { getAuthFromCookie, storeAuthInCookie } from '../utils/cookie.ts';
 export class CrosspostClient {
   public readonly auth: AuthApi;
   public readonly post: PostApi;
+  public readonly activity: ActivityApi;
+  public readonly system: SystemApi;
 
   private readonly options: RequestOptions;
 
@@ -34,6 +38,8 @@ export class CrosspostClient {
 
     this.auth = new AuthApi(this.options);
     this.post = new PostApi(this.options);
+    this.activity = new ActivityApi(this.options);
+    this.system = new SystemApi(this.options);
   }
 
   /**

@@ -1,7 +1,7 @@
-import { Platform, PlatformName, RateLimitStatus } from '@crosspost/types';
+import { ApiError, ApiErrorCode, Platform, PlatformName, RateLimitStatus } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
 import { PlatformRateLimit } from '../../infrastructure/platform/abstract/platform-rate-limit.interface.ts';
-import { TwitterRateLimit } from '../../infrastructure/platform/twitter/twitter-rate-limit.ts';
+import { PlatformError } from '@crosspost/types';
 
 /**
  * Rate Limit Service
@@ -34,7 +34,14 @@ export class RateLimitService {
     const platformRateLimit = this.platformRateLimits.get(platform);
 
     if (!platformRateLimit) {
-      throw new Error(`Unsupported platform: ${platform}`);
+      throw new PlatformError(
+        `Unsupported platform: ${platform}`,
+        platform,
+        ApiErrorCode.PLATFORM_UNAVAILABLE,
+        false,
+        null,
+        501, // Not Implemented
+      );
     }
 
     return platformRateLimit;
@@ -57,7 +64,19 @@ export class RateLimitService {
       return await platformRateLimit.getRateLimitStatus(endpoint, version);
     } catch (error) {
       console.error(`Error getting rate limit status for ${platform}:`, error);
-      return null;
+
+      if (error instanceof PlatformError) {
+        throw error;
+      }
+
+      throw new PlatformError(
+        `Failed to get rate limit status for ${platform}`,
+        platform,
+        ApiErrorCode.INTERNAL_ERROR,
+        false,
+        error,
+        500,
+      );
     }
   }
 
@@ -74,6 +93,7 @@ export class RateLimitService {
       return platformRateLimit.isRateLimited(rateLimitStatus);
     } catch (error) {
       console.error(`Error checking if rate limited for ${platform}:`, error);
+      // For this method, we'll return false instead of throwing since it's a boolean check
       return false;
     }
   }
@@ -91,6 +111,7 @@ export class RateLimitService {
       return platformRateLimit.isRateLimitObsolete(rateLimitStatus);
     } catch (error) {
       console.error(`Error checking if rate limit obsolete for ${platform}:`, error);
+      // For this method, we'll return true instead of throwing since it's a boolean check
       return true;
     }
   }
@@ -128,6 +149,12 @@ export class RateLimitService {
       return true;
     } catch (error) {
       console.error(`Error checking rate limits for ${platform}/${action}:`, error);
+
+      if (error instanceof PlatformError) {
+        // For this method, we'll return true instead of throwing since it's a boolean check
+        return true;
+      }
+
       // If we can't check rate limits, assume it's ok to proceed
       return true;
     }
@@ -144,7 +171,19 @@ export class RateLimitService {
       return await platformRateLimit.getAllRateLimits();
     } catch (error) {
       console.error(`Error getting all rate limits for ${platform}:`, error);
-      return {};
+
+      if (error instanceof PlatformError) {
+        throw error;
+      }
+
+      throw new PlatformError(
+        `Failed to get all rate limits for ${platform}`,
+        platform,
+        ApiErrorCode.INTERNAL_ERROR,
+        false,
+        error,
+        500,
+      );
     }
   }
 }

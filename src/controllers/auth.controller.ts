@@ -316,8 +316,7 @@ export class AuthController extends BaseController {
       return c.json({ data: { accounts: accountsWithProfiles } });
     } catch (error) {
       console.error('Error listing connected accounts:', error);
-      this.handleError(error, c);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 
@@ -346,8 +345,7 @@ export class AuthController extends BaseController {
       }
     } catch (error) {
       console.error('Unexpected error authorizing NEAR account:', error);
-      this.handleError(error, c);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 
@@ -420,8 +418,7 @@ export class AuthController extends BaseController {
       }
     } catch (error) {
       console.error('Unexpected error unauthorizing NEAR account:', error);
-      this.handleError(error, c);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 
@@ -447,8 +444,7 @@ export class AuthController extends BaseController {
       });
     } catch (error) {
       console.error('Unexpected error checking NEAR account authorization status:', error);
-      this.handleError(error, c);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 

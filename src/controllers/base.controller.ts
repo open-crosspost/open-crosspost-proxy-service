@@ -25,13 +25,13 @@ export abstract class BaseController {
     c: Context,
     platform?: PlatformName,
     userId?: string,
-  ): void {
+  ): Response {
     console.error(`Error in ${this.constructor.name}:`, error);
 
     // Handle platform-specific errors
     if (error instanceof PlatformError) {
       c.status((error.status || 500) as StatusCode);
-      c.json(
+      return c.json(
         createEnhancedErrorResponse([
           createErrorDetail(
             error.message,
@@ -43,12 +43,11 @@ export abstract class BaseController {
           ),
         ]),
       );
-      return;
     }
 
     // Handle generic errors
     c.status(500);
-    c.json(
+    return c.json(
       createEnhancedErrorResponse([
         createErrorDetail(
           error instanceof Error ? error.message : 'An unexpected error occurred',

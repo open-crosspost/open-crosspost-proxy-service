@@ -1,22 +1,30 @@
 import { Context } from '../../deps.ts';
-import { getEnv } from '../config/env.ts';
 import {
   ActivityTrackingService,
-  PlatformAccountActivity,
   TimePeriod,
 } from '../domain/services/activity-tracking.service.ts';
-import { PlatformName } from '@crosspost/types';
+import {
+  ApiErrorCode,
+  createEnhancedErrorResponse,
+  createErrorDetail,
+  PlatformName,
+} from '@crosspost/types';
+import { BaseController } from './base.controller.ts';
 
 /**
- * Leaderboard Controller
- * Handles HTTP requests for leaderboard-related operations
+ * Activity Controller
+ * Handles HTTP requests for activity-related operations including leaderboards and user activity
  */
-export class LeaderboardController {
+export class ActivityController extends BaseController {
   private activityTrackingService: ActivityTrackingService;
 
-  constructor() {
-    const env = getEnv();
-    this.activityTrackingService = new ActivityTrackingService(env);
+  /**
+   * Creates an instance of ActivityController with dependency injection
+   * @param activityTrackingService The activity tracking service
+   */
+  constructor(activityTrackingService: ActivityTrackingService) {
+    super();
+    this.activityTrackingService = activityTrackingService;
   }
 
   /**
@@ -27,10 +35,11 @@ export class LeaderboardController {
   async getLeaderboard(c: Context): Promise<Response> {
     try {
       // Parse query parameters
-      const limit = parseInt(c.req.query('limit') || '10');
-      const offset = parseInt(c.req.query('offset') || '0');
-      const timePeriodParam = c.req.query('timeframe') || TimePeriod.ALL_TIME;
-      const platform = c.req.query('platform') as PlatformName | undefined;
+      const validatedQuery = c.get('validatedQuery') || {};
+      const limit = parseInt(validatedQuery.limit || '10');
+      const offset = parseInt(validatedQuery.offset || '0');
+      const timePeriodParam = validatedQuery.timeframe || TimePeriod.ALL_TIME;
+      const platform = validatedQuery.platform as PlatformName | undefined;
 
       // Validate time period
       let timePeriod: TimePeriod;
@@ -73,14 +82,7 @@ export class LeaderboardController {
         },
       });
     } catch (error) {
-      console.error('Error getting leaderboard:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+      return this.handleError(error, c);
     }
   }
 
@@ -91,8 +93,11 @@ export class LeaderboardController {
    */
   async getAccountActivity(c: Context): Promise<Response> {
     try {
-      const signerId = c.req.param('signerId');
-      const platform = c.req.query('platform') as PlatformName | undefined;
+      // Extract NEAR account ID from the validated signature
+      const signerId = c.get('signerId') as string;
+
+      const validatedQuery = c.get('validatedQuery') || {};
+      const platform = validatedQuery.platform as PlatformName | undefined;
 
       let activity;
       if (platform) {
@@ -107,13 +112,14 @@ export class LeaderboardController {
       }
 
       if (!activity) {
-        return c.json({
-          error: {
-            type: 'not_found',
-            message: 'Account activity not found',
-            status: 404,
-          },
-        }, 404);
+        c.status(404);
+        return c.json(createEnhancedErrorResponse([createErrorDetail(
+          'Account activity not found',
+          ApiErrorCode.NOT_FOUND,
+          false,
+          platform,
+          signerId,
+        )]));
       }
 
       // Return the result
@@ -121,14 +127,7 @@ export class LeaderboardController {
         data: activity,
       });
     } catch (error) {
-      console.error('Error getting account activity:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+      return this.handleError(error, c);
     }
   }
 
@@ -139,10 +138,13 @@ export class LeaderboardController {
    */
   async getAccountPosts(c: Context): Promise<Response> {
     try {
-      const signerId = c.req.param('signerId');
-      const platform = c.req.query('platform') as PlatformName | undefined;
-      const limit = parseInt(c.req.query('limit') || '10');
-      const offset = parseInt(c.req.query('offset') || '0');
+      // Extract NEAR account ID from the validated signature
+      const signerId = c.get('signerId') as string;
+
+      const validatedQuery = c.get('validatedQuery') || {};
+      const platform = validatedQuery.platform as PlatformName | undefined;
+      const limit = parseInt(validatedQuery.limit || '10');
+      const offset = parseInt(validatedQuery.offset || '0');
 
       let posts;
       if (platform) {
@@ -161,6 +163,7 @@ export class LeaderboardController {
       // Return the result
       return c.json({
         data: {
+          signerId,
           posts,
           pagination: {
             limit,
@@ -170,14 +173,7 @@ export class LeaderboardController {
         },
       });
     } catch (error) {
-      console.error('Error getting account posts:', error);
-      return c.json({
-        error: {
-          type: 'internal_error',
-          message: error instanceof Error ? error.message : 'An unexpected error occurred',
-          status: 500,
-        },
-      }, 500);
+      return this.handleError(error, c);
     }
   }
 }
