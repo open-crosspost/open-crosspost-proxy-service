@@ -1,5 +1,5 @@
 import { ApiError, ApiErrorCode } from '@crosspost/types';
-import { createAuthToken, type NearAuthData as NearSignatureData } from 'near-sign-verify';
+import { createAuthToken, type NearAuthData } from 'near-sign-verify';
 import { createNetworkError, handleErrorResponse } from '../utils/error.ts';
 import { CSRF_HEADER_NAME, getCsrfToken } from '../utils/cookie.ts';
 
@@ -15,7 +15,7 @@ export interface RequestOptions {
    * NEAR authentication data for generating auth tokens
    * Can be undefined if not authorize yet
    */
-  signature?: NearSignatureData;
+  nearAuthData?: NearAuthData;
   /**
    * Request timeout in milliseconds
    */
@@ -45,7 +45,7 @@ export async function makeRequest<T>(
   let lastError: Error | null = null;
 
   // Check if authentication data is available
-  if (!options.signature) {
+  if (!options.nearAuthData) {
     throw ApiError.unauthorized('Authentication required. Please provide NEAR signature.');
   }
 
@@ -57,7 +57,7 @@ export async function makeRequest<T>(
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': `Bearer ${createAuthToken(options.signature)}`,
+        'Authorization': `Bearer ${createAuthToken(options.nearAuthData)}`,
       };
 
       // Add CSRF token for state-changing requests (non-GET)

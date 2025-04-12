@@ -1,4 +1,4 @@
-import type { NearAuthData as NearSignatureData } from 'near-sign-verify';
+import type { NearAuthData } from 'near-sign-verify';
 import { AuthApi } from '../api/auth.ts';
 import { PostApi } from '../api/post.ts';
 import { type CrosspostClientConfig, DEFAULT_CONFIG } from './config.ts';
@@ -9,14 +9,7 @@ import { getAuthFromCookie, storeAuthInCookie } from '../utils/cookie.ts';
  * Main client for interacting with the Crosspost API service.
  */
 export class CrosspostClient {
-  /**
-   * Authentication-related API operations
-   */
   public readonly auth: AuthApi;
-
-  /**
-   * Post-related API operations
-   */
   public readonly post: PostApi;
 
   private readonly options: RequestOptions;
@@ -30,14 +23,13 @@ export class CrosspostClient {
     const timeout = config.timeout || DEFAULT_CONFIG.timeout;
     const retries = config.retries ?? DEFAULT_CONFIG.retries;
 
-    // Try to get auth data from config or cookie
-    const signature = config.signature || getAuthFromCookie();
+    const nearAuthData = config.nearAuthData || getAuthFromCookie();
 
     this.options = {
       baseUrl,
       timeout,
       retries,
-      signature,
+      nearAuthData,
     };
 
     this.auth = new AuthApi(this.options);
@@ -48,11 +40,16 @@ export class CrosspostClient {
    * Sets the authentication data (signature) for the client and stores it in a cookie
    * @param signature The NEAR authentication data
    */
-  public async setAuthentication(signature: NearSignatureData): Promise<void> {
-    // Update the client's auth data
-    this.options.signature = signature;
+  public setAuthentication(nearAuthData: NearAuthData): void {
+    this.options.nearAuthData = nearAuthData;
+    storeAuthInCookie(nearAuthData);
+  }
 
-    // Store in cookie for persistence
-    storeAuthInCookie(signature);
+  /**
+   * Checks if authentication data (signature) exists on client
+   * @param signature The NEAR authentication data
+   */
+  public isAuthenticated(): boolean {
+    return !!this.options.nearAuthData;
   }
 }
