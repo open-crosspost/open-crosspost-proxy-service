@@ -161,14 +161,6 @@ export class UsageRateLimitMiddleware {
         // Get NEAR account ID from context (set by AuthMiddleware.validateNearSignature)
         const signerId = c.get('signerId') as string;
 
-        if (!signerId) {
-          throw new ApiError(
-            'NEAR account ID not found in context',
-            ApiErrorCode.UNAUTHORIZED,
-            401,
-          );
-        }
-
         // Check and update rate limit
         const result = await UsageRateLimitMiddleware.checkAndUpdateRateLimit(signerId, endpoint);
 

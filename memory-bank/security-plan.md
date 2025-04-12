@@ -216,12 +216,15 @@ flowchart TD
 
 - `HttpOnly`: Prevents JavaScript access to the cookie content (`__crosspost_auth`).
 - `Secure`: Ensures the cookie is only sent over HTTPS connections.
-- `SameSite=Lax`: Restricts cookie sending to same-site contexts and top-level navigations.
+- `SameSite=Lax`: Restricts cookies to same-site contexts and top-level navigations for improved
+  security.
 - `Path=/`: Limits cookie scope to the entire domain.
 
-**CSRF Protection Plan:** The SDK will support CSRF protection by:
+**CSRF Protection Implementation:** The SDK implements CSRF protection using:
 
-1. Reading the CSRF token from a non-HttpOnly cookie (`XSRF-TOKEN`) provided by the backend.
-2. Including this token in the `X-CSRF-Token` header with each state-changing request.
-3. The backend must validate that the token in the header matches the token in the cookie (Double
+1. Signed CSRF tokens stored in a non-HttpOnly cookie (`XSRF-TOKEN`) provided by the backend.
+2. Token inclusion in the `X-CSRF-Token` header with each state-changing request.
+3. Backend validation that the token in the header matches the signed token in the cookie (Double
    Submit Cookie pattern).
+4. Cryptographic signature verification of the cookie token to prevent tampering.
+5. Additional browser-provided CSRF protection through `SameSite=Lax` setting.

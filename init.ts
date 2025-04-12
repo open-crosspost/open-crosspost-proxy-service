@@ -2,7 +2,7 @@ import { NearAuthService } from './src/infrastructure/security/near-auth-service
 import { Platform, PlatformName } from '@crosspost/types';
 import { getSecureEnv, isProduction } from './src/config/env.ts';
 import { AuthController } from './src/controllers/auth.controller.ts';
-import { LeaderboardController } from './src/controllers/leaderboard.controller.ts';
+import { ActivityController } from './src/controllers/activity.controller.ts';
 import {
   CreateController,
   DeleteController,
@@ -46,6 +46,7 @@ export function initializeApp() {
   const nearAuthKvStore = new PrefixedKvStore(['near_auth']);
   const profileKvStore = new PrefixedKvStore(['profile']);
   const tokenAccessLogKvStore = new PrefixedKvStore(['token_access_logs']);
+  const usageRateLimitKvStore = new PrefixedKvStore(['usage_rate_limit']);
 
   // Initialize infrastructure services
   const tokenAccessLogger = new TokenAccessLogger(env, tokenAccessLogKvStore);
@@ -101,15 +102,18 @@ export function initializeApp() {
     platformProfileMap,
   );
 
+  // Initialize activity KV store
+  const activityKvStore = new PrefixedKvStore(['activity']);
+
   // Pass the platform maps to the services
   const postService = new PostService(env, platformPostMap);
   const rateLimitService = new RateLimitService(env, platformRateLimitMap);
-  const activityTrackingService = new ActivityTrackingService(env); // Needs DI update later
+  const activityTrackingService = new ActivityTrackingService(env, activityKvStore);
 
   // Initialize controllers
   const authController = new AuthController(authService, nearAuthService, env);
-  const leaderboardController = new LeaderboardController();
-  const rateLimitController = new RateLimitController(rateLimitService); // Pass dependency
+  const activityController = new ActivityController(activityTrackingService);
+  const rateLimitController = new RateLimitController(rateLimitService, usageRateLimitKvStore);
 
   // Initialize post controllers with dependencies
   const postControllers = {
@@ -144,7 +148,7 @@ export function initializeApp() {
 
   return {
     authController,
-    leaderboardController,
+    activityController,
     rateLimitController,
     postControllers,
     nearAuthService,

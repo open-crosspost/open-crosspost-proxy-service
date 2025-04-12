@@ -3,11 +3,11 @@ import {
   AccountActivityQuerySchema,
   AccountPostsParamsSchema,
   AccountPostsQuerySchema,
+  ActivityLeaderboardQuerySchema,
   AuthCallbackQuerySchema,
   AuthInitRequestSchema,
   CreatePostRequestSchema,
   DeletePostRequestSchema,
-  LeaderboardQuerySchema,
   LikePostRequestSchema,
   NearAuthorizationRequestSchema,
   PlatformParamSchema,
@@ -21,6 +21,7 @@ import { Hono } from './deps.ts';
 import { getSecureEnv, isProduction } from './src/config/env.ts';
 import { AuthMiddleware } from './src/middleware/auth.middleware.ts';
 import { corsMiddleware } from './src/middleware/cors.middleware.ts';
+import { initializeCsrfMiddleware } from './src/middleware/csrf.init.ts';
 import { errorMiddleware } from './src/middleware/error.middleware.ts';
 import { PlatformMiddleware } from './src/middleware/supported-platforms.middleware.ts';
 import { UsageRateLimitMiddleware } from './src/middleware/usage-rate-limit.middleware.ts';
@@ -32,13 +33,22 @@ const app = new Hono();
 app.use('*', errorMiddleware());
 app.use('*', corsMiddleware());
 
+// Initialize environment
+const env = getSecureEnv(isProduction());
+
+// Initialize CSRF middleware
+const csrfMiddleware = initializeCsrfMiddleware(env);
+
 const {
   authController,
-  leaderboardController,
+  activityController,
   rateLimitController,
   postControllers,
   nearAuthService,
 } = initializeApp(); // initialize services for dependency injection
+
+// Apply CSRF token generation to all routes
+app.use('*', csrfMiddleware.generateToken);
 
 AuthMiddleware.initialize(nearAuthService);
 
@@ -149,72 +159,78 @@ post.post(
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(CreatePostRequestSchema),
   UsageRateLimitMiddleware.limitByNearAccount('post'),
+  csrfMiddleware.validateToken,
   (c) => postControllers.create.handle(c),
 );
 post.post(
   '/repost',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(RepostRequestSchema),
+  csrfMiddleware.validateToken,
   (c) => postControllers.repost.handle(c),
 );
 post.post(
   '/quote',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(QuotePostRequestSchema),
+  csrfMiddleware.validateToken,
   (c) => postControllers.quote.handle(c),
 );
 post.delete(
   '/:id',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(DeletePostRequestSchema),
+  csrfMiddleware.validateToken,
   (c) => postControllers.delete.handle(c),
 );
 post.post(
   '/reply',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(ReplyToPostRequestSchema),
+  csrfMiddleware.validateToken,
   (c) => postControllers.reply.handle(c),
 );
 post.post(
   '/like/:id',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(LikePostRequestSchema),
+  csrfMiddleware.validateToken,
   (c) => postControllers.like.handle(c),
 );
 post.delete(
   '/like/:id',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(UnlikePostRequestSchema),
+  csrfMiddleware.validateToken,
   (c) => postControllers.unlike.handle(c),
 );
 
-// Leaderboard routes
-const leaderboard = new Hono();
-leaderboard.get(
+// Activity routes
+const activity = new Hono();
+activity.get(
   '/',
   AuthMiddleware.validateNearSignature(),
-  ValidationMiddleware.validateQuery(LeaderboardQuerySchema),
-  (c) => leaderboardController.getLeaderboard(c),
+  ValidationMiddleware.validateQuery(ActivityLeaderboardQuerySchema),
+  (c) => activityController.getLeaderboard(c),
 );
-leaderboard.get(
+activity.get(
   '/:signerId',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateParams(AccountActivityParamsSchema),
   ValidationMiddleware.validateQuery(AccountActivityQuerySchema),
-  (c) => leaderboardController.getAccountActivity(c),
+  (c) => activityController.getAccountActivity(c),
 );
-leaderboard.get(
+activity.get(
   '/:signerId/posts',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateParams(AccountPostsParamsSchema),
   ValidationMiddleware.validateQuery(AccountPostsQuerySchema),
-  (c) => leaderboardController.getAccountPosts(c),
+  (c) => activityController.getAccountPosts(c),
 );
 
 // Mount routes
 api.route('/post', post);
-api.route('/leaderboard', leaderboard);
-api.route('/activity', leaderboard);
+api.route('/activity', activity);
 app.route('/auth', auth);
 
 // Usage rate limits (associated with near account)
@@ -229,7 +245,6 @@ api.route('/rate-limit', usageRateLimit);
 
 app.route('/api', api);
 
-const env = getSecureEnv(isProduction());
 const port = parseInt(Deno.env.get('PORT') || '8000');
 
 // Initialize usage rate limit middleware with configuration

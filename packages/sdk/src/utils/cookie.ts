@@ -5,9 +5,25 @@ export const AUTH_COOKIE_NAME = '__crosspost_auth';
 export const CSRF_COOKIE_NAME = 'XSRF-TOKEN';
 export const CSRF_HEADER_NAME = 'X-CSRF-Token';
 
+/**
+ * Checks if the code is running in a Deno environment
+ */
+export const isDeno = (): boolean => { // monorepo builds primarily for Deno
+  // we could expect that frontends in Deno environment will use this package,
+  // and then we can determine auth solution there (ValTown, Smallweb, etc)
+  return typeof (globalThis as any).Deno !== 'undefined';
+};
+
+/**
+ * Checks if the code is running in a browser environment
+ */
+export const isBrowser = (): boolean => {
+  return !isDeno() && typeof globalThis.window !== 'undefined';
+};
+
 export const AUTH_COOKIE_OPTIONS: Cookies.CookieAttributes = {
   secure: true,
-  sameSite: 'lax', // how could we make this none?
+  sameSite: 'lax', // Restrict to same-site and top-level navigation
   path: '/',
   expires: 30, // 30 days
 };
@@ -18,7 +34,7 @@ export const AUTH_COOKIE_OPTIONS: Cookies.CookieAttributes = {
  */
 export function getAuthFromCookie(): NearAuthData | undefined {
   try {
-    if (typeof document === 'undefined') {
+    if (!isBrowser()) {
       return undefined;
     }
 
@@ -40,7 +56,7 @@ export function getAuthFromCookie(): NearAuthData | undefined {
  */
 export function storeAuthInCookie(authData: NearAuthData): void {
   try {
-    if (typeof document === 'undefined') {
+    if (!isBrowser()) {
       return;
     }
 
@@ -55,7 +71,7 @@ export function storeAuthInCookie(authData: NearAuthData): void {
  * Clears the authentication cookie
  */
 export function clearAuthCookie(): void {
-  if (typeof document === 'undefined') {
+  if (!isBrowser()) {
     return;
   }
 
@@ -67,7 +83,7 @@ export function clearAuthCookie(): void {
  * @returns The CSRF token or undefined if not found
  */
 export function getCsrfToken(): string | undefined {
-  if (typeof document === 'undefined') {
+  if (!isBrowser()) {
     return undefined;
   }
 

@@ -72,8 +72,7 @@ export class ReplyController extends BasePostController {
       // Create a multi-status response using the base controller method
       return this.createMultiStatusResponse(c, successResults, errorDetails);
     } catch (error) {
-      this.handleError(error, c);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 }
