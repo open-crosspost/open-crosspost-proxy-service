@@ -27,32 +27,24 @@ import { UsageRateLimitMiddleware } from './src/middleware/usage-rate-limit.midd
 import { ValidationMiddleware } from './src/middleware/validation.middleware.ts';
 import { initializeApp } from './init.ts';
 
-// Create a new Hono app
 const app = new Hono();
 
-// Apply global middleware
 app.use('*', errorMiddleware());
 app.use('*', corsMiddleware());
 
-// Initialize app and get dependencies
 const {
   authController,
   leaderboardController,
   rateLimitController,
   postControllers,
   nearAuthService,
-} = initializeApp();
+} = initializeApp(); // initialize services for dependency injection
 
-// Initialize middleware with dependencies
 AuthMiddleware.initialize(nearAuthService);
 
-// Health check route
 app.get('/health', (c) => c.json({ status: 'ok' }));
 
-// API routes
 const api = new Hono();
-
-// Main auth router
 const auth = new Hono();
 
 // Generic platform routes

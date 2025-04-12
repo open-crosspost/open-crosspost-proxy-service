@@ -1,6 +1,4 @@
-import {
-  ApiError,
-  ApiErrorCode,
+import type {
   CreatePostRequest,
   CreatePostResponse,
   DeletePostRequest,
@@ -16,7 +14,11 @@ import {
   UnlikePostRequest,
   UnlikePostResponse,
 } from '@crosspost/types';
-import { makeRequest, RequestOptions } from '../core/request.js';
+import {
+  ApiError,
+  ApiErrorCode,
+} from '@crosspost/types';
+import { makeRequest, type RequestOptions } from '../core/request.ts';
 
 /**
  * Post-related API operations

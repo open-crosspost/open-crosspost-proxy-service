@@ -5,7 +5,6 @@
   "description": "Crosspost API SDK monorepo",
   "workspaces": [
     "types",
-    "near-simple-signing",
     "sdk"
   ],
   "scripts": {
@@ -44,7 +43,7 @@
     "near",
     "twitter"
   ],
-  "author": "Crosspost Team",
+  "author": "crosspost.near",
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.3.3"

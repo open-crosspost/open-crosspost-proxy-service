@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "description": "Shared type definitions for Crosspost API",
   "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
   },
   "files": [
@@ -33,7 +33,7 @@
     "api",
     "social-media"
   ],
-  "author": "Crosspost Team",
+  "author": "crosspost.near",
   "license": "MIT",
   "devDependencies": {
     "eslint": "^8.56.0",

@@ -51,6 +51,13 @@ proper documentation.
    - Implementing proper caching strategies
    - Enhancing rate limit handling for high-volume scenarios
 
+4. **SDK Authentication Improvements**:
+   - Implementing flexible authentication strategies (Direct and Cookie-based)
+   - Adding proper error handling for authentication failures
+   - Supporting CSRF protection via token headers
+   - Improving developer experience with simplified authentication flow
+   - Ensuring secure cookie settings (`SameSite=Lax`, `Secure`, `HttpOnly`)
+
 ## Architecture Overview
 
 ### Platform Abstraction

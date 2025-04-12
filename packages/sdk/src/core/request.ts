@@ -1,6 +1,7 @@
 import { ApiError, ApiErrorCode } from '@crosspost/types';
-import { createAuthToken, NearAuthData } from 'near-sign-verify';
-import { createNetworkError, handleErrorResponse } from '../utils/error.js';
+import { createAuthToken, type NearAuthData as NearSignatureData } from 'near-sign-verify';
+import { createNetworkError, handleErrorResponse } from '../utils/error.ts';
+import { CSRF_HEADER_NAME, getCsrfToken } from '../utils/cookie.ts';
 
 /**
  * Options for making a request to the API
@@ -12,8 +13,9 @@ export interface RequestOptions {
   baseUrl: string;
   /**
    * NEAR authentication data for generating auth tokens
+   * Can be undefined if not authorize yet
    */
-  nearAuthData: NearAuthData;
+  signature?: NearSignatureData;
   /**
    * Request timeout in milliseconds
    */
@@ -42,6 +44,11 @@ export async function makeRequest<T>(
   const url = `${options.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
   let lastError: Error | null = null;
 
+  // Check if authentication data is available
+  if (!options.signature) {
+    throw ApiError.unauthorized('Authentication required. Please provide NEAR signature.');
+  }
+
   for (let attempt = 0; attempt <= options.retries; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), options.timeout);
@@ -50,8 +57,16 @@ export async function makeRequest<T>(
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': `Bearer ${createAuthToken(options.nearAuthData)}`,
+        'Authorization': `Bearer ${createAuthToken(options.signature)}`,
       };
+
+      // Add CSRF token for state-changing requests (non-GET)
+      if (method !== 'GET') {
+        const csrfToken = getCsrfToken();
+        if (csrfToken) {
+          headers[CSRF_HEADER_NAME] = csrfToken;
+        }
+      }
 
       const requestOptions: RequestInit = {
         method,
@@ -63,7 +78,6 @@ export async function makeRequest<T>(
       const response = await fetch(url, requestOptions);
       clearTimeout(timeoutId); // Clear timeout if fetch completes
 
-      // Try parsing JSON regardless of status code, as errors might be in JSON body
       let responseData: any;
       try {
         responseData = await response.json();

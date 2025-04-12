@@ -1,4 +1,4 @@
-import { NearAuthData } from 'near-sign-verify';
+import type { NearAuthData as NearSignatureData } from 'near-sign-verify';
 
 /**
  * Configuration options for the CrosspostClient
@@ -12,7 +12,7 @@ export interface CrosspostClientConfig {
   /**
    * NEAR authentication data obtained from @crosspost/near-simple-signing (TODO)
    */
-  nearAuthData?: NearAuthData;
+  signature?: NearSignatureData;
   /**
    * Request timeout in milliseconds
    * @default 30000
@@ -28,7 +28,7 @@ export interface CrosspostClientConfig {
 /**
  * Default configuration values for the CrosspostClient
  */
-export const DEFAULT_CONFIG: Required<Omit<CrosspostClientConfig, 'nearAuthData'>> = {
+export const DEFAULT_CONFIG: Required<Omit<CrosspostClientConfig, 'signature'>> = {
   baseUrl: 'https://open-crosspost-proxy.deno.dev/',
   timeout: 30000,
   retries: 2,

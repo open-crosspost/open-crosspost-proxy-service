@@ -118,6 +118,10 @@ complete, tested, and documented.
 
 ### SDK Enhancements
 
+- ⬜ Flexible authentication strategies (Direct and Cookie-based)
+- ⬜ CSRF protection support
+- ⬜ Improved error handling for authentication failures
+- ⬜ Persistent authentication via secure cookies
 - ⬜ Additional platform-specific clients
 - ⬜ Enhanced error handling and recovery
 - ⬜ More comprehensive examples

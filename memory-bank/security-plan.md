@@ -194,3 +194,31 @@ flowchart TD
    - Security patches
    - Configuration management
    - Access control
+
+## SDK Security
+
+### Cookie-Based Authentication
+
+The SDK implements a secure cookie-based authentication strategy with the following security measures:
+
+```mermaid
+flowchart TD
+    A[Client App] -->|1. Get NEAR Signature| B[NEAR Wallet]
+    B -->|2. Return Signature| A
+    A -->|3. Call setAuthentication| C[CrosspostClient]
+    C -->|4. Store in Cookie| D[Browser Cookie]
+    C -->|5. Use for Requests| E[API Endpoints]
+    D -->|Auto-load on init| C
+```
+
+**Cookie Security Settings:**
+- `HttpOnly`: Prevents JavaScript access to the cookie content (`__crosspost_auth`).
+- `Secure`: Ensures the cookie is only sent over HTTPS connections.
+- `SameSite=Lax`: Restricts cookie sending to same-site contexts and top-level navigations.
+- `Path=/`: Limits cookie scope to the entire domain.
+
+**CSRF Protection Plan:**
+The SDK will support CSRF protection by:
+1. Reading the CSRF token from a non-HttpOnly cookie (`XSRF-TOKEN`) provided by the backend.
+2. Including this token in the `X-CSRF-Token` header with each state-changing request.
+3. The backend must validate that the token in the header matches the token in the cookie (Double Submit Cookie pattern).

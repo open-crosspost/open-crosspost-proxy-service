@@ -1,4 +1,4 @@
-import {
+import type {
   AuthRevokeResponse,
   AuthStatusResponse,
   ConnectedAccountsResponse,
@@ -6,7 +6,7 @@ import {
   NearAuthorizationResponse,
   Platform,
 } from '@crosspost/types';
-import { makeRequest, RequestOptions } from '../core/request.js';
+import { makeRequest, type RequestOptions } from '../core/request.ts';
 
 /**
  * Authentication-related API operations

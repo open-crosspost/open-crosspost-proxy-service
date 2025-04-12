@@ -93,6 +93,58 @@ classDiagram
 - Error handling
 - Request/response validation
 
+## Authentication Strategies
+
+The SDK implements a flexible authentication approach with multiple strategies:
+
+```mermaid
+classDiagram
+    class AuthenticationStrategy {
+        <<interface>>
+        +getAuthData(): NearAuthData | undefined
+        +storeAuthData(authData: NearAuthData): void
+        +clearAuthData(): void
+    }
+    
+    class DirectAuthStrategy {
+        -authData: NearAuthData
+        +getAuthData(): NearAuthData
+    }
+    
+    class CookieAuthStrategy {
+        -cookieName: string
+        -cookieOptions: CookieOptions
+        +getAuthData(): NearAuthData | undefined
+        +storeAuthData(authData: NearAuthData): void
+        +clearAuthData(): void
+    }
+    
+    AuthenticationStrategy <|-- DirectAuthStrategy
+    AuthenticationStrategy <|-- CookieAuthStrategy
+```
+
+The `CrosspostClient` supports two primary authentication methods:
+
+1. **Direct Authentication**: Providing `nearAuthData` directly in the constructor.
+2. **Cookie-Based Authentication**: Automatically reading/writing authentication data from a secure cookie (`__crosspost_auth`).
+
+This approach allows for flexible usage in both frontend and backend environments:
+
+```typescript
+// Direct authentication
+const client = new CrosspostClient({ 
+  nearAuthData: myNearAuthData 
+});
+
+// Cookie-based authentication (auto-loads from cookie if available)
+const client = new CrosspostClient();
+
+// Set authentication explicitly (also stores in cookie)
+await client.setAuthentication(nearAuthData);
+```
+
+The cookie-based strategy uses secure cookie settings (`SameSite=Lax`, `Secure`, `HttpOnly`) to protect the authentication data while allowing for persistent sessions. The SDK also supports CSRF protection by reading a token from a non-HttpOnly cookie (`XSRF-TOKEN`) provided by the backend and sending it back in the `X-CSRF-Token` header.
+
 ## Architecture Benefits
 
 1. **Type Safety**

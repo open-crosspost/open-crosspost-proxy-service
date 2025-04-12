@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "description": "SDK for interacting with the Crosspost API",
   "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
     }
   },
   "files": [
@@ -33,10 +33,11 @@
     "api",
     "social-media"
   ],
-  "author": "Crosspost Team",
+  "author": "crosspost.near",
   "license": "MIT",
-  "dependencies": {
-    "@crosspost/types": "workspace:*",
+  "dependencies": { 
+    "@types/js-cookie": "^3.0.6",
+    "js-cookie": "^3.0.5",
     "near-sign-verify": "^0.1.1"
   },
   "devDependencies": {
