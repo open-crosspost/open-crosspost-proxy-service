@@ -9,7 +9,7 @@
     },
     "packages/sdk": {
       "name": "@crosspost/sdk",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@types/js-cookie": "^3.0.6",
         "js-cookie": "^3.0.5",
@@ -25,7 +25,7 @@
     },
     "packages/types": {
       "name": "@crosspost/types",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "hono": "^4.7.6",
         "zod": "^3.24.2",

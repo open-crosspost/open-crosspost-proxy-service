@@ -1,6 +1,6 @@
 {
   "name": "@crosspost/monorepo",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Crosspost API SDK monorepo",
   "workspaces": [
@@ -12,9 +12,6 @@
     "build:node": "bun run build:node:types && bun run build:node:sdk",
     "build:node:types": "cd types && bun run build:node",
     "build:node:sdk": "cd sdk && bun run build:node",
-    "build:deno": "bun run build:deno:types",
-    "build:deno:types": "cd types && bun run build:deno",
-    "build:all": "bun run build:node && bun run build:deno",
     "clean": "bun run clean:types && bun run clean:sdk",
     "clean:types": "cd types && bun run clean",
     "clean:sdk": "cd sdk && bun run clean",

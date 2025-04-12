@@ -18,9 +18,15 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
       - name: Install dependencies
-        run: npm ci
-        working-directory: packages
+        run: |
+          cd packages
+          bun install
 
       # Publish @crosspost/types to JSR
       - name: Publish types to JSR
