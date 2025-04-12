@@ -1,6 +1,6 @@
 /**
- * @crosspost/types
- * Shared type definitions for Crosspost API
+ * @crosspost/sdk
+ * SDK for interacting with the Crosspost API
  *
  * This is the Deno entry point for the package.
  */

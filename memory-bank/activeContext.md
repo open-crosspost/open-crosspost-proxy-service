@@ -29,7 +29,6 @@ proper documentation.
 4. **SDK Development**: ✅ COMPLETED
    - Created modular SDK architecture with three packages:
      - `@crosspost/types`: Shared type definitions
-     - `@crosspost/near-simple-signing`: NEAR signature generation utilities
      - `@crosspost/sdk`: Main API client with platform-specific implementations
    - Implemented comprehensive documentation for SDK usage
 

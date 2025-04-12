@@ -14,7 +14,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "mod.ts"
   ],
   "scripts": {
     "build": "npm run build:node",
@@ -34,8 +36,8 @@
   "author": "Crosspost Team",
   "license": "MIT",
   "dependencies": {
-    "@crosspost/types": "^0.1.0",
-    "@crosspost/near-simple-signing": "^0.1.0"
+    "@crosspost/types": "workspace:*",
+    "near-sign-verify": "^0.1.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",

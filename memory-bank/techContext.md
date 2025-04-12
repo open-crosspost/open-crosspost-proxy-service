@@ -137,12 +137,7 @@ The SDK is divided into three packages:
    - Error types
    - Platform enums
 
-2. **@crosspost/near-simple-signing**: NEAR wallet signature utilities
-   - Wallet connection
-   - Signature generation
-   - Authentication header creation
-
-3. **@crosspost/sdk**: Main client SDK
+2. **@crosspost/sdk**: Main client SDK
    - Platform-specific clients
    - Authentication providers
    - Type-safe request/response handling

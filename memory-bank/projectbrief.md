@@ -68,11 +68,10 @@ flowchart TD
 
 ## SDK Packages
 
-The service provides three SDK packages for client integration:
+The service provides two SDK packages for client integration:
 
 1. **@crosspost/types**: Shared type definitions
-2. **@crosspost/near-simple-signing**: NEAR wallet signature utilities
-3. **@crosspost/sdk**: Main client SDK with platform-specific implementations
+2. **@crosspost/sdk**: Main client SDK with platform-specific implementations
 
 ## Success Criteria
 

@@ -1,22 +1,10 @@
 import { ApiError, ApiErrorCode, PlatformName } from '@crosspost/types';
-import { Context, NearSimpleSigning } from '../../../deps.ts';
+import { Context } from '../../../deps.ts';
 import { Env } from '../../config/env.ts';
+import { NearAuthData, parseAuthToken, validateSignature } from '../../deps.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { AuthToken, TokenStorage } from '../storage/auth-token-storage.ts';
 import { TokenAccessLogger } from './token-access-logger.ts';
-
-/**
- * NEAR Authentication Data
- */
-export interface NearAuthData {
-  account_id: string;
-  public_key: string;
-  signature: string;
-  message: string;
-  nonce: string;
-  recipient?: string;
-  callback_url?: string;
-}
 
 /**
  * NearAuthService
@@ -62,49 +50,11 @@ export class NearAuthService {
     }
 
     // Extract the token part (after 'Bearer ')
-    const token = authHeader.substring(7);
-
-    // Parse the JSON token
-    let authObject: NearAuthData;
-    try {
-      authObject = JSON.parse(token);
-    } catch (error) {
-      throw new ApiError('Invalid JSON in Authorization token', ApiErrorCode.VALIDATION_ERROR, 400);
-    }
-
-    // Validate required fields
-    if (
-      !authObject.account_id || !authObject.public_key || !authObject.signature ||
-      !authObject.message || !authObject.nonce
-    ) {
-      throw new ApiError(
-        'Missing required NEAR auth data in token',
-        ApiErrorCode.VALIDATION_ERROR,
-        400,
-      );
-    }
-
-    // Use validated data with defaults applied
-    const authData = {
-      ...authObject,
-      recipient: authObject.recipient || 'crosspost.near',
-      callback_url: authObject.callback_url || c.req.url, // Use current URL as callback if not provided
-    };
-
-    // Create a temporary NearSigner instance for validation
-    const tempSigner = new NearSimpleSigning.NearSigner({
-      networkId: 'mainnet', // This doesn't matter for validation
-      nodeUrl: 'https://rpc.mainnet.near.org', // This doesn't matter for validation
-      defaultRecipient: 'crosspost.near',
-    });
+    const token = parseAuthToken(authHeader.substring(7));
 
     // Validate signature
-    const result = await tempSigner.validateSignature(
-      authData.signature,
-      authData.message,
-      authData.public_key,
-      authData.nonce,
-      authData.recipient,
+    const result = await validateSignature(
+      token,
     );
 
     if (!result.valid) {
@@ -116,7 +66,7 @@ export class NearAuthService {
     }
 
     // The signerId is the account_id from the auth data
-    const signerId = authData.account_id;
+    const signerId = token.account_id;
 
     // Check if the account is authorized
     const authStatus = await this.getNearAuthorizationStatus(signerId);
@@ -129,7 +79,7 @@ export class NearAuthService {
     }
 
     return {
-      authData,
+      authData: token,
       signerId,
     };
   }

@@ -54,36 +54,7 @@ classDiagram
 - Platform-agnostic design
 - Zero runtime dependencies
 
-### 2. @crosspost/near-simple-signing
-
-Handles NEAR wallet signature generation for authentication.
-
-```mermaid
-classDiagram
-    class NearSigner {
-        +connect()
-        +sign(message: string)
-        +verify(signature: string)
-        +createAuthHeader()
-    }
-    
-    class WalletConnection {
-        +networkId: string
-        +nodeUrl: string
-        +walletUrl: string
-    }
-    
-    NearSigner --> WalletConnection
-```
-
-**Key Features:**
-
-- NEAR wallet connection
-- Signature generation
-- Authentication headers
-- Browser and Node.js support
-
-### 3. @crosspost/sdk
+### 2. @crosspost/sdk
 
 Main client SDK for interacting with the proxy service.
 
@@ -121,34 +92,6 @@ classDiagram
 - Type-safe operations
 - Error handling
 - Request/response validation
-
-## Integration Flow
-
-```typescript
-import { CrosspostClient } from '@crosspost/sdk';
-import { NearSigner } from '@crosspost/near-simple-signing';
-
-// Initialize NEAR signer
-const signer = new NearSigner({
-  networkId: 'testnet',
-  nodeUrl: 'https://rpc.testnet.near.org',
-  walletUrl: 'https://wallet.testnet.near.org',
-});
-
-// Create and initialize client
-const client = new CrosspostClient({
-  baseUrl: 'https://api.crosspost.example',
-  auth: {
-    type: 'near',
-    signer,
-  },
-});
-
-// Use platform-specific client
-const post = await client.twitter.createPost({
-  content: { text: 'Hello from Crosspost!' },
-});
-```
 
 ## Architecture Benefits
 

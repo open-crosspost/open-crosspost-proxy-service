@@ -4,11 +4,10 @@ This monorepo contains the SDK packages for interacting with the Crosspost API.
 
 ## Packages
 
-| Package                                                 | Description                              | npm | JSR |
-| ------------------------------------------------------- | ---------------------------------------- | --- | --- |
-| [@crosspost/types](./types)                             | Shared type definitions                  | ✅  | ✅  |
-| [@crosspost/near-simple-signing](./near-simple-signing) | NEAR wallet signature generation utility | ✅  | ✅  |
-| [@crosspost/sdk](./sdk)                                 | Main API client SDK                      | ✅  | ❌  |
+| Package                     | Description             | npm | JSR |
+| --------------------------- | ----------------------- | --- | --- |
+| [@crosspost/types](./types) | Shared type definitions | ✅  | ✅  |
+| [@crosspost/sdk](./sdk)     | Main API client SDK     | ✅  | ❌  |
 
 ## Installation
 
@@ -16,11 +15,10 @@ This monorepo contains the SDK packages for interacting with the Crosspost API.
 
 ```bash
 # Install all packages
-npm install @crosspost/sdk @crosspost/near-simple-signing @crosspost/types
+npm install @crosspost/sdk @crosspost/types
 
 # Or install individual packages
 npm install @crosspost/sdk
-npm install @crosspost/near-simple-signing
 npm install @crosspost/types
 ```
 
@@ -28,11 +26,8 @@ npm install @crosspost/types
 
 ```typescript
 // Import from JSR
-import { NearSigner } from '@crosspost/near-simple-signing';
 import { PlatformName } from '@crosspost/types';
 
-// Or import directly from GitHub
-import { NearSigner } from 'https://raw.githubusercontent.com/your-org/crosspost/main/packages/near-simple-signing/mod.ts';
 import { PlatformName } from 'https://raw.githubusercontent.com/your-org/crosspost/main/packages/types/mod.ts';
 ```
 
@@ -40,27 +35,7 @@ import { PlatformName } from 'https://raw.githubusercontent.com/your-org/crosspo
 
 ```typescript
 import { CrosspostClient } from '@crosspost/sdk';
-import { NearSigner } from '@crosspost/near-simple-signing';
 import { CreatePostRequest } from '@crosspost/types';
-
-// Initialize the NEAR signer
-const signer = new NearSigner({
-  networkId: 'testnet',
-  nodeUrl: 'https://rpc.testnet.near.org',
-  walletUrl: 'https://wallet.testnet.near.org',
-});
-
-// Connect to NEAR wallet (browser environment)
-await signer.connect();
-
-// Initialize the SDK with the NEAR signer
-const client = new CrosspostClient({
-  baseUrl: 'https://api.crosspost.example',
-  auth: {
-    type: 'near',
-    signer: signer,
-  },
-});
 
 // Create a post
 const request: CreatePostRequest = {

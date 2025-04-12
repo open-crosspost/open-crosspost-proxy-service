@@ -4,8 +4,14 @@ export * as crypto from 'std/crypto';
 export * as http from 'std/http';
 export * as assert from 'std/assert';
 
-// Local packages
-export * as NearSimpleSigning from './packages/near-simple-signing/mod.ts';
+// NEAR signature verification
+export {
+  createAuthToken,
+  generateNonce,
+  type NearAuthData,
+  parseAuthToken,
+  validateSignature,
+} from 'near-sign-verify';
 
 // Hono framework
 export { Hono } from 'npm:hono';

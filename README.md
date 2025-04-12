@@ -15,37 +15,32 @@ authentication. No more handling OAuth tokens on the client!
 ### Prerequisites
 
 - [Deno](https://deno.land/) (latest version)
+- [Bun](https://bun.sh/) (for package development)
 - NEAR Wallet
-- Twitter Developer Account (for Twitter API access)
+- Platform API keys
 
 ### Setup & Run
 
 ```bash
 # Create .env file with required variables
 cp .env.example .env
-# Edit .env with your credentials
 
-# Start the development server
+# Install dependencies
+bun install
+
+# Start the development server (API, SDK, and Types in watch mode)
+bun run dev
+
+# Or start just the API
 deno task dev
 
 # Run tests
-deno task test
-```
-
-### Essential Environment Variables
-
-```bash
-TWITTER_CLIENT_ID=your_client_id
-TWITTER_CLIENT_SECRET=your_client_secret
-
-ENCRYPTION_KEY=your_encryption_key
-
-ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+bun run test
 ```
 
 ## Architecture
 
-The service uses a layered architecture with clear separation of concerns:
+The service uses a layered architecture with clear separation of concerns, to standardize authentication and social interactions and isolate platform-specific implementations: 
 
 ```mermaid
 flowchart TD
@@ -75,6 +70,8 @@ flowchart TD
 ```
 
 ## Authentication Flow
+
+The SDK 
 
 ```mermaid
 sequenceDiagram
@@ -186,6 +183,52 @@ Example request:
 
 All requests require the Authorization header with your NEAR signature.
 
+## Project Structure
+
+This project is organized as a monorepo with a Deno-first approach:
+
+```
+open-crosspost-proxy-service/
+├── src/                # Deno API code
+├── packages/           # Shared packages
+│   ├── types/          # Shared type definitions
+│   │   ├── src/        # TypeScript source
+│   │   ├── mod.ts      # Deno entry point
+│   │   └── deno.json   # JSR package config
+│   └── sdk/            # Client SDK
+│       ├── src/        # TypeScript source
+│       ├── mod.ts      # Deno entry point
+│       └── deno.json   # JSR package config
+├── deno.json           # Deno config for API
+└── package.json        # Root package.json for monorepo
+```
+
+### Development Workflow
+
+- **Deno-first Development**: The API is built with Deno, and packages are designed to work with
+  Deno first.
+- **Dual Publishing**: Packages are published to both JSR (for Deno) and npm (for Node.js).
+- **Native Deno Imports**: Source files are directly importable by Deno without any conversion.
+- **Local Development**: During development, the API imports directly from local packages using
+  import maps.
+- **Production**: In production, the API imports packages from JSR.
+
+### Commands
+
+```bash
+# Start all development (API, SDK, Types in watch mode)
+bun run dev
+
+# Build all packages for both Deno and Node.js
+bun run build
+
+# Run all tests
+bun run test
+
+# Lint all code
+bun run lint
+```
+
 ## SDK Packages
 
 We provide three SDK packages to simplify integration:
@@ -201,21 +244,6 @@ const request: PostCreateRequest = {
     text: 'Hello, world!',
   },
 };
-```
-
-### @crosspost/near-simple-signing
-
-```typescript
-import { NearSigner } from '@crosspost/near-simple-signing';
-
-const signer = new NearSigner({
-  networkId: 'testnet',
-  nodeUrl: 'https://rpc.testnet.near.org',
-  walletUrl: 'https://wallet.testnet.near.org',
-});
-
-await signer.connect();
-const authHeader = await signer.createAuthHeader();
 ```
 
 ### @crosspost/sdk

@@ -59,7 +59,6 @@ complete, tested, and documented.
 
 - ✅ SDK architecture design
 - ✅ Shared type definitions package (@crosspost/types)
-- ✅ NEAR signature generation package (@crosspost/near-simple-signing)
 - ✅ Main API client package (@crosspost/sdk)
 - ✅ Comprehensive documentation for all packages
 

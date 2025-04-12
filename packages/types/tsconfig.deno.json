@@ -2,7 +2,6 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "moduleResolution": "node",
-    "outDir": "./deno_dist",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "paths": {
       "npm:*": ["./node_modules/*"]

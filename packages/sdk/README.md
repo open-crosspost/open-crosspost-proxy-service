@@ -38,35 +38,6 @@ bun add @crosspost/sdk
 
 ```typescript
 import { CrosspostClient } from '@crosspost/sdk';
-import { NearSigner } from '@crosspost/near-simple-signing';
-
-// Initialize with NEAR wallet signature authentication
-const signer = new NearSigner({
-  networkId: 'testnet',
-  nodeUrl: 'https://rpc.testnet.near.org',
-  walletUrl: 'https://wallet.testnet.near.org',
-});
-
-// Connect to NEAR wallet (browser environment)
-await signer.connect();
-
-// Initialize the SDK with the NEAR signer
-const client = new CrosspostClient({
-  baseUrl: 'https://api.crosspost.example',
-  auth: {
-    type: 'near',
-    signer: signer,
-  },
-});
-
-// Or initialize with API key authentication
-const apiKeyClient = new CrosspostClient({
-  baseUrl: 'https://api.crosspost.example',
-  auth: {
-    type: 'apiKey',
-    apiKey: 'your-api-key',
-  },
-});
 ```
 
 ### Using the Twitter Client
