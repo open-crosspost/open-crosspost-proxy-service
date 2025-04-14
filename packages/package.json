@@ -1,6 +1,6 @@
 {
   "name": "@crosspost/monorepo",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "description": "Crosspost API SDK monorepo",
   "workspaces": [

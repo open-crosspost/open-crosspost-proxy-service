@@ -24,13 +24,12 @@ const client = new CrosspostClient({
   },
 });
 
-// Or initialize with cookie-based authentication (will auto-load from cookie if available)
+// Or initialize with cookie-based authentication
 const cookieClient = new CrosspostClient({
   baseUrl: 'https://your-crosspost-api.com',
-  // No nearAuthData provided - will check for cookie
 });
 
-// Set authentication explicitly (also stores in secure cookie)
+// Set authentication explicitly
 await cookieClient.setAuthentication({
   accountId: 'your-account.near',
   publicKey: 'ed25519:...',
@@ -178,13 +177,21 @@ constructor(config?: {
 
 ### Post API (client.post)
 
-- `createPost(request): Promise<CreatePostResponse>` - Creates a new post
-- `repost(request): Promise<RepostResponse>` - Reposts an existing post
-- `quotePost(request): Promise<QuotePostResponse>` - Quotes an existing post
-- `replyToPost(request): Promise<ReplyToPostResponse>` - Replies to a post
-- `likePost(request): Promise<LikePostResponse>` - Likes a post
-- `unlikePost(request): Promise<UnlikePostResponse>` - Unlikes a post
-- `deletePost(request): Promise<DeletePostResponse>` - Deletes a post
+Each post operation accepts a request object that includes:
+
+- `targets`: Array of `{ platform: string, userId: string }` specifying where to perform the action
+- Additional parameters specific to each operation
+
+Available methods:
+
+- `createPost(request: CreatePostRequest): Promise<CreatePostResponse>` - Creates posts on specified
+  platforms
+- `repost(request: RepostRequest): Promise<RepostResponse>` - Reposts an existing post
+- `quotePost(request: QuotePostRequest): Promise<QuotePostResponse>` - Quotes an existing post
+- `replyToPost(request: ReplyToPostRequest): Promise<ReplyToPostResponse>` - Replies to a post
+- `likePost(request: LikePostRequest): Promise<LikePostResponse>` - Likes a post
+- `unlikePost(request: UnlikePostRequest): Promise<UnlikePostResponse>` - Unlikes a post
+- `deletePost(request: DeletePostRequest): Promise<DeletePostResponse>` - Deletes posts
 
 ### Activity API (client.activity)
 
@@ -249,51 +256,81 @@ const result = await apiWrapper(
 ### Creating a Post
 
 ```typescript
-// Create a simple text post
+// Create a text post on Twitter
 const textPostResponse = await client.post.createPost({
-  content: {
+  targets: [{
+    platform: 'twitter',
+    userId: 'your-twitter-id',
+  }],
+  content: [{
     text: 'Hello from Crosspost SDK!',
-  },
+  }],
 });
 
-// Create a post with media
+// Create a post with media on multiple platforms
 const mediaPostResponse = await client.post.createPost({
-  content: {
+  targets: [
+    { platform: 'twitter', userId: 'your-twitter-id' },
+    { platform: 'facebook', userId: 'your-facebook-id' },
+  ],
+  content: [{
     text: 'Check out this image!',
-    media: [
-      {
-        type: 'image',
-        url: 'https://example.com/image.jpg',
-      },
-    ],
-  },
+    media: [{
+      data: imageBlob,
+      mimeType: 'image/jpeg',
+      altText: 'A beautiful sunset',
+    }],
+  }],
 });
 ```
 
 ### Post Interactions
 
 ```typescript
-// Like a post
+// Like a post on Twitter
 await client.post.likePost({
+  targets: [{
+    platform: 'twitter',
+    userId: 'your-twitter-id',
+  }],
+  platform: 'twitter',
   postId: '1234567890',
 });
 
-// Repost
+// Repost on multiple platforms
 await client.post.repost({
+  targets: [
+    { platform: 'twitter', userId: 'your-twitter-id' },
+    { platform: 'facebook', userId: 'your-facebook-id' },
+  ],
+  platform: 'twitter',
   postId: '1234567890',
 });
 
 // Reply to a post
 await client.post.replyToPost({
+  targets: [{
+    platform: 'twitter',
+    userId: 'your-twitter-id',
+  }],
+  platform: 'twitter',
   postId: '1234567890',
-  content: {
+  content: [{
     text: 'This is a reply!',
-  },
+  }],
 });
 
-// Delete a post
+// Delete posts
 await client.post.deletePost({
-  postId: '1234567890',
+  targets: [{
+    platform: 'twitter',
+    userId: 'your-twitter-id',
+  }],
+  posts: [{
+    platform: 'twitter',
+    userId: 'your-twitter-id',
+    postId: '1234567890',
+  }],
 });
 ```
 

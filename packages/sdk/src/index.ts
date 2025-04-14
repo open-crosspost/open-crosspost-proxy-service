@@ -14,24 +14,6 @@ export { PostApi } from './api/post.ts';
 export { SystemApi } from './api/system.ts';
 
 // Export utility functions
-export { createNetworkError, handleErrorResponse } from './utils/error.ts';
-export {
-  apiWrapper,
-  enrichErrorWithContext,
-  ERROR_CATEGORIES,
-  getErrorDetails,
-  getErrorMessage,
-  isAuthError,
-  isContentError,
-  isErrorOfCategory,
-  isMediaError,
-  isNetworkError,
-  isPlatformError,
-  isPostError,
-  isRateLimitError,
-  isRecoverableError,
-  isValidationError,
-} from './utils/error-utils.ts';
 export {
   AUTH_COOKIE_NAME,
   AUTH_COOKIE_OPTIONS,
@@ -42,6 +24,25 @@ export {
   getCsrfToken,
   storeAuthInCookie,
 } from './utils/cookie.ts';
+export {
+  apiWrapper,
+  createNetworkError,
+  enrichErrorWithContext,
+  ERROR_CATEGORIES,
+  getErrorDetails,
+  getErrorMessage,
+  handleErrorResponse,
+  isAuthError,
+  isContentError,
+  isErrorOfCategory,
+  isMediaError,
+  isNetworkError,
+  isPlatformError,
+  isPostError,
+  isRateLimitError,
+  isRecoverableError,
+  isValidationError,
+} from './utils/error.ts';
 
 // Re-export types from @crosspost/types for convenience
 export * from '@crosspost/types';

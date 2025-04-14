@@ -3,7 +3,7 @@ import { Env } from '../../../config/env.ts';
 import { PlatformProfile } from '../abstract/platform-profile.interface.ts';
 import { UserProfileStorage } from '../../storage/user-profile-storage.ts';
 import { TwitterClient } from './twitter-client.ts';
-import { UserProfile } from '@crosspost/types';
+import { Platform, UserProfile } from '@crosspost/types';
 
 /**
  * Twitter Profile
@@ -25,7 +25,7 @@ export class TwitterProfile implements PlatformProfile {
   async getUserProfile(userId: string, forceRefresh = false): Promise<UserProfile | null> {
     try {
       // Get the profile from storage
-      const profile = await this.profileStorage.getProfile(userId, 'twitter');
+      const profile = await this.profileStorage.getProfile(userId, Platform.TWITTER);
 
       // Check if we need to refresh the profile
       if (forceRefresh || this.profileStorage.needsRefresh(profile)) {
@@ -96,7 +96,7 @@ export class TwitterProfile implements PlatformProfile {
       username: user.username,
       profileImageUrl: user.profile_image_url || '',
       isPremium: user.verified || false, // Use verified as a proxy for premium status
-      platform: 'twitter',
+      platform: Platform.TWITTER,
       lastUpdated: Date.now(),
     };
 

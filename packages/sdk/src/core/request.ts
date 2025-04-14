@@ -1,8 +1,7 @@
 import { ApiError, ApiErrorCode } from '@crosspost/types';
 import { createAuthToken, type NearAuthData } from 'near-sign-verify';
-import { createNetworkError, handleErrorResponse } from '../utils/error.ts';
-import { apiWrapper, enrichErrorWithContext } from '../utils/error-utils.ts';
 import { CSRF_HEADER_NAME, getCsrfToken } from '../utils/cookie.ts';
+import { apiWrapper, createNetworkError, handleErrorResponse } from '../utils/error.ts';
 
 /**
  * Options for making a request to the API

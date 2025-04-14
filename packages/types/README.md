@@ -1,11 +1,10 @@
 # @crosspost/types
 
-Shared type definitions for the Crosspost API ecosystem.
+Shared type definitions for the Crosspost API and SDK.
 
 ## Overview
 
-This package contains TypeScript type definitions used across the Crosspost API ecosystem,
-including:
+This package contains TypeScript type definitions, including:
 
 - Common types (PlatformName, ApiErrorCode, etc.)
 - Request types for all API endpoints
@@ -13,20 +12,10 @@ including:
 
 ## Installation
 
-### Node.js / npm
+### Node.js
 
 ```bash
-# Using npm
 npm install @crosspost/types
-
-# Using yarn
-yarn add @crosspost/types
-
-# Using pnpm
-pnpm add @crosspost/types
-
-# Using bun
-bun add @crosspost/types
 ```
 
 ### Deno
@@ -105,21 +94,3 @@ const errorResponse = createEnhancedErrorResponse([
   ),
 ]);
 ```
-
-### Request Types
-
-- Authentication requests
-- Post creation and management requests
-- Media upload requests
-- Rate limit requests
-
-### Response Types
-
-- Authentication responses
-- Post creation and management responses
-- Media upload responses
-- Rate limit responses
-
-## License
-
-MIT

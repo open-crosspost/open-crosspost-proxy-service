@@ -17,7 +17,7 @@ import {
   isRateLimitError,
   isRecoverableError,
   isValidationError,
-} from '../../src/utils/error-utils.ts';
+} from '../../src/utils/error.ts';
 
 describe('Error Utilities', () => {
   describe('ERROR_CATEGORIES', () => {

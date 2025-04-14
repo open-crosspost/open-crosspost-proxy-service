@@ -1,7 +1,5 @@
-import { Platform, PlatformName } from '@crosspost/types';
+import { DeleteResult, LikeResult, PlatformName, PostContent, PostResult } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
-import { DeleteResult, LikeResult, PostContent, PostResult } from '@crosspost/types';
-import { TwitterPost } from '../../infrastructure/platform/twitter/twitter-post.ts';
 import { PlatformPost } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
 
 /**
@@ -9,21 +7,12 @@ import { PlatformPost } from '../../infrastructure/platform/abstract/platform-po
  * Domain service for post-related operations
  */
 export class PostService {
-  private platformPosts: Map<string, PlatformPost>;
   private env: Env;
+  private platformPosts: Map<string, PlatformPost>;
 
-  constructor(env: Env, platformPosts?: Map<string, PlatformPost>) {
+  constructor(env: Env, platformPosts: Map<string, PlatformPost>) {
     this.env = env;
-
-    if (platformPosts) {
-      // Use the provided platform posts map
-      this.platformPosts = platformPosts;
-    } else {
-      // For backward compatibility, create an empty map
-      // This should be removed once all code is updated to use dependency injection
-      this.platformPosts = new Map();
-      console.warn('PostService created without platformPosts map. This is deprecated.');
-    }
+    this.platformPosts = platformPosts;
   }
 
   /**

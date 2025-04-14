@@ -1,23 +1,21 @@
 # Open Crosspost Proxy Service
 
-Easily and securely connect your app to social media platforms (like Twitter) using NEAR wallet
-authentication. No more handling OAuth tokens on the client!
+Easily and securely connect your app to social media platforms using NEAR wallet authentication. No
+more handling OAuth tokens!
 
 ## What It Does
 
-- Acts as a secure bridge between your app and platforms like Twitter
+- Acts as a secure bridge between your app and platforms that use OAuth 2.0 PKCE
 - Handles OAuth authentication, token refreshes, and rate limits for you
 - Uses your NEAR wallet signature to authorize actions, keeping platform keys safe on the server
-- Built with Deno and designed to run efficiently on the edge (Deno Deploy)
 
 ## Quick Start
 
 ### Prerequisites
 
 - [Deno](https://deno.land/) (latest version)
-- [Bun](https://bun.sh/) (for package development)
+- [Bun](https://bun.sh/) (for package development and monorepo orchestration, lol ik)
 - NEAR Wallet
-- Platform API keys
 
 ### Setup & Run
 
@@ -36,6 +34,48 @@ deno task dev
 
 # Run tests
 bun run test
+```
+
+## Integration
+
+This project provides two packages to help you integrate with the Crosspost API:
+
+### @crosspost/types
+
+TypeScript type definitions for the API, including request/response types, common types, and helper
+functions. See the [Types Documentation](./packages/types/README.md) for details.
+
+```typescript
+import { CreatePostRequest, PlatformName } from '@crosspost/types';
+
+const request: CreatePostRequest = {
+  targets: [{ platform: 'twitter', userId: 'your-twitter-id' }],
+  content: [{ text: 'Hello, world!' }],
+};
+```
+
+### @crosspost/sdk
+
+A client SDK that simplifies interaction with the API, handling authentication, requests, and error
+management. See the [SDK Documentation](./packages/sdk/README.md) for detailed usage instructions.
+
+```typescript
+import { CrosspostClient } from '@crosspost/sdk';
+
+const client = new CrosspostClient({
+  nearAuthData: {
+    accountId: 'your-account.near',
+    publicKey: 'ed25519:...',
+    signature: '...',
+    message: '...',
+  },
+});
+
+// Create a post on Twitter
+await client.post.createPost({
+  targets: [{ platform: 'twitter', userId: 'your-twitter-id' }],
+  content: [{ text: 'Hello from Crosspost!' }],
+});
 ```
 
 ## Architecture
@@ -71,8 +111,6 @@ flowchart TD
 ```
 
 ## Authentication Flow
-
-The SDK
 
 ```mermaid
 sequenceDiagram
@@ -122,160 +160,3 @@ sequenceDiagram
     PlatformAPI-->>ProxyService: Return response
     ProxyService-->>ClientApp: Return formatted response
 ```
-
-### Three Simple Steps
-
-1. **Authorize Your NEAR Account** (one-time setup)
-
-   ```bash
-   POST /auth/authorize/near
-   ```
-
-   Include your NEAR signature in the header.
-
-2. **Connect a Platform Account** (for each platform)
-
-   ```bash
-   POST /auth/twitter/login
-   ```
-
-   Include your NEAR signature. This redirects through Twitter's OAuth flow.
-
-3. **Make API Calls** (using your NEAR signature)
-
-   ```bash
-   POST /api/post
-   ```
-
-   Include the `Authorization` header in all requests.
-
-## Core API Endpoints
-
-### Authentication
-
-```bash
-POST /auth/authorize/near          # Authorize your NEAR account
-POST /auth/{platform}/login        # Connect a platform account (e.g., twitter)
-GET /auth/accounts                 # List accounts connected to your NEAR wallet
-```
-
-### Posting
-
-```bash
-POST /api/post                     # Create a post
-```
-
-Example request:
-
-```json
-{
-  "platform": "twitter",
-  "content": {
-    "text": "Hello world from Crosspost Proxy!",
-    "media": [
-      {
-        "type": "image",
-        "body": "https://example.com/image.jpg"
-      }
-    ]
-  }
-}
-```
-
-All requests require the Authorization header with your NEAR signature.
-
-## Project Structure
-
-This project is organized as a monorepo with a Deno-first approach:
-
-```
-open-crosspost-proxy-service/
-├── src/                # Deno API code
-├── packages/           # Shared packages
-│   ├── types/          # Shared type definitions
-│   │   ├── src/        # TypeScript source
-│   │   ├── mod.ts      # Deno entry point
-│   │   └── deno.json   # JSR package config
-│   └── sdk/            # Client SDK
-│       ├── src/        # TypeScript source
-│       ├── mod.ts      # Deno entry point
-│       └── deno.json   # JSR package config
-├── deno.json           # Deno config for API
-└── package.json        # Root package.json for monorepo
-```
-
-### Development Workflow
-
-- **Deno-first Development**: The API is built with Deno, and packages are designed to work with
-  Deno first.
-- **Dual Publishing**: Packages are published to both JSR (for Deno) and npm (for Node.js).
-- **Native Deno Imports**: Source files are directly importable by Deno without any conversion.
-- **Local Development**: During development, the API imports directly from local packages using
-  import maps.
-- **Production**: In production, the API imports packages from JSR.
-
-### Commands
-
-```bash
-# Start all development (API, SDK, Types in watch mode)
-bun run dev
-
-# Build all packages for both Deno and Node.js
-bun run build
-
-# Run all tests
-bun run test
-
-# Lint all code
-bun run lint
-```
-
-## SDK Packages
-
-We provide three SDK packages to simplify integration:
-
-### @crosspost/types
-
-```typescript
-import { PlatformName, PostCreateRequest } from '@crosspost/types';
-
-const request: PostCreateRequest = {
-  platform: 'twitter',
-  content: {
-    text: 'Hello, world!',
-  },
-};
-```
-
-### @crosspost/sdk
-
-```typescript
-import { CrosspostClient } from '@crosspost/sdk';
-
-const client = new CrosspostClient({
-  baseUrl: 'https://api.crosspost.example',
-  auth: {
-    type: 'near',
-    signer: signer,
-  },
-});
-
-const response = await client.twitter.createPost({
-  content: {
-    text: 'Hello from Crosspost SDK!',
-  },
-});
-```
-
-## Extending the Platform
-
-The project uses a platform-agnostic design, making it easy to add support for additional social
-media platforms:
-
-1. Implement the platform interfaces in `src/infrastructure/platform/abstract/`
-2. Add the platform-specific client to the SDK
-3. Update the platform enum in the types package
-
-## License
-
-MIT

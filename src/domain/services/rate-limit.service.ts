@@ -1,28 +1,19 @@
-import { ApiError, ApiErrorCode, Platform, PlatformName, RateLimitStatus } from '@crosspost/types';
+import { ApiErrorCode, PlatformError, PlatformName, RateLimitStatus } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
 import { PlatformRateLimit } from '../../infrastructure/platform/abstract/platform-rate-limit.interface.ts';
-import { PlatformError } from '@crosspost/types';
 
 /**
  * Rate Limit Service
  * Domain service for rate limit-related operations
  */
 export class RateLimitService {
-  private platformRateLimits: Map<PlatformName, PlatformRateLimit>;
   private env: Env;
+  private platformRateLimits: Map<PlatformName, PlatformRateLimit>;
 
-  constructor(env: Env, platformRateLimits?: Map<PlatformName, PlatformRateLimit>) {
+  constructor(env: Env, platformRateLimits: Map<PlatformName, PlatformRateLimit>) {
     this.env = env;
 
-    if (platformRateLimits) {
-      // Use the provided platform rate limits map
-      this.platformRateLimits = platformRateLimits;
-    } else {
-      // For backward compatibility, create an empty map
-      // This should be removed once all code is updated to use dependency injection
-      this.platformRateLimits = new Map();
-      console.warn('RateLimitService created without platformRateLimits map. This is deprecated.');
-    }
+    this.platformRateLimits = platformRateLimits;
   }
 
   /**
