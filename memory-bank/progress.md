@@ -124,18 +124,10 @@ complete, tested, and documented.
   - ✅ Error information extraction utilities
   - ✅ Error context enrichment
   - ✅ API wrapper for consistent error handling
-- 🔄 Flexible authentication strategies (Direct and Cookie-based)
-  - ✅ Direct authentication via constructor
-  - ✅ Cookie-based authentication implementation
+- ✅ Direct authentication with per-request signatures
+  - ✅ Fresh signature required for each request
+  - ✅ Enhanced security through request-specific authorization
   - ✅ `setAuthentication` method for explicit auth setting
-- ✅ CSRF protection support
-  - ✅ CSRF token reading from cookie
-  - ✅ CSRF token header inclusion for state-changing requests
-  - ✅ Backend middleware implementation with signed cookies
-- 🔄 Persistent authentication via secure cookies
-  - ✅ Secure cookie settings (`SameSite=Lax`, `Secure`, `Path=/`)
-  - ✅ Cookie expiration (30 days)
-  - ⬜ HttpOnly implementation review
 - ⬜ Additional platform-specific clients
 - ⬜ More comprehensive examples
 - ⬜ React/Vue/Angular integration examples

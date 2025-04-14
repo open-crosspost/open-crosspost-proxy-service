@@ -66,9 +66,8 @@
 
 2. **SDK Development Patterns**
    - Authentication Strategy
-     - Support both direct and cookie-based authentication
-     - Use `SameSite=Lax` for cookies to balance security and usability
-     - Implement CSRF protection for state-changing requests
+     - Use direct authentication with per-request signatures
+     - Require NearAuthData for authenticated requests
      - Make authentication optional during client initialization
      - Throw authentication errors only when making requests that require auth
    - Error Handling
@@ -77,17 +76,10 @@
      - Include context enrichment for better debugging
      - Implement consistent API wrapper for all requests
      - Ensure proper error propagation with original context
-   - Cookie Security
-     - Set `Secure=true` to ensure HTTPS-only transmission
-     - Use `Path=/` to limit cookie scope to entire domain
-     - Set appropriate expiration (30 days for persistent auth)
-     - Implement CSRF protection with Double Submit Cookie pattern
    - Testing Approach
-     - Test both authentication strategies (direct and cookie-based)
+     - Test direct authentication with signatures
      - Mock fetch responses for API testing
      - Test error handling utilities with various error types
-     - Verify CSRF token handling in requests
-     - Test cookie storage and retrieval
 
 3. **Rate Limiting Strategy**
    - Track rate limits from Twitter response headers

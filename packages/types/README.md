@@ -37,6 +37,7 @@ import { CreatePostRequest, CreatePostResponse, PlatformName } from '@crosspost/
 const platform: PlatformName = 'twitter';
 
 const request: CreatePostRequest = {
+  targets: [{ platform: 'twitter', userId: 'your-twitter-id' }],
   content: {
     text: 'Hello, world!',
   },

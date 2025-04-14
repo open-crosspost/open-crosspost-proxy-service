@@ -54,10 +54,11 @@ sequenceDiagram
     participant TokenStorage
     participant Platform
     
-    Client->>NearWallet: Request Signature
+    Note over Client: For each request
+    Client->>NearWallet: Request Fresh Signature
     NearWallet->>Client: Return Signed Message
-    Client->>Proxy: Send Signature + Request
-    Proxy->>Proxy: Validate Signature
+    Client->>Proxy: Send Request with NearAuthData
+    Proxy->>Proxy: Validate Fresh Signature
     Proxy->>Proxy: Check Account Authorization
     alt Authorized
       Proxy->>TokenStorage: Retrieve Platform Token
@@ -71,10 +72,12 @@ sequenceDiagram
 
 Benefits:
 
-- Secure authentication without exposing OAuth tokens
+- Enhanced security through per-request signatures
+- No persistent authentication state in browser
 - Multiple platform accounts linked to a single NEAR wallet
-- Cross-platform actions authorized by a single signature
+- Cross-platform actions authorized by unique signatures
 - Decentralized identity management
+- Reduced attack surface by eliminating cookie-based vulnerabilities
 
 ### 3. Token Management Pattern
 

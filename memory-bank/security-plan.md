@@ -197,34 +197,33 @@ flowchart TD
 
 ## SDK Security
 
-### Cookie-Based Authentication
+### Direct Authentication Strategy
 
-The SDK implements a secure cookie-based authentication strategy with the following security
-measures:
+The SDK implements a secure direct authentication strategy using per-request signatures:
 
 ```mermaid
 flowchart TD
-    A[Client App] -->|1. Get NEAR Signature| B[NEAR Wallet]
+    A[Client App] -->|1. Get Fresh Signature| B[NEAR Wallet]
     B -->|2. Return Signature| A
     A -->|3. Call setAuthentication| C[CrosspostClient]
-    C -->|4. Store in Cookie| D[Browser Cookie]
-    C -->|5. Use for Requests| E[API Endpoints]
-    D -->|Auto-load on init| C
+    C -->|4. Include in Request| D[API Request]
+    D -->|5. Server Validates| E[API Endpoints]
 ```
 
-**Cookie Security Settings:**
+**Security Benefits:**
 
-- `HttpOnly`: Prevents JavaScript access to the cookie content (`__crosspost_auth`).
-- `Secure`: Ensures the cookie is only sent over HTTPS connections.
-- `SameSite=Lax`: Restricts cookies to same-site contexts and top-level navigations for improved
-  security.
-- `Path=/`: Limits cookie scope to the entire domain.
+1. **Per-Request Authorization**
+   - Each request requires a fresh signature
+   - No persistent authentication state
+   - Explicit authorization for every action
 
-**CSRF Protection Implementation:** The SDK implements CSRF protection using:
+2. **Enhanced Security**
+   - No client-side storage of credentials
+   - Each request independently verified
+   - Reduced attack surface
+   - No session-based vulnerabilities
 
-1. Signed CSRF tokens stored in a non-HttpOnly cookie (`XSRF-TOKEN`) provided by the backend.
-2. Token inclusion in the `X-CSRF-Token` header with each state-changing request.
-3. Backend validation that the token in the header matches the signed token in the cookie (Double
-   Submit Cookie pattern).
-4. Cryptographic signature verification of the cookie token to prevent tampering.
-5. Additional browser-provided CSRF protection through `SameSite=Lax` setting.
+3. **Request Validation**
+   - Signature verification for each request
+   - Timestamp validation to prevent replay attacks
+   - Account authorization checks

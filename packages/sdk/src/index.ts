@@ -15,16 +15,6 @@ export { SystemApi } from './api/system.ts';
 
 // Export utility functions
 export {
-  AUTH_COOKIE_NAME,
-  AUTH_COOKIE_OPTIONS,
-  clearAuthCookie,
-  CSRF_COOKIE_NAME,
-  CSRF_HEADER_NAME,
-  getAuthFromCookie,
-  getCsrfToken,
-  storeAuthInCookie,
-} from './utils/cookie.ts';
-export {
   apiWrapper,
   createNetworkError,
   enrichErrorWithContext,

@@ -13,33 +13,22 @@ bun install @crosspost/sdk
 ```typescript
 import { ApiError, CrosspostClient, isAuthError, PlatformError } from '@crosspost/sdk';
 
-// Initialize the client with direct authentication
+// Initialize the client (authentication can be provided later)
 const client = new CrosspostClient({
   baseUrl: 'https://your-crosspost-api.com', // Optional: Defaults to official API
-  nearAuthData: {
-    accountId: 'your-account.near',
-    publicKey: 'ed25519:...',
-    signature: '...',
-    message: '...',
-  },
 });
 
-// Or initialize with cookie-based authentication
-const cookieClient = new CrosspostClient({
-  baseUrl: 'https://your-crosspost-api.com',
-});
-
-// Set authentication explicitly
-await cookieClient.setAuthentication({
+// Set authentication with fresh signature for the request
+client.setAuthentication({
   accountId: 'your-account.near',
   publicKey: 'ed25519:...',
   signature: '...',
   message: '...',
 });
 
-// Check if client is authenticated
-if (cookieClient.isAuthenticated()) {
-  console.log('Client is authenticated');
+// Check if client has authentication data set
+if (client.isAuthenticated()) {
+  console.log('Client has authentication data');
 }
 
 // NEAR Account Authorization
@@ -109,6 +98,7 @@ async function revokePlatformAuth(platform) {
 async function createPost() {
   try {
     const response = await client.post.createPost({
+      targets: [{ platform: 'twitter', userId: 'your-twitter-id' }],
       content: {
         text: 'Hello from Crosspost SDK!',
       },
@@ -367,56 +357,21 @@ const postRateLimit = await client.system.getEndpointRateLimit('post');
 
 ## Authentication and Security
 
-### Authentication Strategies
+### Authentication Strategy
 
-The SDK supports two authentication strategies:
+The SDK uses direct authentication with per-request signatures:
 
-1. **Direct Authentication**: Provide `nearAuthData` directly in the constructor.
-   ```typescript
-   const client = new CrosspostClient({
-     nearAuthData: {
-       accountId: 'your-account.near',
-       publicKey: 'ed25519:...',
-       signature: '...',
-       message: '...',
-     },
-   });
-   ```
+```typescript
+// Initialize the client
+const client = new CrosspostClient({
+  baseUrl: 'https://your-crosspost-api.com',
+});
 
-2. **Cookie-Based Authentication**: Automatically read/write authentication data from a secure
-   cookie.
-   ```typescript
-   // Initialize without auth data (will check for cookie)
-   const client = new CrosspostClient();
-
-   // Set authentication (also stores in cookie)
-   client.setAuthentication(nearAuthData);
-   ```
-
-### Cookie Security
-
-When using cookie-based authentication, the SDK stores authentication data in a secure cookie with
-the following settings:
-
-- **Name**: `__crosspost_auth`
-- **Secure**: `true` (only sent over HTTPS)
-- **SameSite**: `Lax` (sent with same-site requests and top-level navigations)
-- **Path**: `/` (available across the entire domain)
-- **Expires**: 30 days
-
-### CSRF Protection
-
-The SDK implements CSRF protection for state-changing requests (non-GET) using the Double Submit
-Cookie pattern:
-
-1. The backend API sets a CSRF token in a non-HttpOnly cookie (`XSRF-TOKEN`)
-2. The SDK reads this token and includes it in the `X-CSRF-Token` header for all state-changing
-   requests
-3. The backend validates that the token in the header matches the token in the cookie
-
-This protection is automatically enabled when using cookie-based authentication and requires no
-additional configuration from the client side.
-
-## License
-
-MIT
+// Before making authenticated requests, set fresh signature
+client.setAuthentication({
+  accountId: 'your-account.near',
+  publicKey: 'ed25519:...',
+  signature: '...',
+  message: '...',
+});
+```

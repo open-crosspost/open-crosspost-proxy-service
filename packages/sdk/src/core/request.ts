@@ -1,6 +1,5 @@
 import { ApiError, ApiErrorCode } from '@crosspost/types';
 import { createAuthToken, type NearAuthData } from 'near-sign-verify';
-import { CSRF_HEADER_NAME, getCsrfToken } from '../utils/cookie.ts';
 import { apiWrapper, createNetworkError, handleErrorResponse } from '../utils/error.ts';
 
 /**
@@ -83,14 +82,6 @@ export async function makeRequest<T>(
           'Accept': 'application/json',
           'Authorization': `Bearer ${createAuthToken(options.nearAuthData!)}`,
         };
-
-        // Add CSRF token for state-changing requests (non-GET)
-        if (method !== 'GET') {
-          const csrfToken = getCsrfToken();
-          if (csrfToken) {
-            headers[CSRF_HEADER_NAME] = csrfToken;
-          }
-        }
 
         const requestOptions: RequestInit = {
           method,

@@ -5,7 +5,6 @@ import { PostApi } from '../api/post.ts';
 import { SystemApi } from '../api/system.ts';
 import { type CrosspostClientConfig, DEFAULT_CONFIG } from './config.ts';
 import type { RequestOptions } from './request.ts';
-import { getAuthFromCookie, storeAuthInCookie } from '../utils/cookie.ts';
 
 /**
  * Main client for interacting with the Crosspost API service.
@@ -27,7 +26,7 @@ export class CrosspostClient {
     const timeout = config.timeout || DEFAULT_CONFIG.timeout;
     const retries = config.retries ?? DEFAULT_CONFIG.retries;
 
-    const nearAuthData = config.nearAuthData || getAuthFromCookie();
+    const nearAuthData = config.nearAuthData;
 
     this.options = {
       baseUrl,
@@ -43,12 +42,11 @@ export class CrosspostClient {
   }
 
   /**
-   * Sets the authentication data (signature) for the client and stores it in a cookie
-   * @param signature The NEAR authentication data
+   * Sets the authentication data (signature) for the client
+   * @param nearAuthData The NEAR authentication data
    */
   public setAuthentication(nearAuthData: NearAuthData): void {
     this.options.nearAuthData = nearAuthData;
-    storeAuthInCookie(nearAuthData);
   }
 
   /**
