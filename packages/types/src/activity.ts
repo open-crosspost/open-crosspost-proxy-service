@@ -12,18 +12,18 @@ import { PlatformSchema } from './common.ts';
  * Time periods for activity filtering
  */
 export enum TimePeriod {
-  ALL_TIME = 'all',
-  YEARLY = 'yearly',
-  MONTHLY = 'monthly',
-  WEEKLY = 'weekly',
-  DAILY = 'daily',
+  ALL = 'all',
+  YEARLY = 'year',
+  MONTHLY = 'month',
+  WEEKLY = 'week',
+  DAILY = 'day',
 }
 
 /**
  * Activity leaderboard query schema
  */
 export const ActivityLeaderboardQuerySchema = z.object({
-  timeframe: z.enum(['day', 'week', 'month', 'all']).optional().describe(
+  timeframe: z.nativeEnum(TimePeriod).optional().describe(
     'Timeframe for the leaderboard',
   ),
   limit: z.string().optional()
@@ -56,7 +56,7 @@ export const AccountActivityEntrySchema = z.object({
  */
 export const ActivityLeaderboardResponseSchema = EnhancedResponseSchema(
   z.object({
-    timeframe: z.enum(['day', 'week', 'month', 'all']).describe('Timeframe for the leaderboard'),
+    timeframe: z.nativeEnum(TimePeriod).describe('Timeframe for the leaderboard'),
     entries: z.array(AccountActivityEntrySchema).describe('Leaderboard entries'),
     total: z.number().describe('Total number of entries in the leaderboard'),
     limit: z.number().describe('Maximum number of results returned'),
@@ -76,7 +76,7 @@ export const AccountActivityParamsSchema = z.object({
  * Account activity query schema
  */
 export const AccountActivityQuerySchema = z.object({
-  timeframe: z.enum(['day', 'week', 'month', 'all']).optional().describe(
+  timeframe: z.nativeEnum(TimePeriod).optional().describe(
     'Timeframe for the activity',
   ),
 }).describe('Account activity query');
@@ -101,7 +101,7 @@ export const PlatformActivitySchema = z.object({
 export const AccountActivityResponseSchema = EnhancedResponseSchema(
   z.object({
     signerId: z.string().describe('NEAR account ID'),
-    timeframe: z.enum(['day', 'week', 'month', 'all']).describe('Timeframe for the activity'),
+    timeframe: z.nativeEnum(TimePeriod).describe('Timeframe for the activity'),
     totalPosts: z.number().describe('Total number of posts across all platforms'),
     totalLikes: z.number().describe('Total number of likes across all platforms'),
     totalReposts: z.number().describe('Total number of reposts across all platforms'),
