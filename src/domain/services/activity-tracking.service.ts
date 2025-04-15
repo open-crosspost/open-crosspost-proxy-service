@@ -164,7 +164,7 @@ export class ActivityTrackingService {
    */
   private async invalidateLeaderboardCache(): Promise<void> {
     const cacheKeys = [
-      ['leaderboard_cache', TimePeriod.ALL_TIME],
+      ['leaderboard_cache', TimePeriod.ALL],
       ['leaderboard_cache', TimePeriod.YEARLY],
       ['leaderboard_cache', TimePeriod.MONTHLY],
       ['leaderboard_cache', TimePeriod.WEEKLY],
@@ -182,7 +182,7 @@ export class ActivityTrackingService {
    */
   private async invalidatePlatformLeaderboardCache(platform: PlatformName): Promise<void> {
     const cacheKeys = [
-      ['leaderboard_cache_platform', platform, TimePeriod.ALL_TIME],
+      ['leaderboard_cache_platform', platform, TimePeriod.ALL],
       ['leaderboard_cache_platform', platform, TimePeriod.YEARLY],
       ['leaderboard_cache_platform', platform, TimePeriod.MONTHLY],
       ['leaderboard_cache_platform', platform, TimePeriod.WEEKLY],
@@ -332,7 +332,7 @@ export class ActivityTrackingService {
     const now = new Date();
 
     switch (timePeriod) {
-      case TimePeriod.ALL_TIME:
+      case TimePeriod.ALL:
         return 0; // Beginning of time
 
       case TimePeriod.YEARLY:
@@ -365,7 +365,7 @@ export class ActivityTrackingService {
   async getLeaderboard(
     limit = 10,
     offset = 0,
-    timePeriod: TimePeriod = TimePeriod.ALL_TIME,
+    timePeriod: TimePeriod = TimePeriod.ALL,
   ): Promise<LeaderboardEntry[]> {
     try {
       // Try to get from cache first
@@ -427,7 +427,7 @@ export class ActivityTrackingService {
     platform: PlatformName,
     limit = 10,
     offset = 0,
-    timePeriod: TimePeriod = TimePeriod.ALL_TIME,
+    timePeriod: TimePeriod = TimePeriod.ALL,
   ): Promise<PlatformLeaderboardEntry[]> {
     try {
       // Try to get from cache first
@@ -486,7 +486,7 @@ export class ActivityTrackingService {
    * @param timePeriod Time period for filtering
    * @returns Total number of accounts
    */
-  async getTotalAccounts(timePeriod: TimePeriod = TimePeriod.ALL_TIME): Promise<number> {
+  async getTotalAccounts(timePeriod: TimePeriod = TimePeriod.ALL): Promise<number> {
     try {
       const accounts = await this.kvStore.list<AccountActivity>(['near_account']);
       const timePeriodStart = this.getTimePeriodStart(timePeriod);
@@ -514,7 +514,7 @@ export class ActivityTrackingService {
    */
   async getTotalPlatformAccounts(
     platform: PlatformName,
-    timePeriod: TimePeriod = TimePeriod.ALL_TIME,
+    timePeriod: TimePeriod = TimePeriod.ALL,
   ): Promise<number> {
     try {
       const accounts = await this.kvStore.list<PlatformAccountActivity>(['near_account_platform']);

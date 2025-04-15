@@ -36,7 +36,7 @@ export class ActivityController extends BaseController {
       const validatedQuery = c.get('validatedQuery') || {};
       const limit = parseInt(validatedQuery.limit || '10');
       const offset = parseInt(validatedQuery.offset || '0');
-      const timePeriodParam = validatedQuery.timeframe || TimePeriod.ALL_TIME;
+      const timePeriodParam = validatedQuery.timeframe || TimePeriod.ALL;
       const platform = validatedQuery.platform as PlatformName | undefined;
 
       // Validate time period
@@ -44,7 +44,7 @@ export class ActivityController extends BaseController {
       if (Object.values(TimePeriod).includes(timePeriodParam as TimePeriod)) {
         timePeriod = timePeriodParam as TimePeriod;
       } else {
-        timePeriod = TimePeriod.ALL_TIME;
+        timePeriod = TimePeriod.ALL;
       }
 
       // Get leaderboard data

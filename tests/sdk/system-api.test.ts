@@ -21,7 +21,7 @@ describe('SystemApi', () => {
         public_key: 'test-public-key',
         signature: 'test-signature',
         message: 'test-message',
-        nonce: 'test-nonce',
+        nonce: new Uint8Array(32),
         recipient: 'crosspost.near',
       },
     });

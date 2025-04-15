@@ -1,7 +1,7 @@
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { afterEach, beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { ActivityApi } from '../../packages/sdk/src/api/activity.ts';
-import { Platform } from '@crosspost/types';
+import { Platform, TimePeriod } from '@crosspost/types';
 
 describe('ActivityApi', () => {
   let activityApi: ActivityApi;
@@ -21,7 +21,7 @@ describe('ActivityApi', () => {
         public_key: 'test-public-key',
         signature: 'test-signature',
         message: 'test-message',
-        nonce: 'test-nonce',
+        nonce: new Uint8Array(32),
         recipient: 'crosspost.near',
       },
     });
@@ -58,7 +58,11 @@ describe('ActivityApi', () => {
     };
 
     // Call the API
-    const response = await activityApi.getLeaderboard({ timeframe: 'all', limit: 10, offset: 0 });
+    const response = await activityApi.getLeaderboard({
+      timeframe: TimePeriod.ALL,
+      limit: 10,
+      offset: 0,
+    });
 
     // Verify the response
     assertExists(response);
@@ -109,7 +113,9 @@ describe('ActivityApi', () => {
     };
 
     // Call the API
-    const response = await activityApi.getAccountActivity('user1.near', { timeframe: 'all' });
+    const response = await activityApi.getAccountActivity('user1.near', {
+      timeframe: TimePeriod.ALL,
+    });
 
     // Verify the response
     assertExists(response);
