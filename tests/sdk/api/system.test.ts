@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { afterEach, beforeEach, describe, it } from 'jsr:@std/testing/bdd';
-import { SystemApi } from '../../packages/sdk/src/api/system.ts';
+import { SystemApi } from '../../../packages/sdk/src/api/system.ts';
 import { Platform } from '@crosspost/types';
 
 describe('SystemApi', () => {

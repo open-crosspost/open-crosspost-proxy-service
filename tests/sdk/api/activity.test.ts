@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { afterEach, beforeEach, describe, it } from 'jsr:@std/testing/bdd';
-import { ActivityApi } from '../../packages/sdk/src/api/activity.ts';
+import { ActivityApi } from '../../../packages/sdk/src/api/activity.ts';
 import { Platform, TimePeriod } from '@crosspost/types';
 
 describe('ActivityApi', () => {
