@@ -1,4 +1,4 @@
-import { Platform } from '@crosspost/types';
+import { ApiErrorCode, Platform } from '@crosspost/types';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { Env } from '../../../src/config/env.ts';
@@ -217,7 +217,7 @@ describe('Auth Controller', () => {
       const responseBody = await response.json();
       assertExists(responseBody.errors);
       assertEquals(responseBody.success, false);
-      assertEquals(responseBody.errors[0].errorCode, 'authentication_error');
+      assertEquals(responseBody.errors[0].errorCode, ApiErrorCode.UNAUTHORIZED);
     });
 
     it('should refresh a token', async () => {
