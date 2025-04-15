@@ -69,11 +69,10 @@ export function initializeApp() {
   const twitterProfile = new TwitterProfile(env, twitterClient, userProfileStorage);
 
   // Create platform auth map with Twitter auth
-  const twitterAuthKvStore = new PrefixedKvStore(['auth', Platform.TWITTER]);
   const twitterAuth = new TwitterAuth(
     env,
     nearAuthService,
-    twitterAuthKvStore,
+    authStateKvStore,
     twitterClient,
     twitterProfile,
   );

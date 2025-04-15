@@ -36,12 +36,12 @@ export interface PlatformAuth {
   /**
    * Get the auth state data from storage
    * @param state The state parameter from the callback
-   * @returns The auth state data including successUrl and errorUrl
-   * @throws PlatformError if the state is invalid or expired
+   * @returns The complete auth state data
+   * @throws Error if the state is invalid or expired
    */
   getAuthState(
     state: string,
-  ): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null>;
+  ): Promise<AuthState>;
 
   /**
    * Handle the OAuth callback

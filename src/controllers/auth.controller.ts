@@ -3,6 +3,7 @@ import {
   ApiErrorCode,
   createEnhancedErrorResponse,
   createErrorDetail,
+  PlatformError,
   PlatformName,
 } from '@crosspost/types';
 import { Context } from '../../deps.ts';
@@ -104,41 +105,56 @@ export class AuthController extends BaseController {
       const error = url.searchParams.get('error');
       const error_description = url.searchParams.get('error_description');
 
-      // Check for errors
+      // Check for errors from the OAuth provider
       if (error) {
-        try {
-          const callbackResult = await this.authService.getAuthState(state!);
-          if (callbackResult && callbackResult.errorUrl) {
-            const errorRedirectUrl = new URL(callbackResult.errorUrl);
+        // Try to redirect to the error URL if we have a valid state
+        if (state) {
+          try {
+            const platformAuth = this.authService.getPlatformAuth(platform);
+            const authState = await platformAuth.getAuthState(state);
+
+            // Create error redirect URL
+            const errorRedirectUrl = new URL(authState.errorUrl);
             errorRedirectUrl.searchParams.set('error', error);
             if (error_description) {
               errorRedirectUrl.searchParams.set('error_description', error_description);
             }
             return c.redirect(errorRedirectUrl.toString());
+          } catch {
+            // If we can't get the auth state, create a platform error and handle it
+            const platformError = new PlatformError(
+              `${platform} authorization error: ${error}${
+                error_description ? ` - ${error_description}` : ''
+              }`,
+              platform,
+              ApiErrorCode.UNAUTHORIZED,
+              false,
+            );
+            return this.handleError(platformError, c, platform);
           }
-        } catch (stateError) {
-          console.error('Error retrieving auth state:', stateError);
         }
 
+        // If no state or couldn't redirect, return a 400 error response
         c.status(400);
         return c.json(createEnhancedErrorResponse([createErrorDetail(
           `${platform} authorization error: ${error}${
             error_description ? ` - ${error_description}` : ''
           }`,
-          'authentication_error',
+          ApiErrorCode.UNAUTHORIZED,
           false,
           platform,
         )]));
       }
 
+      // Validate required parameters
       if (!code || !state) {
-        c.status(400);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
+        const validationError = new PlatformError(
           'Code and state are required',
+          platform,
           ApiErrorCode.VALIDATION_ERROR,
           true,
-          platform,
-        )]));
+        );
+        return this.handleError(validationError, c, platform);
       }
 
       const callbackResult = await this.authService.handleCallback(

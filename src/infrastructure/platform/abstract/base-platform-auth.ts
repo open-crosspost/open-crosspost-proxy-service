@@ -92,27 +92,25 @@ export abstract class BasePlatformAuth implements PlatformAuth {
   /**
    * Get the auth state data from storage
    * @param state The state parameter from the callback
-   * @returns The auth state data including successUrl and errorUrl
+   * @returns The complete auth state data
+   * @throws Error if the state is invalid or expired
    */
-  async getAuthState(
-    state: string,
-  ): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
+  async getAuthState(state: string): Promise<AuthState> {
     try {
       // Get the auth state from KV
       const authState = await this.kvStore.get<AuthState>([state]);
 
       if (!authState) {
-        return null;
+        throw new Error('Invalid or expired state');
       }
 
-      return {
-        successUrl: authState.successUrl,
-        errorUrl: authState.errorUrl,
-        signerId: authState.signerId,
-      };
+      return authState;
     } catch (error) {
       console.error('Error getting auth state:', error);
-      return null;
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to retrieve auth state');
     }
   }
   /**
@@ -127,12 +125,8 @@ export abstract class BasePlatformAuth implements PlatformAuth {
     state: string,
   ): Promise<{ userId: string; token: AuthToken; successUrl: string }> {
     try {
-      // Get the auth state from KV using PrefixedKvStore
-      const authState = await this.kvStore.get<AuthState>([state]);
-
-      if (!authState) {
-        throw new Error('Invalid or expired state');
-      }
+      // Get the auth state using the getAuthState method
+      const authState = await this.getAuthState(state);
 
       // Exchange the code for tokens using platform-specific implementation
       const { userId, token } = await this.exchangeCodeForTokens(

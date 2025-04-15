@@ -1,4 +1,4 @@
-import { Platform, PlatformName, UserProfile } from '@crosspost/types';
+import { PlatformName, UserProfile } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
 import { DEFAULT_CONFIG } from '../../config/index.ts';
 import {
@@ -6,8 +6,6 @@ import {
   PlatformAuth,
 } from '../../infrastructure/platform/abstract/platform-auth.interface.ts';
 import { PlatformProfile } from '../../infrastructure/platform/abstract/platform-profile.interface.ts';
-import { TwitterAuth } from '../../infrastructure/platform/twitter/twitter-auth.ts';
-import { TwitterProfile } from '../../infrastructure/platform/twitter/twitter-profile.ts';
 import { NearAuthService } from '../../infrastructure/security/near-auth-service.ts';
 import { AuthToken } from '../../infrastructure/storage/auth-token-storage.ts';
 import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
@@ -98,33 +96,6 @@ export class AuthService {
     } catch (error) {
       console.error('Error initializing auth:', error);
       throw error;
-    }
-  }
-
-  /**
-   * Get the auth state data from storage
-   * @param state The state parameter from the callback
-   * @returns The auth state data including successUrl and errorUrl
-   */
-  async getAuthState(
-    state: string,
-  ): Promise<{ successUrl: string; errorUrl: string; signerId: string } | null> {
-    try {
-      // Get the auth state directly from the authStateStore
-      const authState = await this.authStateStore.get<AuthState>([state]);
-
-      if (!authState) {
-        return null;
-      }
-
-      return {
-        successUrl: authState.successUrl,
-        errorUrl: authState.errorUrl,
-        signerId: authState.signerId,
-      };
-    } catch (error) {
-      console.error('Error getting auth state:', error);
-      return null;
     }
   }
 
