@@ -6,6 +6,7 @@ import type { StatusCode } from 'hono/utils/http-status';
  * This ensures consistent HTTP status codes across the application
  */
 export const errorCodeToStatusCode: Record<ApiErrorCode, StatusCode> = {
+  [ApiErrorCode.MULTI_STATUS]: 207,
   [ApiErrorCode.UNKNOWN_ERROR]: 500,
   [ApiErrorCode.INTERNAL_ERROR]: 500,
   [ApiErrorCode.VALIDATION_ERROR]: 400,

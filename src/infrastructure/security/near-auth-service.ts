@@ -34,14 +34,11 @@ export class NearAuthService {
   ) {}
 
   /**
-   * Extract and validate NEAR auth data from request headers
+   * Validate NEAR auth signature from request headers without checking authorization status
    * @param c The Hono context
-   * @returns Validated NEAR auth data and result
+   * @returns The signer ID from the validated token
    */
-  async extractAndValidateNearAuth(c: Context): Promise<{
-    authData: NearAuthData;
-    signerId: string;
-  }> {
+  async validateNearAuthSignature(c: Context): Promise<string> {
     // Extract NEAR auth data from Authorization header
     const authHeader = c.req.header('Authorization');
 
@@ -53,9 +50,7 @@ export class NearAuthService {
     const token = parseAuthToken(authHeader.substring(7));
 
     // Validate signature
-    const result = await validateSignature(
-      token,
-    );
+    const result = await validateSignature(token);
 
     if (!result.valid) {
       throw new ApiError(
@@ -65,8 +60,24 @@ export class NearAuthService {
       );
     }
 
-    // The signerId is the account_id from the auth data
-    const signerId = token.account_id;
+    // Return the signerId from the validated token
+    return token.account_id;
+  }
+
+  /**
+   * Extract and validate NEAR auth data from request headers
+   * @param c The Hono context
+   * @returns Validated NEAR auth data and result
+   */
+  async extractAndValidateNearAuth(c: Context): Promise<{
+    authData: NearAuthData;
+    signerId: string;
+  }> {
+    // First validate the signature and get the signer ID
+    const signerId = await this.validateNearAuthSignature(c);
+
+    // Get the token again to return the full auth data
+    const token = parseAuthToken(c.req.header('Authorization')!.substring(7));
 
     // Check if the account is authorized
     const authStatus = await this.getNearAuthorizationStatus(signerId);

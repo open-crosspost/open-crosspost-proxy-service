@@ -5,3 +5,4 @@
 export * from './base-error.ts';
 export * from './api-error.ts';
 export * from './platform-error.ts';
+export * from './composite-api-error.ts';

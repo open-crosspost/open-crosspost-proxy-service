@@ -1,4 +1,5 @@
 import {
+  ApiError,
   ApiErrorCode,
   createEnhancedErrorResponse,
   createErrorDetail,
@@ -11,6 +12,7 @@ import { AuthService } from '../domain/services/auth.service.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth-service.ts';
 import { unlinkAccountFromNear } from '../utils/account-linking.utils.ts';
 import { BaseController } from './base.controller.ts';
+import { parseAuthToken, validateSignature } from '../deps.ts';
 
 /**
  * Auth Controller
@@ -327,8 +329,8 @@ export class AuthController extends BaseController {
    */
   async authorizeNear(c: Context): Promise<Response> {
     try {
-      // Extract and validate NEAR auth data from the header
-      const { signerId } = await this.nearAuthService.extractAndValidateNearAuth(c);
+      // Validate the signature and get the signer ID
+      const signerId = await this.nearAuthService.validateNearAuthSignature(c);
 
       // Authorize the NEAR account
       const result = await this.nearAuthService.authorizeNearAccount(signerId);

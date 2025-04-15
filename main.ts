@@ -128,7 +128,6 @@ auth.get(
 auth.post(
   '/authorize/near',
   ValidationMiddleware.validateBody(NearAuthorizationRequestSchema),
-  AuthMiddleware.validateNearSignature(),
   (c) => authController.authorizeNear(c),
 );
 // Unauthorize a NEAR account

@@ -1,4 +1,12 @@
-import { ApiError, ApiErrorCode, Platform, PlatformError } from '@crosspost/types';
+import {
+  ApiError,
+  ApiErrorCode,
+  CompositeApiError,
+  type ErrorDetail,
+  Platform,
+  PlatformError,
+} from '@crosspost/types';
+import type { StatusCode } from 'hono/utils/http-status';
 
 /**
  * Error categories grouped by type
@@ -307,17 +315,55 @@ export async function apiWrapper<T>(
  * @param status The HTTP status code
  * @returns An ApiError or PlatformError instance
  */
-export function handleErrorResponse(data: any, status: number): ApiError | PlatformError {
-  // Safely access nested error properties
+export function handleErrorResponse(
+  data: any,
+  status: number,
+): ApiError | PlatformError | CompositeApiError {
+  // Check for enhanced error response format with multiple errors
+  if (data?.errors && Array.isArray(data.errors)) {
+    if (data.errors.length === 1) {
+      // Single error case - convert to standard error
+      const errorDetail = data.errors[0];
+      if (
+        errorDetail.platform && Object.values(Platform).includes(errorDetail.platform as Platform)
+      ) {
+        return new PlatformError(
+          errorDetail.message,
+          errorDetail.platform as Platform,
+          errorDetail.code,
+          errorDetail.recoverable ?? false,
+          undefined,
+          status as StatusCode,
+          errorDetail.userId,
+          errorDetail.details,
+        );
+      } else {
+        return new ApiError(
+          errorDetail.message,
+          errorDetail.code,
+          status as StatusCode,
+          errorDetail.details,
+          errorDetail.recoverable ?? false,
+        );
+      }
+    } else if (data.errors.length > 1) {
+      // Multiple errors case - return composite error
+      return new CompositeApiError(
+        'Multiple errors occurred',
+        data.errors as ErrorDetail[],
+        status as StatusCode,
+        { originalResponse: data },
+      );
+    }
+  }
+
+  // Fall back to legacy error format handling
   const errorData = data?.error || {};
   const message = errorData?.message || data?.message || 'An API error occurred';
-
-  // Ensure code is a valid ApiErrorCode or default
   const codeString = errorData?.code || data?.code || ApiErrorCode.UNKNOWN_ERROR;
   const code = Object.values(ApiErrorCode).includes(codeString as ApiErrorCode)
     ? codeString as ApiErrorCode
     : ApiErrorCode.UNKNOWN_ERROR;
-
   const details = errorData?.details || data?.details || {};
   const recoverable = errorData?.recoverable ?? data?.recoverable ?? false;
   const platform = errorData?.platform || data?.platform;
@@ -325,25 +371,25 @@ export function handleErrorResponse(data: any, status: number): ApiError | Platf
   // Add original response data to details if not already present
   const enhancedDetails = { ...details };
   if (typeof enhancedDetails === 'object' && !enhancedDetails.originalResponse) {
-    enhancedDetails.originalResponse = data; // Include the raw error payload for debugging
+    enhancedDetails.originalResponse = data;
   }
 
   if (platform && Object.values(Platform).includes(platform as Platform)) {
-    // If platform is specified and valid, it's a PlatformError
     return new PlatformError(
       message,
       platform as Platform,
-      code, // Use the parsed code
-      status as any, // Cast status
-      enhancedDetails,
+      code,
       recoverable,
+      undefined,
+      status as StatusCode,
+      undefined,
+      enhancedDetails,
     );
   } else {
-    // Otherwise, it's a general ApiError
     return new ApiError(
       message,
-      code, // Use the parsed code
-      status as any, // Cast status
+      code,
+      status as StatusCode,
       enhancedDetails,
       recoverable,
     );
@@ -358,6 +404,16 @@ export function handleErrorResponse(data: any, status: number): ApiError | Platf
  * @param timeout The request timeout
  * @returns An ApiError instance
  */
+/**
+ * Check if an error is a composite error containing multiple error details
+ *
+ * @param error The error to check
+ * @returns True if the error is a composite error, false otherwise
+ */
+export function isCompositeApiError(error: unknown): error is CompositeApiError {
+  return error instanceof CompositeApiError;
+}
+
 export function createNetworkError(error: unknown, url: string, timeout: number): ApiError {
   if (error instanceof DOMException && error.name === 'AbortError') {
     return new ApiError(

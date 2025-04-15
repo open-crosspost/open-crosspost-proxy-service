@@ -1,5 +1,6 @@
-import { Context } from 'hono';
 import { PlatformName } from '@crosspost/types';
+import { Context } from '../../deps.ts';
+import { NearAuthService } from '../../src/infrastructure/security/near-auth-service.ts';
 import { AuthToken } from '../../src/infrastructure/storage/auth-token-storage.ts';
 import { mockKvStore } from './kv-store-mock.ts';
 
@@ -26,19 +27,30 @@ export const mockNearAuthData = {
 };
 
 // Mock NearAuthService
-export class MockNearAuthService {
-  // Required properties to match NearAuthService interface
-  tokenStorage: any = {};
-  nearAuthKvStore: any = mockKvStore;
+export class MockNearAuthService extends NearAuthService {
+  constructor(private mockEnv: any = {}) {
+    super(
+      mockEnv,
+      {} as any,
+      mockKvStore,
+    );
+  }
 
-  constructor(private env: any = {}) {}
+  /**
+   * Validate NEAR auth signature from request headers without checking authorization status
+   * @param c The Hono context
+   * @returns The signer ID from the validated token
+   */
+  override async validateNearAuthSignature(c: Context): Promise<string> {
+    return 'test.near';
+  }
 
   /**
    * Extract and validate NEAR auth data from request headers
    * @param c The Hono context
    * @returns Validated NEAR auth data and result
    */
-  async extractAndValidateNearAuth(c: Context): Promise<{
+  override async extractAndValidateNearAuth(c: Context): Promise<{
     authData: any;
     signerId: string;
   }> {
@@ -54,7 +66,7 @@ export class MockNearAuthService {
    * @param platform The platform name (e.g., 'twitter')
    * @returns The user's tokens
    */
-  async getTokens(userId: string, platform: PlatformName): Promise<AuthToken> {
+  override async getTokens(userId: string, platform: PlatformName): Promise<AuthToken> {
     return mockToken;
   }
 
@@ -64,7 +76,11 @@ export class MockNearAuthService {
    * @param platform The platform name (e.g., 'twitter')
    * @param token The tokens to save
    */
-  async saveTokens(userId: string, platform: PlatformName, token: AuthToken): Promise<void> {
+  override async saveTokens(
+    userId: string,
+    platform: PlatformName,
+    token: AuthToken,
+  ): Promise<void> {
     // Mock implementation - do nothing
   }
 
@@ -73,7 +89,7 @@ export class MockNearAuthService {
    * @param userId The user ID to delete tokens for
    * @param platform The platform name (e.g., 'twitter')
    */
-  async deleteTokens(userId: string, platform: PlatformName): Promise<void> {
+  override async deleteTokens(userId: string, platform: PlatformName): Promise<void> {
     // Mock implementation - do nothing
   }
 
@@ -83,7 +99,7 @@ export class MockNearAuthService {
    * @param platform The platform name (e.g., 'twitter')
    * @returns True if tokens exist
    */
-  async hasTokens(userId: string, platform: PlatformName): Promise<boolean> {
+  override async hasTokens(userId: string, platform: PlatformName): Promise<boolean> {
     return true;
   }
 
@@ -94,7 +110,7 @@ export class MockNearAuthService {
    * @param userId User ID on the platform
    * @param token Token to store
    */
-  async storeToken(
+  override async storeToken(
     signerId: string,
     platform: PlatformName,
     userId: string,
@@ -111,7 +127,11 @@ export class MockNearAuthService {
    * @param userId User ID on the platform
    * @returns Token or null if not found
    */
-  async getToken(signerId: string, platform: PlatformName, userId: string): Promise<any | null> {
+  override async getToken(
+    signerId: string,
+    platform: PlatformName,
+    userId: string,
+  ): Promise<any | null> {
     // Always return the mock token for testing
     return mockToken;
   }
@@ -122,7 +142,11 @@ export class MockNearAuthService {
    * @param platform Platform name (e.g., Platform.TWITTER)
    * @param userId User ID on the platform
    */
-  async deleteToken(signerId: string, platform: PlatformName, userId: string): Promise<void> {
+  override async deleteToken(
+    signerId: string,
+    platform: PlatformName,
+    userId: string,
+  ): Promise<void> {
     const key = ['token', signerId, platform, userId];
     await mockKvStore.delete(key);
   }
@@ -132,7 +156,7 @@ export class MockNearAuthService {
    * @param signerId NEAR account ID
    * @returns Array of platform and userId pairs
    */
-  async listConnectedAccounts(
+  override async listConnectedAccounts(
     signerId: string,
   ): Promise<Array<{ platform: PlatformName; userId: string }>> {
     return [
@@ -145,7 +169,7 @@ export class MockNearAuthService {
    * @param signerId NEAR account ID
    * @returns True if the account is authorized, false otherwise
    */
-  async isNearAccountAuthorized(signerId: string): Promise<boolean> {
+  override async isNearAccountAuthorized(signerId: string): Promise<boolean> {
     return true; // Always authorized for testing
   }
 
@@ -154,7 +178,7 @@ export class MockNearAuthService {
    * @param signerId NEAR account ID
    * @returns Result indicating success or failure
    */
-  async authorizeNearAccount(
+  override async authorizeNearAccount(
     signerId: string,
   ): Promise<{ success: boolean; error?: string }> {
     return { success: true };
@@ -165,7 +189,7 @@ export class MockNearAuthService {
    * @param signerId NEAR account ID
    * @returns Result indicating success or failure
    */
-  async unauthorizeNearAccount(
+  override async unauthorizeNearAccount(
     signerId: string,
   ): Promise<{ success: boolean; error?: string }> {
     return { success: true };
@@ -176,7 +200,7 @@ export class MockNearAuthService {
    * @param signerId NEAR account ID
    * @returns Authorization status
    */
-  async getNearAuthorizationStatus(signerId: string): Promise<number> {
+  override async getNearAuthorizationStatus(signerId: string): Promise<number> {
     return 1; // Authorized with 1 connected account
   }
 
@@ -186,7 +210,11 @@ export class MockNearAuthService {
    * @param platform Platform name
    * @param userId User ID on the platform
    */
-  async linkAccount(signerId: string, platform: PlatformName, userId: string): Promise<void> {
+  override async linkAccount(
+    signerId: string,
+    platform: PlatformName,
+    userId: string,
+  ): Promise<void> {
     await this.storeToken(signerId, platform, userId, {
       userId,
       platform,
@@ -200,7 +228,11 @@ export class MockNearAuthService {
    * @param platform Platform name
    * @param userId User ID on the platform
    */
-  async unlinkAccount(signerId: string, platform: PlatformName, userId: string): Promise<void> {
+  override async unlinkAccount(
+    signerId: string,
+    platform: PlatformName,
+    userId: string,
+  ): Promise<void> {
     await this.deleteToken(signerId, platform, userId);
   }
 
@@ -211,7 +243,11 @@ export class MockNearAuthService {
    * @param userId User ID on the platform
    * @returns True if the NEAR account has access to the platform account
    */
-  async hasAccess(signerId: string, platform: PlatformName, userId: string): Promise<boolean> {
+  override async hasAccess(
+    signerId: string,
+    platform: PlatformName,
+    userId: string,
+  ): Promise<boolean> {
     return true;
   }
 
@@ -220,7 +256,7 @@ export class MockNearAuthService {
    * @param signerId NEAR account ID
    * @returns Array of platform and userId pairs
    */
-  async getLinkedAccounts(
+  override async getLinkedAccounts(
     signerId: string,
   ): Promise<Array<{ platform: PlatformName; userId: string }>> {
     return this.listConnectedAccounts(signerId);

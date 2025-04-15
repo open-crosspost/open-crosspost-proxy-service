@@ -46,6 +46,7 @@ describe('Auth Controller', () => {
 
     // Create mock token manager
     mockNearAuthService = {
+      validateNearAuthSignature: () => Promise.resolve('test.near'),
       getNearAuthorizationStatus: () => Promise.resolve(1), // Authorized
       authorizeNearAccount: () => Promise.resolve({ success: true }),
       unauthorizeNearAccount: () => Promise.resolve({ success: true }),

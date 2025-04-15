@@ -1,6 +1,6 @@
 {
   "name": "@crosspost/sdk",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "SDK for interacting with the Crosspost API",
   "type": "module",
   "main": "dist/index.cjs",

@@ -42,6 +42,8 @@ export enum ApiErrorCode {
 
   // Network errors
   NETWORK_ERROR = 'NETWORK_ERROR',
+
+  MULTI_STATUS = 'MULTI_STATUS',
 }
 
 /**

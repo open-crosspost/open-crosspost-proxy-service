@@ -25,11 +25,11 @@ export const errorMiddleware = (): MiddlewareHandler => {
 
       // Handle HTTPException from Hono
       if (err instanceof HTTPException) {
-        c.status(err.status);
+        c.status((err as HTTPException).status);
         return c.json(
           createEnhancedErrorResponse([
             createErrorDetail(
-              err.message,
+              (err as HTTPException).message,
               ApiErrorCode.UNKNOWN_ERROR,
               false,
               undefined,
@@ -79,32 +79,50 @@ export const errorMiddleware = (): MiddlewareHandler => {
         );
       }
 
-      // Handle array of PlatformErrors (for multi-status responses)
-      if (Array.isArray(err) && err.length > 0 && err[0] instanceof PlatformError) {
-        const platformErrors = err as PlatformError[];
+      // Handle arrays of errors (for multi-status responses)
+      if (Array.isArray(err)) {
+        if (err.length === 0) {
+          c.status(500);
+          return c.json(createEnhancedErrorResponse([
+            createErrorDetail(
+              'Empty error array received',
+              ApiErrorCode.UNKNOWN_ERROR,
+              false,
+            ),
+          ]));
+        }
 
-        // Use the highest status code from the errors
-        const statusCode = Math.max(...platformErrors.map((e) => e.status!));
+        // Convert errors to error details
+        const errorDetails: ErrorDetail[] = err.map((e) => {
+          if (e instanceof PlatformError) {
+            return createErrorDetail(
+              e.message,
+              e.code,
+              e.recoverable,
+              e.platform as Platform,
+              e.userId,
+              e.details,
+            );
+          } else if (e instanceof ApiError) {
+            return createErrorDetail(
+              e.message,
+              e.code,
+              e.recoverable,
+              undefined,
+              undefined,
+              e.details,
+            );
+          } else {
+            return createErrorDetail(
+              e instanceof Error ? e.message : String(e),
+              ApiErrorCode.UNKNOWN_ERROR,
+              false,
+            );
+          }
+        });
 
-        // If all errors have the same status code, use that, otherwise use 207 Multi-Status
-        const finalStatusCode = platformErrors.every((e) => e.status === statusCode)
-          ? statusCode
-          : 207;
-
-        c.status(finalStatusCode as StatusCode);
-
-        // Convert platform errors to error details
-        const errorDetails: ErrorDetail[] = platformErrors.map((e) =>
-          createErrorDetail(
-            e.message,
-            e.code,
-            e.recoverable,
-            e.platform as Platform,
-            e.userId,
-            e.details,
-          )
-        );
-
+        // Always use 207 Multi-Status for multiple errors
+        c.status(207);
         return c.json(createEnhancedErrorResponse(errorDetails));
       }
 
