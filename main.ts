@@ -133,17 +133,13 @@ auth.post(
 // Common auth routes that aren't platform-specific
 auth.get(
   '/accounts',
-  // AuthMiddleware.validateNearSignature(),
-  ValidationMiddleware.validateParams(
-    z.object({ // temporary
-      signerId: z.string().describe('Signer ID'),
-    }).describe('Connected accounts parameter'),
-  ),
+  AuthMiddleware.validateNearSignature(),
   (c) => authController.listConnectedAccounts(c),
 );
 // Authorize a NEAR account
 auth.post(
   '/authorize/near',
+  AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(NearAuthorizationRequestSchema),
   (c) => authController.authorizeNear(c),
 );
@@ -211,7 +207,7 @@ post.delete(
 const activity = new Hono();
 activity.get(
   '/',
-  // AuthMiddleware.validateNearSignature(),
+  AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateQuery(ActivityLeaderboardQuerySchema),
   (c) => activityController.getLeaderboard(c),
 );
