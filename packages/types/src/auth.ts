@@ -29,6 +29,16 @@ export const AuthCallbackResponseSchema = z.object({
   redirectUrl: z.string().optional().describe('URL to redirect the user to after authentication'),
 }).describe('Auth callback response');
 
+export const AuthStatusParamsSchema = z.object({
+  platform: z.string().describe('Social media platform'),
+  userId: z.string().describe('User ID on the platform'),
+}).describe('Token status parameters');
+
+export const NearUnauthorizationResponseSchema = z.object({
+  success: z.boolean().describe('Whether the unauthorized operation was successful'),
+  nearAccount: z.string().describe('NEAR account ID that was unauthorized'),
+}).describe('NEAR unauthorized response');
+
 export const AuthStatusResponseSchema = z.object({
   platform: PlatformSchema,
   userId: z.string().describe('User ID'),
@@ -89,3 +99,5 @@ export type NearAuthorizationRequest = z.infer<typeof NearAuthorizationRequestSc
 export type NearAuthorizationResponse = z.infer<typeof NearAuthorizationResponseSchema>;
 export type NearAuthorizationStatusResponse = z.infer<typeof NearAuthorizationStatusResponseSchema>;
 export type AuthTokenRequest = z.infer<typeof AuthTokenRequestSchema>;
+export type AuthStatusParams = z.infer<typeof AuthStatusParamsSchema>;
+export type NearUnauthorizationResponse = z.infer<typeof NearUnauthorizationResponseSchema>;

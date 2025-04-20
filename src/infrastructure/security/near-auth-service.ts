@@ -62,6 +62,20 @@ export class NearAuthService {
   }
 
   /**
+   * Extract NEAR account ID from X-Near-Account header
+   * @param c The Hono context
+   * @returns The NEAR account ID from the header
+   * @throws {ApiError} If the header is missing
+   */
+  extractNearAccountHeader(c: Context): string {
+    const nearAccount = c.req.header('X-Near-Account');
+    if (!nearAccount) {
+      throw createApiError(ApiErrorCode.UNAUTHORIZED, 'Missing X-Near-Account header');
+    }
+    return nearAccount;
+  }
+
+  /**
    * Extract and validate NEAR auth data from request headers
    * @param c The Hono context
    * @returns Validated NEAR auth data and result

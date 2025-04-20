@@ -7,7 +7,7 @@ more handling OAuth tokens!
 
 - Acts as a secure bridge between your app and platforms that use OAuth 2.0 PKCE
 - Handles OAuth authentication, token refreshes, and rate limits for you
-- Uses your NEAR wallet signature to authorize actions, keeping platform keys safe on the server
+- Uses your NEAR wallet signature to authorize actions, and platform keys safe on the server
 
 ## Quick Start
 

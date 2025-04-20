@@ -28,7 +28,7 @@ export class ActivityApi {
    * @returns A promise resolving with the leaderboard response
    */
   async getLeaderboard(query?: ActivityLeaderboardQuery): Promise<ActivityLeaderboardResponse> {
-    return makeRequest<ActivityLeaderboardResponse>(
+    return makeRequest<ActivityLeaderboardResponse, never, ActivityLeaderboardQuery>(
       'GET',
       '/api/activity',
       this.options,
@@ -47,7 +47,7 @@ export class ActivityApi {
     signerId: string,
     query?: AccountActivityQuery,
   ): Promise<AccountActivityResponse> {
-    return makeRequest<AccountActivityResponse>(
+    return makeRequest<AccountActivityResponse, never, AccountActivityQuery>(
       'GET',
       `/api/activity/${signerId}`,
       this.options,
@@ -66,7 +66,7 @@ export class ActivityApi {
     signerId: string,
     query?: AccountPostsQuery,
   ): Promise<AccountPostsResponse> {
-    return makeRequest<AccountPostsResponse>(
+    return makeRequest<AccountPostsResponse, never, AccountPostsQuery>(
       'GET',
       `/api/activity/${signerId}/posts`,
       this.options,

@@ -1,96 +1,89 @@
 # Active Context
 
-## Current Focus: API Response Standardization
+## Current Focus: Authentication Enhancement
 
-We are standardizing the API response format across the entire system. This involves:
+We are updating the authentication system to provide a more flexible approach based on request type:
 
 ### Completed Changes
 
-1. **Response Types (`packages/types/src/response.ts`)**
-   - Made `requestId` and `timestamp` mandatory in `ResponseMeta`
-   - Added `createResponseMeta` helper function
-   - Updated `createSuccessResponse` and `createErrorResponse` to always include metadata
-   - Removed optional `meta` parameter, now always required
+1. **Authentication System Updates**
+   - Added X-Near-Account header support for GET requests
+   - Maintained full NEAR auth validation for non-GET requests
+   - Added extractNearAccountHeader method to NearAuthService
+   - Updated auth middleware to handle both authentication paths
 
-2. **Error Handling**
-   - Removed deprecated `createEnhancedErrorResponse` function
-   - Updated error middleware to use standard `createErrorResponse`
-   - Updated base controller to use standard `createErrorResponse`
-   - Removed legacy error format handling from SDK
-   - Added strict response format validation in SDK
-
-3. **Documentation**
-   - Updated `types-and-schemas.md` with standardized response format
-   - Updated `error-handling-strategy.md` with comprehensive error handling approach
+2. **Implementation Details**
+   - GET requests only require X-Near-Account header
+   - Other requests still require full NEAR auth validation
+   - Both paths set signerId in context for consistent downstream usage
+   - Error handling remains consistent across both paths
 
 ### Current Standard
 
-All API responses now follow this structure:
+Authentication now follows this pattern:
 
 ```typescript
-interface ApiResponse<T> {
-  success: boolean;
-  data?: T | MultiStatusData | null;
-  errors?: ErrorDetail[] | null;
-  meta: ResponseMeta; // Always present with requestId and timestamp
+// GET Requests
+headers: {
+  'X-Near-Account': 'near-account.testnet'
+}
+
+// Other Requests (POST, PUT, DELETE)
+headers: {
+  'Authorization': 'Bearer <NEAR auth data>',
+  'X-Near-Account': 'near-account.testnet'
 }
 ```
 
 ### Next Steps
 
-1. **Audit and Update Endpoints**
-   - Review all API endpoints to ensure they follow the standard format
-   - Move any metadata (pagination, rate limits) from `data` to `meta`
-   - Remove any response schema redefinitions
-   - Ensure all endpoints use the standard helper functions
+1. **Testing Updates**
+   - Add tests for X-Near-Account header validation
+   - Add tests for GET request authentication flow
+   - Update existing auth tests to cover both paths
+   - Add integration tests for the new authentication pattern
 
-2. **Update Tests**
-   - Update unit tests to expect mandatory metadata
-   - Add tests for response format validation
-   - Add tests for multi-status responses
-   - Update SDK error handling tests
+2. **SDK Client Updates**
+   - Update SDK to handle both authentication methods
+   - Add helper methods for GET requests
+   - Update error handling for new authentication flow
+   - Add examples for both authentication paths
 
-3. **SDK Client Updates**
-   - Review and update SDK client methods to handle standardized responses
-   - Update error handling documentation
-   - Add examples for common error scenarios
-
-4. **Documentation**
-   - Update API documentation to reflect standardized format
-   - Add examples for different response types
-   - Document error handling best practices
+3. **Documentation**
+   - Update API documentation to reflect new authentication options
+   - Add examples for both authentication methods
+   - Document security considerations
+   - Update sequence diagrams
 
 ### Technical Decisions
 
-1. **Metadata Handling**
-   - All metadata (pagination, rate limits) must be in `meta` object
-   - `requestId` and `timestamp` are now mandatory
-   - Using `crypto.randomUUID()` for request IDs
-   - Using ISO timestamps
+1. **Authentication Paths**
+   - GET requests use simplified header-based auth
+   - Other requests require full NEAR auth validation
+   - Both paths provide signerId for downstream use
+   - Consistent error handling across both paths
 
-2. **Error Handling**
-   - Using standard helper functions for all error responses
-   - Strict validation of response format in SDK
-   - Clear distinction between API, Platform, and Composite errors
-   - HTTP 207 for multi-status responses
+2. **Security Considerations**
+   - GET requests have reduced security requirements
+   - Non-GET requests maintain strong security
+   - Header validation ensures account presence
+   - Error responses maintain consistency
 
-3. **Response Creation**
-   - Using `createSuccessResponse` for success cases
-   - Using `createErrorResponse` for error cases
-   - Using `createMultiStatusData` for bulk operations
-   - Helper functions ensure consistent metadata
+3. **Implementation Pattern**
+   - Auth middleware handles path selection
+   - NearAuthService provides header extraction
+   - Context setting remains consistent
+   - Error handling follows existing patterns
 
 ### Open Questions
 
-- Should we add any additional standard metadata fields?
-- Do we need to version the response format?
-- Should we add response schema validation at the API level?
+- Should we add any additional validation for X-Near-Account header?
+- Do we need to version this authentication change?
+- Should we add rate limiting specific to GET requests?
 
 ## Related Files
 
-- `packages/types/src/response.ts`
-- `src/middleware/error.middleware.ts`
-- `src/controllers/base.controller.ts`
-- `packages/sdk/src/utils/error.ts`
-- `memory-bank/types-and-schemas.md`
-- `memory-bank/error-handling-strategy.md`
+- `src/middleware/auth.middleware.ts`
+- `src/infrastructure/security/near-auth-service.ts`
+- `docs/authentication-flow.md`
+- `memory-bank/security-plan.md`

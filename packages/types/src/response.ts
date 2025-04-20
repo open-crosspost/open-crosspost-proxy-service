@@ -28,6 +28,12 @@ export const SuccessDetailSchema = z.object({
   status: z.literal('success'),
 }).catchall(z.any());
 
+export const HealthStatusSchema = z.object({
+  status: z.string().describe('Health status of the API'),
+  version: z.string().optional().describe('API version'),
+  timestamp: z.string().datetime().describe('Current server time'),
+}).describe('Health status response');
+
 export const MultiStatusDataSchema = z.object({
   summary: z.object({
     total: z.number().int().nonnegative(),
@@ -48,3 +54,4 @@ export interface ApiResponse<T> {
 export type ResponseMeta = z.infer<typeof ResponseMetaSchema>;
 export type SuccessDetail = z.infer<typeof SuccessDetailSchema>;
 export type MultiStatusData = z.infer<typeof MultiStatusDataSchema>;
+export type HealthStatus = z.infer<typeof HealthStatusSchema>;

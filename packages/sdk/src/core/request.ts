@@ -17,9 +17,14 @@ export interface RequestOptions {
   baseUrl: string;
   /**
    * NEAR authentication data for generating auth tokens
-   * Can be undefined if not authorize yet
+   * Required for non-GET requests, optional for GET requests
    */
   nearAuthData?: NearAuthData;
+  /**
+   * NEAR account ID for simplified GET request authentication
+   * If not provided, will use account_id from nearAuthData
+   */
+  nearAccount?: string;
   /**
    * Request timeout in milliseconds
    */
@@ -39,17 +44,21 @@ export interface RequestOptions {
  * @param data Optional request data
  * @returns A promise resolving with the response data
  */
-export async function makeRequest<T>(
+export async function makeRequest<
+  TResponse,
+  TRequest = unknown,
+  TQuery = unknown,
+>(
   method: string,
   path: string,
   options: RequestOptions,
-  data?: any,
-  query?: Record<string, any>,
-): Promise<T> {
+  data?: TRequest,
+  query?: TQuery,
+): Promise<TResponse> {
   let url = `${options.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 
   // Add query parameters if provided
-  if (query && Object.keys(query).length > 0) {
+  if (query && typeof query === 'object' && Object.keys(query).length > 0) {
     const queryParams = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined && value !== null) {
@@ -81,8 +90,30 @@ export async function makeRequest<T>(
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `Bearer ${createAuthToken(options.nearAuthData!)}`,
         };
+
+        // For GET requests, use X-Near-Account header if available
+        if (method === 'GET') {
+          const nearAccount = options.nearAccount || options.nearAuthData?.account_id;
+          if (!nearAccount) {
+            throw new CrosspostError(
+              'No NEAR account provided for GET request',
+              ApiErrorCode.UNAUTHORIZED,
+              401,
+            );
+          }
+          headers['X-Near-Account'] = nearAccount;
+        } else {
+          // For non-GET requests, require nearAuthData
+          if (!options.nearAuthData) {
+            throw new CrosspostError(
+              'NEAR authentication data required for non-GET request',
+              ApiErrorCode.UNAUTHORIZED,
+              401,
+            );
+          }
+          headers['Authorization'] = `Bearer ${createAuthToken(options.nearAuthData)}`;
+        }
 
         const requestOptions: RequestInit = {
           method,
@@ -133,7 +164,7 @@ export async function makeRequest<T>(
         if (responseData && typeof responseData === 'object' && 'success' in responseData) {
           if (responseData.success) {
             // Success response - return the data
-            return responseData.data as T;
+            return responseData.data as TResponse;
           } else {
             // Error response - handle with our error utilities
             lastError = handleErrorResponse(responseData, response.status);

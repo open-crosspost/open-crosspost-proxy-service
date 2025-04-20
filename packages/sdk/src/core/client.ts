@@ -43,17 +43,56 @@ export class CrosspostClient {
 
   /**
    * Sets the authentication data (signature) for the client
+   * Required for non-GET requests
    * @param nearAuthData The NEAR authentication data
    */
   public setAuthentication(nearAuthData: NearAuthData): void {
     this.options.nearAuthData = nearAuthData;
+    // Also set nearAccount from nearAuthData if not already set
+    if (!this.options.nearAccount) {
+      this.options.nearAccount = nearAuthData.account_id;
+    }
+  }
+
+  /**
+   * Sets the NEAR account ID for simplified GET request authentication
+   * If not set, will use account_id from nearAuthData
+   * @param nearAccount The NEAR account ID
+   */
+  public setNearAccount(nearAccount: string): void {
+    this.options.nearAccount = nearAccount;
+  }
+
+  /**
+   * Gets the current NEAR account ID being used for authentication
+   * @returns The NEAR account ID from nearAccount or nearAuthData
+   */
+  public getNearAccount(): string | undefined {
+    return this.options.nearAccount || this.options.nearAuthData?.account_id;
   }
 
   /**
    * Checks if authentication data (signature) exists on client
-   * @param signature The NEAR authentication data
+   * @returns true if nearAuthData is set (required for non-GET requests)
    */
   public isAuthenticated(): boolean {
     return !!this.options.nearAuthData;
+  }
+
+  /**
+   * Checks if a NEAR account is set for GET request authentication
+   * @returns true if either nearAccount or nearAuthData.account_id is set
+   */
+  public hasNearAccount(): boolean {
+    return !!(this.options.nearAccount || this.options.nearAuthData?.account_id);
+  }
+
+  /**
+   * Clears all authentication data from the client
+   * This will prevent all requests from working until new authentication is set
+   */
+  public clear(): void {
+    this.options.nearAuthData = undefined;
+    this.options.nearAccount = undefined;
   }
 }

@@ -41,43 +41,67 @@ Each platform interface has a specific responsibility:
 - **PlatformMedia**: Manages media uploads and attachments
 - **PlatformProfile**: Manages user profile operations
 
-### 2. NEAR-Centric Authentication Pattern
+### 2. Method-Based Authentication Pattern
 
-The system uses NEAR wallet signatures for authentication, providing a secure way to authorize
-actions without exposing OAuth tokens to clients.
+The system implements a flexible authentication approach based on HTTP method, providing appropriate
+security levels for different types of operations.
 
+```mermaid
+flowchart TD
+    Request[API Request] --> Method{HTTP Method}
+    Method -->|GET| Header[X-Near-Account Header]
+    Method -->|POST/PUT/DELETE| Signature[NEAR Signature]
+    
+    Header --> Extract[Extract Account]
+    Signature --> Validate[Validate Signature]
+    
+    Extract --> Context[Set Context]
+    Validate --> Context
+    
+    Context --> Handler[Request Handler]
+```
+
+**GET Request Flow:**
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Proxy
+    participant NearAuthSvc
+    participant Platform
+    
+    Client->>Proxy: GET Request + X-Near-Account
+    Proxy->>NearAuthSvc: Extract Account
+    NearAuthSvc->>Proxy: Return signerId
+    Proxy->>Platform: Execute Read Operation
+    Platform->>Proxy: Return Result
+    Proxy->>Client: Return Response
+```
+
+**Write Request Flow:**
 ```mermaid
 sequenceDiagram
     participant Client
     participant NearWallet
     participant Proxy
-    participant TokenStorage
+    participant NearAuthSvc
     participant Platform
     
-    Note over Client: For each request
     Client->>NearWallet: Request Fresh Signature
     NearWallet->>Client: Return Signed Message
-    Client->>Proxy: Send Request with NearAuthData
-    Proxy->>Proxy: Validate Fresh Signature
-    Proxy->>Proxy: Check Account Authorization
-    alt Authorized
-      Proxy->>TokenStorage: Retrieve Platform Token
-      Proxy->>Platform: Execute Action with Token
-      Platform->>Proxy: Return Result
-    else Not Authorized
-      Proxy->>Client: Return 403 Error
-    end
-    Proxy->>Client: Return Result
+    Client->>Proxy: Write Request + NearAuthData
+    Proxy->>NearAuthSvc: Validate Signature
+    NearAuthSvc->>Proxy: Return signerId
+    Proxy->>Platform: Execute Write Operation
+    Platform->>Proxy: Return Result
+    Proxy->>Client: Return Response
 ```
 
 Benefits:
-
-- Enhanced security through per-request signatures
-- No persistent authentication state in browser
-- Multiple platform accounts linked to a single NEAR wallet
-- Cross-platform actions authorized by unique signatures
-- Decentralized identity management
-- Reduced attack surface by eliminating cookie-based vulnerabilities
+- Simplified authentication for read operations
+- Strong security for write operations
+- Consistent context handling
+- Reduced overhead for GET requests
+- Maintained security for sensitive operations
 
 ### 3. Token Management Pattern
 

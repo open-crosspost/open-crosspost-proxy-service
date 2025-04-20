@@ -24,19 +24,43 @@ flowchart TD
 
 ### 1. Authentication System
 
+The system now supports two authentication paths based on request type:
+
+```mermaid
+flowchart TD
+    A[Request] --> B{GET Request?}
+    B -->|Yes| C[X-Near-Account Header]
+    B -->|No| D[NEAR Auth Validation]
+    C --> E[Extract Account]
+    D --> F[Validate Signature]
+    E --> G[Set signerId]
+    F --> G
+    G --> H[Continue Request]
+```
+
+**GET Request Flow:**
+```mermaid
+flowchart LR
+    A[Client] -->|1. X-Near-Account Header| B[Proxy Service]
+    B -->|2. Extract Account| C[Auth Service]
+    C -->|3. Set Context| B
+    B -->|4. Process Request| D[API Handler]
+```
+
+**Non-GET Request Flow:**
 ```mermaid
 flowchart LR
     A[Client] -->|1. Sign Message| B[NEAR Wallet]
     B -->|2. Return Signature| A
     A -->|3. Send Signature| C[Proxy Service]
     C -->|4. Verify Signature| D[Auth Service]
-    D -->|5. Issue Token| C
-    C -->|6. Return Token| A
+    D -->|5. Set Context| C
+    C -->|6. Process Request| E[API Handler]
 ```
 
 **Implementation:**
-
-- NEAR wallet signature-based authentication
+- X-Near-Account header validation for GET requests
+- NEAR wallet signature-based authentication for non-GET requests
 - API key validation for applications
 - OAuth token management for platforms
 - Signature verification and validation
@@ -63,7 +87,6 @@ classDiagram
 ```
 
 **Features:**
-
 - AES-GCM encryption
 - Key versioning support
 - Secure key storage
@@ -73,14 +96,16 @@ classDiagram
 
 ```mermaid
 flowchart TD
-    Request[API Request] --> CORS[CORS Check]
-    CORS --> Auth[Auth Validation]
-    Auth --> Rate[Rate Limiting]
+    Request[API Request] --> Method{HTTP Method}
+    Method -->|GET| Header[X-Near-Account Check]
+    Method -->|Other| Auth[Full Auth Check]
+    Header --> Rate[Rate Limiting]
+    Auth --> Rate
     Rate --> Action[Authorized Action]
 ```
 
 **Implementation:**
-
+- Method-based authentication requirements
 - CORS restrictions
 - Origin validation
 - Rate limiting
@@ -99,6 +124,7 @@ flowchart TD
    - NEAR wallet integration
    - API key validation
    - CORS configuration
+   - Method-based auth paths
 
 3. **Audit Logging**
    - PII redaction
@@ -150,7 +176,8 @@ flowchart TD
 
 ### 2. Access Security
 
-- Multi-factor authentication
+- Method-based authentication
+- Multi-factor authentication for sensitive operations
 - Strict CORS policies
 - Token validation
 - Rate limiting
@@ -171,17 +198,18 @@ flowchart TD
 
 ## Best Practices
 
-1. **Encryption**
+1. **Authentication**
+   - Validate all requests according to method
+   - Verify signatures for non-GET requests
+   - Validate X-Near-Account header format
+   - Check permissions based on context
+   - Monitor access patterns
+
+2. **Encryption**
    - Use strong algorithms (AES-GCM)
    - Implement proper key sizes
    - Secure IV generation
    - Regular key rotation
-
-2. **Authentication**
-   - Validate all requests
-   - Verify signatures
-   - Check permissions
-   - Monitor access patterns
 
 3. **Development**
    - Input validation
@@ -197,33 +225,36 @@ flowchart TD
 
 ## SDK Security
 
-### Direct Authentication Strategy
+### Authentication Strategy
 
-The SDK implements a secure direct authentication strategy using per-request signatures:
+The SDK implements a flexible authentication strategy based on request type:
 
 ```mermaid
 flowchart TD
-    A[Client App] -->|1. Get Fresh Signature| B[NEAR Wallet]
-    B -->|2. Return Signature| A
-    A -->|3. Call setAuthentication| C[CrosspostClient]
-    C -->|4. Include in Request| D[API Request]
-    D -->|5. Server Validates| E[API Endpoints]
+    A[Client App] -->|GET Request| B1[Add X-Near-Account]
+    A -->|Other Request| B2[Get Fresh Signature]
+    B2 -->|Sign Request| C[CrosspostClient]
+    B1 --> C
+    C -->|Include Headers| D[API Request]
+    D -->|Server Validates| E[API Endpoints]
 ```
 
 **Security Benefits:**
 
-1. **Per-Request Authorization**
-   - Each request requires a fresh signature
-   - No persistent authentication state
-   - Explicit authorization for every action
+1. **Flexible Authorization**
+   - Simplified auth for read operations
+   - Strong auth for write operations
+   - Consistent context handling
+   - Method-appropriate security
 
 2. **Enhanced Security**
    - No client-side storage of credentials
-   - Each request independently verified
+   - Each write request independently verified
    - Reduced attack surface
    - No session-based vulnerabilities
 
 3. **Request Validation**
-   - Signature verification for each request
-   - Timestamp validation to prevent replay attacks
-   - Account authorization checks
+   - Method-based validation rules
+   - Header format verification
+   - Account validation
+   - Rate limiting per method

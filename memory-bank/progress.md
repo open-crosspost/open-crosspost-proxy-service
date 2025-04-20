@@ -26,7 +26,9 @@ complete, tested, and documented.
 - ✅ Token storage service with Deno KV
 - ✅ Token refresh mechanism
 - ✅ Token revocation endpoint
-- ✅ NEAR wallet signature authentication
+- ✅ Method-based authentication
+  - ✅ X-Near-Account header for GET requests
+  - ✅ NEAR wallet signature for write operations
 - ✅ Versioned encryption for token storage
 - ✅ Token access logging with PII redaction
 
@@ -61,6 +63,9 @@ complete, tested, and documented.
 - ✅ Shared type definitions package (@crosspost/types)
 - ✅ Main API client package (@crosspost/sdk)
 - ✅ Comprehensive documentation for all packages
+- ✅ Method-based authentication support
+  - ✅ Simplified header-based auth for GET requests
+  - ✅ Full NEAR auth for write operations
 
 ### Types and Schemas
 
@@ -83,6 +88,8 @@ complete, tested, and documented.
 - ✅ Mock implementations for external dependencies
 - ✅ Controller tests with edge case coverage
 - ✅ Authentication flow tests
+  - ✅ GET request header validation
+  - ✅ Write request signature validation
 - ✅ Post operation tests
 - ✅ Error handling tests
 
@@ -94,6 +101,7 @@ complete, tested, and documented.
 - ⬜ Enhanced token expiry management
 - ⬜ User-specific key derivation
 - ⬜ Automatic key rotation mechanism
+- ⬜ Additional X-Near-Account header validation rules
 
 ### Reliability Improvements
 
@@ -101,6 +109,7 @@ complete, tested, and documented.
 - ⬜ Enhanced rate limit backoff strategies
 - ⬜ Improved error recovery mechanisms
 - ⬜ Request size limits
+- ⬜ Method-specific rate limiting
 
 ### Monitoring and Observability
 
@@ -108,6 +117,7 @@ complete, tested, and documented.
 - ⬜ Metrics collection
 - ⬜ Alerting configuration
 - ⬜ Enhanced health check endpoints
+- ⬜ Authentication method usage tracking
 
 ### Platform Extensions
 
@@ -124,8 +134,10 @@ complete, tested, and documented.
   - ✅ Error information extraction utilities
   - ✅ Error context enrichment
   - ✅ API wrapper for consistent error handling
-- ✅ Direct authentication with per-request signatures
-  - ✅ Fresh signature required for each request
+- ✅ Method-based authentication
+  - ✅ Simplified header auth for GET requests
+  - ✅ Full NEAR auth for write operations
+  - ✅ Fresh signature required for write requests
   - ✅ Enhanced security through request-specific authorization
   - ✅ `setAuthentication` method for explicit auth setting
 - ⬜ Additional platform-specific clients
@@ -138,3 +150,5 @@ complete, tested, and documented.
 2. Rate limit data is not persisted across worker restarts
 3. Some platforms may have API changes that require updates to our implementations
 4. Large media uploads may require optimization for better performance
+5. GET request authentication provides less security but better performance
+6. Method-based rate limiting may need fine-tuning based on usage patterns
