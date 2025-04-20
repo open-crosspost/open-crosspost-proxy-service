@@ -1,11 +1,10 @@
 import {
   AccountActivity,
-  LeaderboardEntry,
+  AccountActivityEntry,
+  AccountPost,
   Platform,
   PlatformAccountActivity,
-  PlatformLeaderboardEntry,
   PlatformName,
-  PostRecordResponse,
 } from '@crosspost/types';
 import { Env } from '../../src/config/env.ts';
 
@@ -27,26 +26,56 @@ export class MockActivityTrackingService extends ActivityTrackingService {
     return Promise.resolve();
   }
 
-  override async getLeaderboard(): Promise<LeaderboardEntry[]> {
-    return [
-      { signerId: 'user1.near', postCount: 10, lastPostTimestamp: Date.now() },
-      { signerId: 'user2.near', postCount: 5, lastPostTimestamp: Date.now() - 86400000 },
-    ];
-  }
-
-  override async getPlatformLeaderboard(): Promise<PlatformLeaderboardEntry[]> {
+  override async getLeaderboard(): Promise<AccountActivityEntry[]> {
     return [
       {
         signerId: 'user1.near',
-        postCount: 8,
-        lastPostTimestamp: Date.now(),
-        platform: Platform.TWITTER,
+        totalPosts: 10,
+        totalLikes: 0,
+        totalReposts: 0,
+        totalReplies: 0,
+        totalQuotes: 0,
+        totalScore: 10,
+        rank: 1,
+        lastActive: new Date(Date.now()).toISOString(),
+      },
+      {
+        signerId: 'user2.near',
+        totalPosts: 5,
+        totalLikes: 0,
+        totalReposts: 0,
+        totalReplies: 0,
+        totalQuotes: 0,
+        totalScore: 5,
+        rank: 2,
+        lastActive: new Date(Date.now() - 86400000).toISOString(),
+      },
+    ];
+  }
+
+  override async getPlatformLeaderboard(): Promise<AccountActivityEntry[]> {
+    return [
+      {
+        signerId: 'user1.near',
+        totalPosts: 8,
+        totalLikes: 0,
+        totalReposts: 0,
+        totalReplies: 0,
+        totalQuotes: 0,
+        totalScore: 8,
+        rank: 1,
+        lastActive: new Date(Date.now()).toISOString(),
       },
       {
         signerId: 'user3.near',
-        postCount: 3,
-        lastPostTimestamp: Date.now() - 43200000,
-        platform: Platform.TWITTER,
+        totalPosts: 3,
+        totalLikes: 0,
+        totalReposts: 0,
+        totalReplies: 0,
+        totalQuotes: 0,
+        totalScore: 3,
+        rank: 2,
+        lastActive: new Date(Date.now() - 43200000).toISOString(),
       },
     ];
   }
@@ -87,30 +116,30 @@ export class MockActivityTrackingService extends ActivityTrackingService {
     return null;
   }
 
-  override async getAccountPosts(): Promise<PostRecordResponse[]> {
+  override async getAccountPosts(): Promise<AccountPost[]> {
     return [
       {
-        postId: 'post1',
+        id: 'post1',
         platform: Platform.TWITTER,
-        timestamp: new Date().toISOString(),
-        userId: 'twitter-user-1',
+        type: 'post',
+        createdAt: new Date().toISOString(),
       },
       {
-        postId: 'post2',
+        id: 'post2',
         platform: Platform.TWITTER,
-        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-        userId: 'twitter-user-1',
+        type: 'post',
+        createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
       },
     ];
   }
 
-  override async getAccountPlatformPosts(): Promise<PostRecordResponse[]> {
+  override async getAccountPlatformPosts(): Promise<AccountPost[]> {
     return [
       {
-        postId: 'post1',
+        id: 'post1',
         platform: Platform.TWITTER,
-        timestamp: new Date().toISOString(),
-        userId: 'twitter-user-1',
+        type: 'post',
+        createdAt: new Date().toISOString(),
       },
     ];
   }

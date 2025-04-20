@@ -4,10 +4,6 @@ import { TwitterClient } from '../twitter-client.ts';
 import { TwitterMedia } from '../twitter-media.ts';
 import { MediaContent } from '@crosspost/types';
 
-/**
- * Base class for Twitter post operations
- * Contains common utilities and shared functionality
- */
 export abstract class TwitterPostBase {
   protected twitterClient: TwitterClient;
   protected twitterMedia: TwitterMedia;
@@ -50,7 +46,7 @@ export abstract class TwitterPostBase {
         }
       } catch (error) {
         console.error('Error uploading media file:', error);
-        // Continue with other files even if one fails
+        throw error;
       }
     }
 

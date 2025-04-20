@@ -1,16 +1,6 @@
-/**
- * User Profile Schemas and Types
- * Defines Zod schemas for user profile-related data
- * TypeScript types are derived from Zod schemas for type safety
- */
-
 import { z } from 'zod';
 import { PlatformSchema } from './common.ts';
-import { EnhancedResponseSchema } from './response.ts';
 
-/**
- * User profile schema
- */
 export const UserProfileSchema = z.object({
   userId: z.string().describe('User ID on the platform'),
   username: z.string().describe('Username on the platform'),
@@ -21,23 +11,9 @@ export const UserProfileSchema = z.object({
   lastUpdated: z.number().describe('Timestamp when the profile was last updated'),
 }).describe('User profile');
 
-/**
- * Profile refresh result schema
- */
-export const ProfileRefreshResultSchema = z.object({
-  success: z.boolean().describe('Whether the profile refresh was successful'),
+export const ProfileRefreshResponseSchema = z.object({
   profile: UserProfileSchema.optional().describe('The refreshed user profile (if successful)'),
-  error: z.string().optional().describe('Error message (if unsuccessful)'),
-}).describe('Profile refresh result');
+}).describe('Profile refresh response');
 
-/**
- * Profile refresh response schema
- */
-export const ProfileRefreshResponseSchema = EnhancedResponseSchema(
-  ProfileRefreshResultSchema,
-).describe('Profile refresh response');
-
-// Derive TypeScript types from Zod schemas
 export type UserProfile = z.infer<typeof UserProfileSchema>;
-export type ProfileRefreshResult = z.infer<typeof ProfileRefreshResultSchema>;
 export type ProfileRefreshResponse = z.infer<typeof ProfileRefreshResponseSchema>;

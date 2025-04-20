@@ -1,16 +1,6 @@
-/**
- * Activity Schemas and Types
- * Defines Zod schemas for activity-related requests and responses
- * TypeScript types are derived from Zod schemas for type safety
- */
-
 import { z } from 'zod';
-import { EnhancedResponseSchema } from './response.ts';
 import { PlatformSchema } from './common.ts';
 
-/**
- * Time periods for activity filtering
- */
 export enum TimePeriod {
   ALL = 'all',
   YEARLY = 'year',
@@ -19,9 +9,6 @@ export enum TimePeriod {
   DAILY = 'day',
 }
 
-/**
- * Activity leaderboard query schema
- */
 export const ActivityLeaderboardQuerySchema = z.object({
   timeframe: z.nativeEnum(TimePeriod).optional().describe(
     'Timeframe for the leaderboard',
@@ -36,9 +23,6 @@ export const ActivityLeaderboardQuerySchema = z.object({
     .describe('Offset for pagination'),
 }).describe('Activity leaderboard query');
 
-/**
- * Account activity entry schema
- */
 export const AccountActivityEntrySchema = z.object({
   signerId: z.string().describe('NEAR account ID'),
   totalPosts: z.number().describe('Total number of posts'),
@@ -51,39 +35,23 @@ export const AccountActivityEntrySchema = z.object({
   lastActive: z.string().datetime().describe('Timestamp of last activity'),
 }).describe('Account activity entry');
 
-/**
- * Activity leaderboard response schema
- */
-export const ActivityLeaderboardResponseSchema = EnhancedResponseSchema(
-  z.object({
-    timeframe: z.nativeEnum(TimePeriod).describe('Timeframe for the leaderboard'),
-    entries: z.array(AccountActivityEntrySchema).describe('Leaderboard entries'),
-    total: z.number().describe('Total number of entries in the leaderboard'),
-    limit: z.number().describe('Maximum number of results returned'),
-    offset: z.number().describe('Offset for pagination'),
-    generatedAt: z.string().datetime().describe('Timestamp when the leaderboard was generated'),
-  }),
-).describe('Activity leaderboard response');
+const ActivityLeaderboardResponseSchema = z.object({
+  timeframe: z.nativeEnum(TimePeriod).describe('Timeframe for the leaderboard'),
+  entries: z.array(AccountActivityEntrySchema).describe('Leaderboard entries'),
+  generatedAt: z.string().datetime().describe('Timestamp when the leaderboard was generated'),
+  platform: PlatformSchema.optional().describe('Platform filter (if applied)'),
+});
 
-/**
- * Account activity params schema
- */
 export const AccountActivityParamsSchema = z.object({
   signerId: z.string().describe('NEAR account ID'),
 }).describe('Account activity params');
 
-/**
- * Account activity query schema
- */
 export const AccountActivityQuerySchema = z.object({
   timeframe: z.nativeEnum(TimePeriod).optional().describe(
     'Timeframe for the activity',
   ),
 }).describe('Account activity query');
 
-/**
- * Platform activity schema
- */
 export const PlatformActivitySchema = z.object({
   platform: PlatformSchema,
   posts: z.number().describe('Number of posts on this platform'),
@@ -95,35 +63,24 @@ export const PlatformActivitySchema = z.object({
   lastActive: z.string().datetime().describe('Timestamp of last activity on this platform'),
 }).describe('Platform activity');
 
-/**
- * Account activity response schema
- */
-export const AccountActivityResponseSchema = EnhancedResponseSchema(
-  z.object({
-    signerId: z.string().describe('NEAR account ID'),
-    timeframe: z.nativeEnum(TimePeriod).describe('Timeframe for the activity'),
-    totalPosts: z.number().describe('Total number of posts across all platforms'),
-    totalLikes: z.number().describe('Total number of likes across all platforms'),
-    totalReposts: z.number().describe('Total number of reposts across all platforms'),
-    totalReplies: z.number().describe('Total number of replies across all platforms'),
-    totalQuotes: z.number().describe('Total number of quote posts across all platforms'),
-    totalScore: z.number().describe('Total activity score across all platforms'),
-    rank: z.number().describe('Rank on the leaderboard'),
-    lastActive: z.string().datetime().describe('Timestamp of last activity across all platforms'),
-    platforms: z.array(PlatformActivitySchema).describe('Activity breakdown by platform'),
-  }),
-).describe('Account activity response');
+const AccountActivityResponseSchema = z.object({
+  signerId: z.string().describe('NEAR account ID'),
+  timeframe: z.nativeEnum(TimePeriod).describe('Timeframe for the activity'),
+  totalPosts: z.number().describe('Total number of posts across all platforms'),
+  totalLikes: z.number().describe('Total number of likes across all platforms'),
+  totalReposts: z.number().describe('Total number of reposts across all platforms'),
+  totalReplies: z.number().describe('Total number of replies across all platforms'),
+  totalQuotes: z.number().describe('Total number of quote posts across all platforms'),
+  totalScore: z.number().describe('Total activity score across all platforms'),
+  rank: z.number().describe('Rank on the leaderboard'),
+  lastActive: z.string().datetime().describe('Timestamp of last activity across all platforms'),
+  platforms: z.array(PlatformActivitySchema).describe('Activity breakdown by platform'),
+});
 
-/**
- * Account posts params schema
- */
 export const AccountPostsParamsSchema = z.object({
   signerId: z.string().describe('NEAR account ID'),
 }).describe('Account posts params');
 
-/**
- * Account posts query schema
- */
 export const AccountPostsQuerySchema = z.object({
   platform: z.string().optional().describe('Filter by platform (optional)'),
   limit: z.string().optional()
@@ -139,9 +96,6 @@ export const AccountPostsQuerySchema = z.object({
   ),
 }).describe('Account posts query');
 
-/**
- * Account post schema
- */
 export const AccountPostSchema = z.object({
   id: z.string().describe('Post ID'),
   platform: PlatformSchema,
@@ -159,25 +113,17 @@ export const AccountPostSchema = z.object({
   quotedPostId: z.string().optional().describe('ID of the post this is quoting (if applicable)'),
 }).describe('Account post');
 
-/**
- * Account posts response schema
- */
-export const AccountPostsResponseSchema = EnhancedResponseSchema(
-  z.object({
-    signerId: z.string().describe('NEAR account ID'),
-    posts: z.array(AccountPostSchema).describe('List of posts'),
-    total: z.number().describe('Total number of posts matching the query'),
-    limit: z.number().describe('Maximum number of results returned'),
-    offset: z.number().describe('Offset for pagination'),
-    platform: z.string().optional().describe('Platform filter (if applied)'),
-    type: z.enum(['post', 'repost', 'reply', 'quote', 'like', 'all']).optional().describe(
-      'Post type filter (if applied)',
-    ),
-  }),
-).describe('Account posts response');
+const AccountPostsResponseSchema = z.object({
+  signerId: z.string().describe('NEAR account ID'),
+  posts: z.array(AccountPostSchema).describe('List of posts'),
+  platform: z.string().optional().describe('Platform filter (if applied)'),
+  type: z.enum(['post', 'repost', 'reply', 'quote', 'like', 'all']).optional().describe(
+    'Post type filter (if applied)',
+  ),
+});
 
 /**
- * Interface for account activity data
+ * Interface for account activity Response
  */
 export interface AccountActivity {
   signerId: string;
@@ -187,14 +133,14 @@ export interface AccountActivity {
 }
 
 /**
- * Interface for platform-specific account activity data
+ * Interface for platform-specific account activity Response
  */
 export interface PlatformAccountActivity extends AccountActivity {
   platform: string;
 }
 
 /**
- * Interface for post record data (storage optimized)
+ * Interface for post record Response (storage optimized)
  */
 export interface PostRecord {
   id: string; // postId
@@ -203,33 +149,6 @@ export interface PostRecord {
   u: string; // userId
 }
 
-/**
- * Interface for post record data (API response)
- */
-export interface PostRecordResponse {
-  postId: string;
-  platform: string;
-  timestamp: string;
-  userId: string;
-}
-
-/**
- * Interface for leaderboard entry
- */
-export interface LeaderboardEntry {
-  signerId: string;
-  postCount: number;
-  lastPostTimestamp: number;
-}
-
-/**
- * Interface for platform-specific leaderboard entry
- */
-export interface PlatformLeaderboardEntry extends LeaderboardEntry {
-  platform: string;
-}
-
-// Derive TypeScript types from Zod schemas
 export type ActivityLeaderboardQuery = z.infer<typeof ActivityLeaderboardQuerySchema>;
 export type AccountActivityEntry = z.infer<typeof AccountActivityEntrySchema>;
 export type ActivityLeaderboardResponse = z.infer<typeof ActivityLeaderboardResponseSchema>;
@@ -241,7 +160,3 @@ export type AccountPostsParams = z.infer<typeof AccountPostsParamsSchema>;
 export type AccountPostsQuery = z.infer<typeof AccountPostsQuerySchema>;
 export type AccountPost = z.infer<typeof AccountPostSchema>;
 export type AccountPostsResponse = z.infer<typeof AccountPostsResponseSchema>;
-
-// Legacy type aliases for backward compatibility
-export type LeaderboardQuery = ActivityLeaderboardQuery;
-export type LeaderboardResponse = ActivityLeaderboardResponse;

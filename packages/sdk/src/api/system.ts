@@ -1,4 +1,4 @@
-import type { EndpointRateLimitResponse, RateLimitResponse } from '@crosspost/types';
+import type { ApiResponse, EndpointRateLimitResponse, RateLimitResponse } from '@crosspost/types';
 import { makeRequest, type RequestOptions } from '../core/request.ts';
 
 /**
@@ -45,8 +45,8 @@ export class SystemApi {
    * Gets the health status of the API
    * @returns A promise resolving with the health status
    */
-  async getHealthStatus(): Promise<{ status: string }> {
-    return makeRequest<{ status: string }>(
+  async getHealthStatus(): Promise<ApiResponse<{ status: string }>> {
+    return makeRequest<ApiResponse<{ status: string }>>(
       'GET',
       '/health',
       this.options,

@@ -107,10 +107,11 @@ export function createTestUserId(platform: PlatformName): string {
 export function createMockServices() {
   // Create mock service objects with all required methods
   const mockPostService = {
-    createPost: (_platform: PlatformName, userId: string, _content: any) => {
+    createPost: (_platform: PlatformName, userId: string, content: any) => {
       return Promise.resolve({
         id: `mock-post-id-${userId}`,
         url: `https://mock.platform/${userId}/posts/mock-post-id-${userId}`,
+        text: Array.isArray(content) ? content[0].text : content.text,
         createdAt: new Date().toISOString(),
         success: true,
       } as PostResult);

@@ -1,13 +1,12 @@
+import { MediaContent } from '@crosspost/types';
+import { Buffer } from 'node:buffer';
 import { TwitterApi } from 'twitter-api-v2';
+import { Env } from '../../../config/env.ts';
 import {
   MediaStatusResult,
   MediaUploadResult,
   PlatformMedia,
 } from '../abstract/platform-media.interface.ts';
-import { TwitterClient } from './twitter-client.ts';
-import { Env } from '../../../config/env.ts';
-import { Buffer } from 'node:buffer';
-import { MediaContent } from '@crosspost/types';
 
 // Media upload limitations
 const MEDIA_LIMITS = {
@@ -18,19 +17,10 @@ const MEDIA_LIMITS = {
   CHUNK_SIZE_BYTES: 1024 * 1024, // 1MB chunks
 };
 
-/**
- * Twitter Media
- * Implements the PlatformMedia interface for Twitter
- */
 export class TwitterMedia implements PlatformMedia {
-  private env: Env;
-  private twitterClient: TwitterClient;
   private oauth1Client: TwitterApi | null = null;
 
-  constructor(env: Env, twitterClient: TwitterClient) {
-    this.env = env;
-    this.twitterClient = twitterClient;
-
+  constructor(env: Env) {
     // Initialize OAuth 1.0a client for media uploads if credentials are provided
     if (
       env.TWITTER_API_KEY &&

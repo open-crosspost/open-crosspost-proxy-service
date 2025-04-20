@@ -1,8 +1,3 @@
-/**
- * Post Controllers Index
- * Exports all post-related controllers
- */
-
 export * from './base.controller.ts';
 export * from './create.controller.ts';
 export * from './repost.controller.ts';

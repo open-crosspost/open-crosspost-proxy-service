@@ -1,12 +1,8 @@
+import { PostContent, PostResult } from '@crosspost/types';
 import { SendTweetV2Params } from 'twitter-api-v2';
 import { TwitterError } from '../twitter-error.ts';
 import { TwitterPostBase } from './base.ts';
-import { ApiErrorCode, PostContent, PostResult } from '@crosspost/types';
 
-/**
- * Twitter Reply Post
- * Handles replying to posts on Twitter
- */
 export class TwitterReplyPost extends TwitterPostBase {
   /**
    * Reply to an existing post
@@ -48,15 +44,7 @@ export class TwitterReplyPost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error replying to post:', error);
-      throw new TwitterError(
-        'Failed to reply to post',
-        ApiErrorCode.POST_CREATION_FAILED,
-        400,
-        error,
-        undefined,
-        true,
-        userId,
-      );
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 
@@ -120,15 +108,7 @@ export class TwitterReplyPost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error creating reply thread:', error);
-      throw new TwitterError(
-        'Failed to create reply thread',
-        ApiErrorCode.THREAD_CREATION_FAILED,
-        400,
-        error,
-        undefined,
-        true,
-        userId,
-      );
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 }

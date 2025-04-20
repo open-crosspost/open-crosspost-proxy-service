@@ -1,4 +1,5 @@
-import { ApiErrorCode, Platform, PlatformError, PostContent } from '@crosspost/types';
+import { ApiErrorCode, Platform, PostContent } from '@crosspost/types';
+import { createPlatformError } from '../../../src/errors/platform-error.ts';
 import { assertArrayIncludes, assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { CreateController } from '../../../src/controllers/post/create.controller.ts';
@@ -9,6 +10,8 @@ import {
   createPlatformErrorServices,
   createRateLimitErrorServices,
 } from '../../utils/test-utils.ts';
+import { ApiResponseError } from 'twitter-api-v2';
+import { createMockTwitterError } from '../../utils/twitter-utils.ts';
 
 describe('Post Creation Controller', () => {
   let controller: CreateController;
@@ -39,7 +42,7 @@ describe('Post Creation Controller', () => {
             userId: 'test-user-id',
           },
         ],
-        content: 'Test post from API',
+        content: [{ text: 'Test post from API' }],
       },
     });
 
@@ -55,7 +58,10 @@ describe('Post Creation Controller', () => {
     assertEquals(responseBody.data.errors.length, 0);
     assertEquals(responseBody.data.results[0].platform, Platform.TWITTER);
     assertEquals(responseBody.data.results[0].userId, 'test-user-id');
-    assertExists(responseBody.data.results[0].postId);
+    assertExists(responseBody.data.results[0]);
+    assertExists(responseBody.data.results[0].id);
+    assertExists(responseBody.data.results[0].text);
+    assertExists(responseBody.data.results[0].createdAt);
   });
 
   it('should handle rate limit errors from RateLimitService', async () => {
@@ -80,7 +86,7 @@ describe('Post Creation Controller', () => {
             userId: 'test-user-id',
           },
         ],
-        content: 'Test post that will hit rate limit',
+        content: [{ text: 'Test post that will hit rate limit' }],
       },
     });
 
@@ -93,9 +99,9 @@ describe('Post Creation Controller', () => {
     assertEquals(rateLimitResponseBody.data.results.length, 0);
     assertExists(rateLimitResponseBody.data.errors);
     assertEquals(rateLimitResponseBody.data.errors.length, 1);
-    assertEquals(rateLimitResponseBody.data.errors[0].errorCode, ApiErrorCode.RATE_LIMITED);
-    assertEquals(rateLimitResponseBody.data.errors[0].platform, Platform.TWITTER);
-    assertEquals(rateLimitResponseBody.data.errors[0].userId, 'test-user-id');
+    assertEquals(rateLimitResponseBody.data.errors[0].code, ApiErrorCode.RATE_LIMITED);
+    assertEquals(rateLimitResponseBody.data.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(rateLimitResponseBody.data.errors[0].details.userId, 'test-user-id');
   });
 
   it('should handle authentication errors from AuthService', async () => {
@@ -120,7 +126,7 @@ describe('Post Creation Controller', () => {
             userId: 'test-user-id',
           },
         ],
-        content: 'Test post with auth error',
+        content: [{ text: 'Test post with auth error' }],
       },
     });
 
@@ -133,21 +139,18 @@ describe('Post Creation Controller', () => {
     assertEquals(authErrorResponseBody.data.results.length, 0);
     assertExists(authErrorResponseBody.data.errors);
     assertEquals(authErrorResponseBody.data.errors.length, 1);
-    assertEquals(authErrorResponseBody.data.errors[0].errorCode, ApiErrorCode.UNAUTHORIZED);
-    assertEquals(authErrorResponseBody.data.errors[0].platform, Platform.TWITTER);
-    assertEquals(authErrorResponseBody.data.errors[0].userId, 'test-user-id');
+    assertEquals(authErrorResponseBody.data.errors[0].code, ApiErrorCode.UNAUTHORIZED);
+    assertEquals(authErrorResponseBody.data.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(authErrorResponseBody.data.errors[0].details.userId, 'test-user-id');
   });
 
   it('should handle platform errors from PostService', async () => {
     // Create a platform error
-    const platformError = new PlatformError(
+    const platformError = createPlatformError(
+      ApiErrorCode.PLATFORM_ERROR,
       'Platform specific error',
       Platform.TWITTER,
-      ApiErrorCode.PLATFORM_ERROR,
-      false,
-      undefined,
-      500,
-      'test-user-id',
+      { userId: 'test-user-id' },
     );
 
     // Create services with platform error
@@ -171,7 +174,7 @@ describe('Post Creation Controller', () => {
             userId: 'test-user-id',
           },
         ],
-        content: 'Test post causing platform error',
+        content: [{ text: 'Test post causing platform error' }],
       },
     });
 
@@ -180,14 +183,14 @@ describe('Post Creation Controller', () => {
     const platformErrorResponseBody = await platformErrorResponse.json();
 
     // Verify the response indicates a platform error
-    assertEquals(platformErrorResponse.status, 500);
+    assertEquals(platformErrorResponse.status, 502);
     assertEquals(platformErrorResponseBody.data.results.length, 0);
     assertExists(platformErrorResponseBody.data.errors);
     assertEquals(platformErrorResponseBody.data.errors.length, 1);
-    assertEquals(platformErrorResponseBody.data.errors[0].errorCode, ApiErrorCode.PLATFORM_ERROR);
-    assertEquals(platformErrorResponseBody.data.errors[0].error, 'Platform specific error');
-    assertEquals(platformErrorResponseBody.data.errors[0].platform, Platform.TWITTER);
-    assertEquals(platformErrorResponseBody.data.errors[0].userId, 'test-user-id');
+    assertEquals(platformErrorResponseBody.data.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
+    assertEquals(platformErrorResponseBody.data.errors[0].message, 'Platform specific error');
+    assertEquals(platformErrorResponseBody.data.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(platformErrorResponseBody.data.errors[0].details.userId, 'test-user-id');
   });
 
   it('should handle multiple platform targets', async () => {
@@ -205,7 +208,7 @@ describe('Post Creation Controller', () => {
             userId: 'twitter-user-id-2',
           },
         ],
-        content: 'Test post to multiple targets',
+        content: [{ text: 'Test post to multiple targets' }],
       },
     });
 
@@ -236,7 +239,7 @@ describe('Post Creation Controller', () => {
             userId: 'test-user-id',
           },
         ],
-        content: 'Test post with media',
+        content: [{ text: 'Test post with media' }],
         mediaIds: ['media-1', 'media-2'],
       },
     });
@@ -253,6 +256,59 @@ describe('Post Creation Controller', () => {
     assertEquals(responseBody.data.errors.length, 0);
   });
 
+  it('should handle media upload errors', async () => {
+    // Create a media upload error
+    const mediaError = createPlatformError(
+      ApiErrorCode.PLATFORM_ERROR,
+      'Media upload failed',
+      Platform.TWITTER,
+      {
+        userId: 'test-user-id',
+        twitterErrorCode: 324,
+      },
+    );
+
+    // Create services with media error
+    const mediaErrorServices = createPlatformErrorServices(mediaError);
+
+    // Create a controller with the media error services
+    const mediaErrorController = new CreateController(
+      mediaErrorServices.postService,
+      mediaErrorServices.rateLimitService,
+      mediaErrorServices.activityTrackingService,
+      mediaErrorServices.authService,
+    );
+
+    // Create a mock context with media attachments
+    const context = createMockContext({
+      signerId: 'test.near',
+      validatedBody: {
+        targets: [
+          {
+            platform: Platform.TWITTER,
+            userId: 'test-user-id',
+          },
+        ],
+        content: [{ text: 'Test post with media that will fail' }],
+        mediaIds: ['media-1'],
+      },
+    });
+
+    // Call the controller
+    const response = await mediaErrorController.handle(context);
+    const responseBody = await response.json();
+
+    // Verify the response indicates a media error
+    assertEquals(response.status, 502);
+    assertEquals(responseBody.data.results.length, 0);
+    assertExists(responseBody.data.errors);
+    assertEquals(responseBody.data.errors.length, 1);
+    assertEquals(responseBody.data.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
+    assertEquals(responseBody.data.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.data.errors[0].details.userId, 'test-user-id');
+    assertEquals(responseBody.data.errors[0].details.twitterErrorCode, 324);
+  });
+
   it('should handle partial success with some targets failing', async () => {
     // Create a custom service mock where one target succeeds and one fails
     const mixedResultServices = createMockServices();
@@ -266,14 +322,11 @@ describe('Post Creation Controller', () => {
     ) => {
       if (userId === 'failing-user-id') {
         return Promise.reject(
-          new PlatformError(
+          createPlatformError(
+            ApiErrorCode.PLATFORM_ERROR,
             'Platform specific error',
             Platform.TWITTER,
-            ApiErrorCode.PLATFORM_ERROR,
-            false,
-            undefined,
-            500,
-            userId,
+            { userId },
           ),
         );
       }
@@ -302,7 +355,7 @@ describe('Post Creation Controller', () => {
             userId: 'failing-user-id',
           },
         ],
-        content: 'Test post with mixed results',
+        content: [{ text: 'Test post with mixed results' }],
       },
     });
 
@@ -324,8 +377,8 @@ describe('Post Creation Controller', () => {
     assertEquals(responseBody.data.results[0].userId, 'successful-user-id');
 
     // Verify the error
-    assertEquals(responseBody.data.errors[0].userId, 'failing-user-id');
-    assertEquals(responseBody.data.errors[0].errorCode, ApiErrorCode.PLATFORM_ERROR);
+    assertEquals(responseBody.data.errors[0].details.userId, 'failing-user-id');
+    assertEquals(responseBody.data.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
   });
 
   it('should handle multiple rate limit errors in multi-target operations', async () => {
@@ -339,15 +392,12 @@ describe('Post Creation Controller', () => {
       content: PostContent | PostContent[],
     ) => {
       return Promise.reject(
-        new PlatformError(
+        createPlatformError(
+          ApiErrorCode.RATE_LIMITED,
           'Rate limit exceeded',
           platform,
-          ApiErrorCode.RATE_LIMITED,
-          true, // Recoverable
-          undefined,
-          429,
-          userId,
-          { retryAfter: 3600 }, // 1 hour
+          { userId, retryAfter: 3600 }, // 1 hour
+          true,
         ),
       );
     };
@@ -378,7 +428,7 @@ describe('Post Creation Controller', () => {
             userId: 'user-id-3',
           },
         ],
-        content: 'Test post with multiple rate limit errors',
+        content: [{ text: 'Test post with multiple rate limit errors' }],
       },
     });
 
@@ -397,9 +447,9 @@ describe('Post Creation Controller', () => {
 
     // Verify all errors have the same error code
     for (const error of responseBody.data.errors) {
-      assertEquals(error.errorCode, ApiErrorCode.RATE_LIMITED);
+      assertEquals(error.code, ApiErrorCode.RATE_LIMITED);
       assertEquals(error.recoverable, true);
-      assertEquals(error.platform, Platform.TWITTER);
+      assertEquals(error.details.platform, Platform.TWITTER);
     }
 
     // Verify the summary counts are correct
@@ -408,20 +458,18 @@ describe('Post Creation Controller', () => {
     assertEquals(responseBody.data.summary.failed, 3);
 
     // Verify each error has a different userId
-    const userIds = responseBody.data.errors.map((e) => e.userId);
+    const userIds = responseBody.data.errors.map((e) => e.details.userId);
     assertArrayIncludes(userIds, ['user-id-1', 'user-id-2', 'user-id-3']);
   });
 
   it('should handle recoverable vs permanent platform errors differently', async () => {
     // Create a temporary error
-    const recoverableError = new PlatformError(
+    const recoverableError = createPlatformError(
+      ApiErrorCode.PLATFORM_ERROR,
       'Recoverable platform error',
       Platform.TWITTER,
-      ApiErrorCode.PLATFORM_ERROR,
+      { userId: 'test-user-id' },
       true, // recoverable = true
-      undefined,
-      503,
-      'test-user-id',
     );
 
     // Create services with recoverable error
@@ -445,7 +493,7 @@ describe('Post Creation Controller', () => {
             userId: 'test-user-id',
           },
         ],
-        content: 'Test post with recoverable error',
+        content: [{ text: 'Test post with recoverable error' }],
       },
     });
 
@@ -453,12 +501,14 @@ describe('Post Creation Controller', () => {
     const response = await recoverableErrorController.handle(context);
     const responseBody = await response.json();
 
+    assertEquals(response.status, 502);
+
     // Verify the response indicates a recoverable error
     assertExists(responseBody.data);
     assertExists(responseBody.data.errors);
     assertEquals(responseBody.data.results.length, 0);
     assertEquals(responseBody.data.errors.length, 1);
-    assertEquals(responseBody.data.errors[0].errorCode, ApiErrorCode.PLATFORM_ERROR);
+    assertEquals(responseBody.data.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
 
     // The key assertion - make sure the recoverable flag is preserved
     assertEquals(responseBody.data.errors[0].recoverable, true);
@@ -476,19 +526,16 @@ describe('Post Creation Controller', () => {
             userId: 'test-user-id',
           },
         ],
-        content: longContent,
+        content: [{ text: longContent }],
       },
     });
 
     // Create a validation error with the correct error code
-    const validationError = new PlatformError(
+    const validationError = createPlatformError(
+      ApiErrorCode.VALIDATION_ERROR,
       'Content exceeds maximum length',
       Platform.TWITTER,
-      ApiErrorCode.VALIDATION_ERROR, // Use VALIDATION_ERROR instead of PLATFORM_ERROR
-      false,
-      undefined,
-      400,
-      'test-user-id',
+      { userId: 'test-user-id' },
     );
 
     // Create services with validation error
@@ -513,8 +560,8 @@ describe('Post Creation Controller', () => {
     assertEquals(responseBody.data.errors.length, 1);
 
     // The key assertion - make sure the error code is VALIDATION_ERROR
-    assertEquals(responseBody.data.errors[0].errorCode, ApiErrorCode.VALIDATION_ERROR);
-    assertEquals(responseBody.data.errors[0].platform, Platform.TWITTER);
-    assertEquals(responseBody.data.errors[0].userId, 'test-user-id');
+    assertEquals(responseBody.data.errors[0].code, ApiErrorCode.VALIDATION_ERROR);
+    assertEquals(responseBody.data.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.data.errors[0].details.userId, 'test-user-id');
   });
 });

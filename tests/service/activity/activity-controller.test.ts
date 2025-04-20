@@ -1,11 +1,6 @@
-import {
-  ApiError,
-  ApiErrorCode,
-  Platform,
-  PlatformError,
-  PlatformName,
-  TimePeriod,
-} from '@crosspost/types';
+import { ApiErrorCode, Platform, PlatformName, TimePeriod } from '@crosspost/types';
+import { createApiError } from '../../../src/errors/api-error.ts';
+import { createPlatformError } from '../../../src/errors/platform-error.ts';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { ActivityController } from '../../../src/controllers/activity.controller.ts';
@@ -32,8 +27,28 @@ describe('Activity Controller', () => {
 
     mockActivityTrackingService.getLeaderboard = () =>
       Promise.resolve([
-        { signerId: 'test.near', postCount: 10, lastPostTimestamp: Date.now() },
-        { signerId: 'user2.near', postCount: 5, lastPostTimestamp: Date.now() - 86400000 },
+        {
+          signerId: 'test.near',
+          totalPosts: 10,
+          totalLikes: 0,
+          totalReposts: 0,
+          totalReplies: 0,
+          totalQuotes: 0,
+          totalScore: 10,
+          rank: 1,
+          lastActive: new Date(Date.now()).toISOString(),
+        },
+        {
+          signerId: 'user2.near',
+          totalPosts: 5,
+          totalLikes: 0,
+          totalReposts: 0,
+          totalReplies: 0,
+          totalQuotes: 0,
+          totalScore: 5,
+          rank: 2,
+          lastActive: new Date(Date.now() - 86400000).toISOString(),
+        },
       ]);
 
     // Call the controller
@@ -46,8 +61,9 @@ describe('Activity Controller', () => {
     assertExists(responseBody.data.entries);
     assertEquals(responseBody.data.entries.length, 2);
     assertEquals(responseBody.data.entries[0].signerId, 'test.near');
-    assertEquals(responseBody.data.entries[0].postCount, 10);
-    assertEquals(responseBody.data.pagination.total, 2);
+    assertEquals(responseBody.data.entries[0].totalPosts, 10);
+    assertExists(responseBody.meta.pagination);
+    assertEquals(responseBody.meta.pagination.total, 2);
   });
 
   it('should handle platform-specific leaderboard', async () => {
@@ -66,15 +82,25 @@ describe('Activity Controller', () => {
       Promise.resolve([
         {
           signerId: 'test.near',
-          postCount: 10,
-          lastPostTimestamp: Date.now(),
-          platform: Platform.TWITTER,
+          totalPosts: 10,
+          totalLikes: 0,
+          totalReposts: 0,
+          totalReplies: 0,
+          totalQuotes: 0,
+          totalScore: 10,
+          rank: 1,
+          lastActive: new Date(Date.now()).toISOString(),
         },
         {
           signerId: 'user3.near',
-          postCount: 3,
-          lastPostTimestamp: Date.now() - 43200000,
-          platform: Platform.TWITTER,
+          totalPosts: 3,
+          totalLikes: 0,
+          totalReposts: 0,
+          totalReplies: 0,
+          totalQuotes: 0,
+          totalScore: 3,
+          rank: 2,
+          lastActive: new Date(Date.now() - 43200000).toISOString(),
         },
       ]);
 
@@ -88,8 +114,7 @@ describe('Activity Controller', () => {
     assertExists(responseBody.data.entries);
     assertEquals(responseBody.data.entries.length, 2);
     assertEquals(responseBody.data.entries[0].signerId, 'test.near');
-    assertEquals(responseBody.data.entries[0].postCount, 10);
-    assertEquals(responseBody.data.entries[0].platform, Platform.TWITTER);
+    assertEquals(responseBody.data.entries[0].totalPosts, 10);
     assertEquals(responseBody.data.platform, Platform.TWITTER);
   });
 
@@ -133,9 +158,9 @@ describe('Activity Controller', () => {
     // Verify the response
     assertEquals(response.status, 200);
     assertExists(responseBody.data);
-    assertExists(responseBody.data.pagination);
-    assertEquals(responseBody.data.pagination.limit, 10);
-    assertEquals(responseBody.data.pagination.offset, 0);
+    assertExists(responseBody.meta.pagination);
+    assertEquals(responseBody.meta.pagination.limit, 10);
+    assertEquals(responseBody.meta.pagination.offset, 0);
   });
 
   // Test cases for getAccountActivity
@@ -195,7 +220,7 @@ describe('Activity Controller', () => {
     assertEquals(response.status, 404);
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'NOT_FOUND');
+    assertEquals(responseBody.errors[0].code, 'NOT_FOUND');
   });
 
   it('should handle platform-specific account activity', async () => {
@@ -252,7 +277,7 @@ describe('Activity Controller', () => {
     assertExists(responseBody.data);
     assertExists(responseBody.data.posts);
     assertEquals(responseBody.data.posts.length, 2);
-    assertEquals(responseBody.data.posts[0].postId, 'post1');
+    assertEquals(responseBody.data.posts[0].id, 'post1');
     assertEquals(responseBody.data.posts[0].platform, Platform.TWITTER);
   });
 
@@ -271,16 +296,16 @@ describe('Activity Controller', () => {
     mockActivityTrackingService.getAccountPlatformPosts = () =>
       Promise.resolve([
         {
-          postId: 'post1',
+          id: 'post1',
           platform: Platform.TWITTER,
-          timestamp: new Date().toISOString(),
-          userId: 'twitter-user-1',
+          type: 'post',
+          createdAt: new Date().toISOString(),
         },
         {
-          postId: 'post2',
+          id: 'post2',
           platform: Platform.TWITTER,
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          userId: 'twitter-user-1',
+          type: 'post',
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
         },
       ]);
 
@@ -293,7 +318,7 @@ describe('Activity Controller', () => {
     assertExists(responseBody.data);
     assertExists(responseBody.data.posts);
     assertEquals(responseBody.data.posts.length, 2);
-    assertEquals(responseBody.data.posts[0].postId, 'post1');
+    assertEquals(responseBody.data.posts[0].id, 'post1');
     assertEquals(responseBody.data.posts[0].platform, Platform.TWITTER);
     assertEquals(responseBody.data.platform, Platform.TWITTER);
   });
@@ -302,12 +327,9 @@ describe('Activity Controller', () => {
     // Create a new controller with a mock service that throws an error
     const errorMockService = new MockActivityTrackingService();
     errorMockService.getLeaderboard = () => {
-      throw new ApiError(
-        'Test error',
+      throw createApiError(
         ApiErrorCode.INTERNAL_ERROR,
-        500,
-        {},
-        false,
+        'Test error',
       );
     };
 
@@ -327,23 +349,20 @@ describe('Activity Controller', () => {
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'INTERNAL_ERROR');
-    assertEquals(responseBody.errors[0].error, 'Test error');
+    assertEquals(responseBody.errors[0].code, 'INTERNAL_ERROR');
+    assertEquals(responseBody.errors[0].message, 'Test error');
   });
 
   it('should handle rate limit errors', async () => {
     // Create a new controller with a mock service that throws a rate limit error
     const errorMockService = new MockActivityTrackingService();
     errorMockService.getLeaderboard = () => {
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.RATE_LIMITED,
         'Rate limit exceeded',
         Platform.TWITTER,
-        ApiErrorCode.RATE_LIMITED,
+        { userId: 'twitter-user-1', retryAfter: 3600 },
         true, // Recoverable
-        undefined,
-        429,
-        'twitter-user-1',
-        { retryAfter: 3600 }, // 1 hour
       );
     };
 
@@ -363,9 +382,9 @@ describe('Activity Controller', () => {
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'RATE_LIMITED');
-    assertEquals(responseBody.errors[0].platform, Platform.TWITTER);
-    assertEquals(responseBody.errors[0].userId, 'twitter-user-1');
+    assertEquals(responseBody.errors[0].code, 'RATE_LIMITED');
+    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.errors[0].details.userId, 'twitter-user-1');
     assertEquals(responseBody.errors[0].recoverable, true);
     assertExists(responseBody.errors[0].details);
     assertEquals(responseBody.errors[0].details.retryAfter, 3600);
@@ -375,14 +394,11 @@ describe('Activity Controller', () => {
     // Create a new controller with a mock service that throws an auth error
     const errorMockService = new MockActivityTrackingService();
     errorMockService.getPlatformAccountActivity = () => {
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.UNAUTHORIZED,
         'Authentication failed',
         Platform.TWITTER,
-        ApiErrorCode.UNAUTHORIZED,
-        false,
-        null,
-        401,
-        'twitter-user-1',
+        { userId: 'twitter-user-1' },
       );
     };
 
@@ -406,23 +422,20 @@ describe('Activity Controller', () => {
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'UNAUTHORIZED');
-    assertEquals(responseBody.errors[0].platform, Platform.TWITTER);
-    assertEquals(responseBody.errors[0].userId, 'twitter-user-1');
+    assertEquals(responseBody.errors[0].code, 'UNAUTHORIZED');
+    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.errors[0].details.userId, 'twitter-user-1');
   });
 
   it('should handle platform-specific errors', async () => {
     // Create a new controller with a mock service that throws a platform error
     const errorMockService = new MockActivityTrackingService();
     errorMockService.getAccountPosts = () => {
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.PLATFORM_ERROR,
         'Platform API error',
         Platform.TWITTER,
-        ApiErrorCode.PLATFORM_ERROR,
-        false,
-        null,
-        500,
-        'twitter-user-1',
+        { userId: 'twitter-user-1' },
       );
     };
 
@@ -437,28 +450,24 @@ describe('Activity Controller', () => {
     const response = await errorController.getAccountPosts(context);
 
     // Verify the response
-    assertEquals(response.status, 500);
+    assertEquals(response.status, 502);
 
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'PLATFORM_ERROR');
-    assertEquals(responseBody.errors[0].platform, Platform.TWITTER);
-    assertEquals(responseBody.errors[0].userId, 'twitter-user-1');
+    assertEquals(responseBody.errors[0].code, 'PLATFORM_ERROR');
+    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.errors[0].details.userId, 'twitter-user-1');
   });
 
   it('should handle validation errors', async () => {
     // Create a new controller with a mock service that throws a validation error
     const errorMockService = new MockActivityTrackingService();
     errorMockService.getPlatformLeaderboard = () => {
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.VALIDATION_ERROR,
         'Invalid parameters',
         Platform.TWITTER,
-        ApiErrorCode.VALIDATION_ERROR,
-        false,
-        null,
-        400,
-        undefined,
         { field: 'timeframe', message: 'Invalid time period' },
       );
     };
@@ -483,8 +492,8 @@ describe('Activity Controller', () => {
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'VALIDATION_ERROR');
-    assertEquals(responseBody.errors[0].platform, Platform.TWITTER);
+    assertEquals(responseBody.errors[0].code, 'VALIDATION_ERROR');
+    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
     assertExists(responseBody.errors[0].details);
     assertEquals(responseBody.errors[0].details.field, 'timeframe');
   });

@@ -1,15 +1,12 @@
-import { createSuccessDetail, QuotePostRequest } from '@crosspost/types';
+import type { PostResult, QuotePostRequest, QuotePostResponse } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
 import { BasePostController } from './base.controller.ts';
+import { createSuccessDetail } from '../../utils/response.utils.ts';
 
-/**
- * Quote Post Controller
- * Handles quoting an existing post
- */
 export class QuoteController extends BasePostController {
   constructor(
     postService: PostService,
@@ -56,15 +53,10 @@ export class QuoteController extends BasePostController {
           );
 
           // Return success detail
-          return createSuccessDetail(
+          return createSuccessDetail<PostResult>(
             target.platform,
             target.userId,
-            {
-              postId: result.id,
-              postUrl: result.url,
-              createdAt: result.createdAt,
-              quotedPostId: request.postId,
-            },
+            result,
           );
         },
       );

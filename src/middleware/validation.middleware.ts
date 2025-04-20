@@ -1,6 +1,7 @@
-import { ApiError, ApiErrorCode } from '@crosspost/types';
+import { ApiErrorCode } from '@crosspost/types';
 import { Context, Next } from '../../deps.ts';
 import { z } from '../../deps.ts';
+import { ApiError, createApiError } from '../errors/api-error.ts';
 
 /**
  * Validation Middleware
@@ -19,12 +20,9 @@ export class ValidationMiddleware {
         const result = schema.safeParse(body);
 
         if (!result.success) {
-          throw new ApiError(
-            'Validation Error',
-            ApiErrorCode.VALIDATION_ERROR,
-            400,
-            { validationErrors: result.error.errors },
-          );
+          throw createApiError(ApiErrorCode.VALIDATION_ERROR, 'Validation Error', {
+            validationErrors: result.error.errors,
+          });
         }
 
         // Store validated data in context
@@ -34,12 +32,9 @@ export class ValidationMiddleware {
         if (error instanceof ApiError) {
           throw error;
         }
-        throw new ApiError(
-          'Invalid JSON in request body',
-          ApiErrorCode.VALIDATION_ERROR,
-          400,
-          { originalError: error instanceof Error ? error.message : String(error) },
-        );
+        throw createApiError(ApiErrorCode.VALIDATION_ERROR, 'Invalid JSON in request body', {
+          originalError: error instanceof Error ? error.message : String(error),
+        });
       }
     };
   }

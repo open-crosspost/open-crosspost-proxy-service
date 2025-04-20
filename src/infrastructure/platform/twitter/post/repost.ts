@@ -1,11 +1,7 @@
-import { ApiErrorCode, PostResult } from '@crosspost/types';
+import { PostResult } from '@crosspost/types';
 import { TwitterError } from '../twitter-error.ts';
 import { TwitterPostBase } from './base.ts';
 
-/**
- * Twitter Repost
- * Handles reposting/retweeting on Twitter
- */
 export class TwitterRepost extends TwitterPostBase {
   /**
    * Repost/retweet an existing post
@@ -27,15 +23,7 @@ export class TwitterRepost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error reposting:', error);
-      throw new TwitterError(
-        'Failed to repost',
-        ApiErrorCode.POST_INTERACTION_FAILED,
-        400,
-        error,
-        undefined,
-        true,
-        userId,
-      );
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 }

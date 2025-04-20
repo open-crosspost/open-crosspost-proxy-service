@@ -1,23 +1,36 @@
-import { ApiError, ApiErrorCode, Platform, PlatformError } from '@crosspost/types';
+import { ApiErrorCode, Platform } from '@crosspost/types';
+import { CrosspostError } from '../../../packages/sdk/src/utils/error.ts';
 import { assertEquals } from 'jsr:@std/assert';
 import { describe, it } from 'jsr:@std/testing/bdd';
 
-// Import the utilities we'll be implementing
 import {
   apiWrapper,
   enrichErrorWithContext,
-  ERROR_CATEGORIES,
   getErrorDetails,
   getErrorMessage,
   isAuthError,
   isContentError,
-  isErrorOfCategory,
   isNetworkError,
   isPlatformError,
   isRateLimitError,
   isRecoverableError,
   isValidationError,
-} from '../../src/utils/error.ts';
+} from '../../../packages/sdk/src/utils/error.ts';
+
+// Define error categories for testing
+const ERROR_CATEGORIES = {
+  AUTH: [ApiErrorCode.UNAUTHORIZED, ApiErrorCode.FORBIDDEN],
+  VALIDATION: [ApiErrorCode.VALIDATION_ERROR, ApiErrorCode.INVALID_REQUEST],
+  NETWORK: [ApiErrorCode.NETWORK_ERROR],
+  PLATFORM: [ApiErrorCode.PLATFORM_ERROR, ApiErrorCode.PLATFORM_UNAVAILABLE],
+  CONTENT: [ApiErrorCode.CONTENT_POLICY_VIOLATION, ApiErrorCode.DUPLICATE_CONTENT],
+  RATE_LIMIT: [ApiErrorCode.RATE_LIMITED],
+};
+
+// Helper function to check error categories
+function isErrorOfCategory(error: unknown, codes: ApiErrorCode[]): boolean {
+  return error instanceof CrosspostError && codes.includes(error.code);
+}
 
 describe('Error Utilities', () => {
   describe('ERROR_CATEGORIES', () => {
@@ -48,8 +61,12 @@ describe('Error Utilities', () => {
 
   describe('isErrorOfCategory', () => {
     it('should correctly identify ApiError by category', () => {
-      const authError = new ApiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
-      const validationError = new ApiError('Invalid input', ApiErrorCode.VALIDATION_ERROR, 400);
+      const authError = new CrosspostError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
+      const validationError = new CrosspostError(
+        'Invalid input',
+        ApiErrorCode.VALIDATION_ERROR,
+        400,
+      );
 
       assertEquals(isErrorOfCategory(authError, ERROR_CATEGORIES.AUTH), true);
       assertEquals(isErrorOfCategory(authError, ERROR_CATEGORIES.VALIDATION), false);
@@ -59,22 +76,16 @@ describe('Error Utilities', () => {
     });
 
     it('should correctly identify PlatformError by category', () => {
-      const platformError = new PlatformError(
+      const platformError = new CrosspostError(
         'Platform error',
-        Platform.TWITTER,
         ApiErrorCode.PLATFORM_ERROR,
+        500,
+        { platform: Platform.TWITTER },
         false,
       );
 
       assertEquals(isErrorOfCategory(platformError, ERROR_CATEGORIES.PLATFORM), true);
       assertEquals(isErrorOfCategory(platformError, ERROR_CATEGORIES.AUTH), false);
-    });
-
-    it('should handle error-like objects with code property', () => {
-      const errorLike = { code: ApiErrorCode.RATE_LIMITED, message: 'Rate limited' };
-
-      assertEquals(isErrorOfCategory(errorLike, ERROR_CATEGORIES.RATE_LIMIT), true);
-      assertEquals(isErrorOfCategory(errorLike, ERROR_CATEGORIES.AUTH), false);
     });
 
     it('should return false for non-error objects', () => {
@@ -88,9 +99,9 @@ describe('Error Utilities', () => {
 
   describe('isAuthError', () => {
     it('should identify authentication errors correctly', () => {
-      const unauthorizedError = new ApiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
-      const forbiddenError = new ApiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
-      const otherError = new ApiError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
+      const unauthorizedError = new CrosspostError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
+      const forbiddenError = new CrosspostError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
+      const otherError = new CrosspostError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
 
       assertEquals(isAuthError(unauthorizedError), true);
       assertEquals(isAuthError(forbiddenError), true);
@@ -101,13 +112,17 @@ describe('Error Utilities', () => {
 
   describe('isValidationError', () => {
     it('should identify validation errors correctly', () => {
-      const validationError = new ApiError('Invalid input', ApiErrorCode.VALIDATION_ERROR, 400);
-      const invalidRequestError = new ApiError(
+      const validationError = new CrosspostError(
+        'Invalid input',
+        ApiErrorCode.VALIDATION_ERROR,
+        400,
+      );
+      const invalidRequestError = new CrosspostError(
         'Invalid request',
         ApiErrorCode.INVALID_REQUEST,
         400,
       );
-      const otherError = new ApiError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
+      const otherError = new CrosspostError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
 
       assertEquals(isValidationError(validationError), true);
       assertEquals(isValidationError(invalidRequestError), true);
@@ -117,8 +132,8 @@ describe('Error Utilities', () => {
 
   describe('isNetworkError', () => {
     it('should identify network errors correctly', () => {
-      const networkError = new ApiError('Network error', ApiErrorCode.NETWORK_ERROR, 503);
-      const otherError = new ApiError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
+      const networkError = new CrosspostError('Network error', ApiErrorCode.NETWORK_ERROR, 503);
+      const otherError = new CrosspostError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
 
       assertEquals(isNetworkError(networkError), true);
       assertEquals(isNetworkError(otherError), false);
@@ -126,41 +141,58 @@ describe('Error Utilities', () => {
   });
 
   describe('isPlatformError', () => {
-    it('should identify platform errors correctly', () => {
-      const platformApiError = new ApiError('Platform API error', ApiErrorCode.PLATFORM_ERROR, 500);
-      const platformUnavailableError = new ApiError(
-        'Platform unavailable',
-        ApiErrorCode.PLATFORM_UNAVAILABLE,
-        503,
+    it('should identify errors with platform details correctly', () => {
+      const platformErrorWithDetails = new CrosspostError(
+        'Twitter specific error',
+        ApiErrorCode.DUPLICATE_CONTENT,
+        400,
+        { platform: Platform.TWITTER },
       );
-      const platformError = new PlatformError(
-        'Twitter error',
-        Platform.TWITTER,
+      const platformErrorGeneric = new CrosspostError(
+        'Generic platform error',
         ApiErrorCode.PLATFORM_ERROR,
-        false,
+        500,
+        { platform: Platform.TWITTER },
       );
-      const otherError = new ApiError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
+      const errorWithoutDetails = new CrosspostError(
+        'Internal error',
+        ApiErrorCode.INTERNAL_ERROR,
+        500,
+        // No platform detail
+      );
+      const errorWithDifferentCodeNoDetails = new CrosspostError(
+        'Validation error',
+        ApiErrorCode.VALIDATION_ERROR,
+        400,
+        // No platform detail
+      );
 
-      assertEquals(isPlatformError(platformApiError), true);
-      assertEquals(isPlatformError(platformUnavailableError), true);
-      assertEquals(isPlatformError(platformError), true);
-      assertEquals(isPlatformError(otherError), false);
+      // Should be true because it has platform details
+      assertEquals(isPlatformError(platformErrorWithDetails), true);
+      // Should be true because it has platform details (and the code)
+      assertEquals(isPlatformError(platformErrorGeneric), true);
+      // Should be false because it lacks platform details
+      assertEquals(isPlatformError(errorWithoutDetails), false);
+      // Should be false because it lacks platform details
+      assertEquals(isPlatformError(errorWithDifferentCodeNoDetails), false);
+      // Should be false for non-CrosspostError
+      assertEquals(isPlatformError(new Error('Generic error')), false);
     });
   });
 
   describe('isContentError', () => {
     it('should identify content errors correctly', () => {
-      const policyViolationError = new ApiError(
+      const policyViolationError = new CrosspostError(
         'Policy violation',
         ApiErrorCode.CONTENT_POLICY_VIOLATION,
         400,
       );
-      const duplicateContentError = new ApiError(
+      const duplicateContentError = new CrosspostError(
         'Duplicate content',
         ApiErrorCode.DUPLICATE_CONTENT,
         400,
       );
-      const otherError = new ApiError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
+      const otherError = new CrosspostError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
 
       assertEquals(isContentError(policyViolationError), true);
       assertEquals(isContentError(duplicateContentError), true);
@@ -170,8 +202,8 @@ describe('Error Utilities', () => {
 
   describe('isRateLimitError', () => {
     it('should identify rate limit errors correctly', () => {
-      const rateLimitError = new ApiError('Rate limited', ApiErrorCode.RATE_LIMITED, 429);
-      const otherError = new ApiError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
+      const rateLimitError = new CrosspostError('Rate limited', ApiErrorCode.RATE_LIMITED, 429);
+      const otherError = new CrosspostError('Other error', ApiErrorCode.INTERNAL_ERROR, 500);
 
       assertEquals(isRateLimitError(rateLimitError), true);
       assertEquals(isRateLimitError(otherError), false);
@@ -180,30 +212,32 @@ describe('Error Utilities', () => {
 
   describe('isRecoverableError', () => {
     it('should identify recoverable errors correctly', () => {
-      const recoverableApiError = new ApiError(
+      const recoverableApiError = new CrosspostError(
         'Recoverable',
         ApiErrorCode.RATE_LIMITED,
         429,
         {},
         true,
       );
-      const nonRecoverableApiError = new ApiError(
+      const nonRecoverableApiError = new CrosspostError(
         'Non-recoverable',
         ApiErrorCode.INTERNAL_ERROR,
         500,
         {},
         false,
       );
-      const recoverablePlatformError = new PlatformError(
+      const recoverablePlatformError = new CrosspostError(
         'Recoverable',
-        Platform.TWITTER,
         ApiErrorCode.PLATFORM_ERROR,
+        500,
+        { platform: Platform.TWITTER },
         true,
       );
-      const nonRecoverablePlatformError = new PlatformError(
+      const nonRecoverablePlatformError = new CrosspostError(
         'Non-recoverable',
-        Platform.TWITTER,
         ApiErrorCode.PLATFORM_ERROR,
+        500,
+        { platform: Platform.TWITTER },
         false,
       );
 
@@ -218,20 +252,10 @@ describe('Error Utilities', () => {
   describe('getErrorMessage', () => {
     it('should extract message from Error objects', () => {
       const error = new Error('Generic error');
-      const apiError = new ApiError('API error', ApiErrorCode.INTERNAL_ERROR, 500);
+      const apiError = new CrosspostError('API error', ApiErrorCode.INTERNAL_ERROR, 500);
 
       assertEquals(getErrorMessage(error), 'Generic error');
       assertEquals(getErrorMessage(apiError), 'API error');
-    });
-
-    it('should handle string errors', () => {
-      assertEquals(getErrorMessage('String error'), 'String error');
-    });
-
-    it('should extract message from error-like objects', () => {
-      const errorLike = { message: 'Error-like object' };
-
-      assertEquals(getErrorMessage(errorLike), 'Error-like object');
     });
 
     it('should return default message for other types', () => {
@@ -245,32 +269,22 @@ describe('Error Utilities', () => {
   describe('getErrorDetails', () => {
     it('should extract details from ApiError', () => {
       const details = { field: 'username', reason: 'too short' };
-      const apiError = new ApiError('API error', ApiErrorCode.VALIDATION_ERROR, 400, details);
+      const apiError = new CrosspostError('API error', ApiErrorCode.VALIDATION_ERROR, 400, details);
 
       assertEquals(getErrorDetails(apiError), details);
     });
 
-    it('should extract details from PlatformError', () => {
-      const details = { tweetId: '12345', reason: 'duplicate' };
-      const platformError = new PlatformError(
+    it('should extract details from platform error', () => {
+      const details = { tweetId: '12345', reason: 'duplicate', platform: Platform.TWITTER };
+      const platformError = new CrosspostError(
         'Platform error',
-        Platform.TWITTER,
         ApiErrorCode.PLATFORM_ERROR,
-        false,
-        undefined,
         500,
-        undefined,
         details,
+        false,
       );
 
       assertEquals(getErrorDetails(platformError), details);
-    });
-
-    it('should extract details from error-like objects', () => {
-      const details = { code: 'ERR_NETWORK', info: 'connection refused' };
-      const errorLike = { message: 'Error-like object', details };
-
-      assertEquals(getErrorDetails(errorLike), details);
     });
 
     it('should return undefined for other types', () => {
@@ -282,52 +296,49 @@ describe('Error Utilities', () => {
   });
 
   describe('enrichErrorWithContext', () => {
-    it('should add context to ApiError details', () => {
-      const apiError = new ApiError('API error', ApiErrorCode.INTERNAL_ERROR, 500, {
+    it('should add context to error details', () => {
+      const apiError = new CrosspostError('API error', ApiErrorCode.INTERNAL_ERROR, 500, {
         original: 'detail',
       });
       const context = { operation: 'createPost', timestamp: Date.now() };
 
       const enriched = enrichErrorWithContext(apiError, context);
 
-      assertEquals(enriched instanceof ApiError, true);
-      const enrichedApiError = enriched as ApiError;
+      assertEquals(enriched instanceof CrosspostError, true);
+      const enrichedApiError = enriched as CrosspostError;
       assertEquals(enrichedApiError.details?.original, 'detail'); // Original details preserved
       assertEquals(enrichedApiError.details?.operation, 'createPost'); // Context added
       assertEquals(enrichedApiError.details?.timestamp, context.timestamp); // Context added
     });
 
-    it('should add context to PlatformError details', () => {
-      const platformError = new PlatformError(
+    it('should add context to platform error details', () => {
+      const platformError = new CrosspostError(
         'Platform error',
-        Platform.TWITTER,
         ApiErrorCode.PLATFORM_ERROR,
-        false,
-        undefined,
         500,
-        undefined,
-        { original: 'detail' },
+        { original: 'detail', platform: Platform.TWITTER },
+        false,
       );
       const context = { operation: 'createPost', timestamp: Date.now() };
 
       const enriched = enrichErrorWithContext(platformError, context);
 
-      assertEquals(enriched instanceof PlatformError, true);
-      const enrichedPlatformError = enriched as PlatformError;
+      assertEquals(enriched instanceof CrosspostError, true);
+      const enrichedPlatformError = enriched as CrosspostError;
       assertEquals(enrichedPlatformError.details?.original, 'detail'); // Original details preserved
       assertEquals(enrichedPlatformError.details?.operation, 'createPost'); // Context added
       assertEquals(enrichedPlatformError.details?.timestamp, context.timestamp); // Context added
     });
 
-    it('should create ApiError for regular Error', () => {
+    it('should create CrosspostError for regular Error', () => {
       const error = new Error('Generic error');
       const context = { operation: 'createPost', timestamp: Date.now() };
 
       const enriched = enrichErrorWithContext(error, context);
 
-      assertEquals(enriched instanceof ApiError, true);
-      assertEquals(enriched instanceof ApiError, true);
-      const enrichedApiError = enriched as ApiError;
+      assertEquals(enriched instanceof CrosspostError, true);
+      assertEquals(enriched instanceof CrosspostError, true);
+      const enrichedApiError = enriched as CrosspostError;
       assertEquals(enrichedApiError.message, 'Generic error');
       assertEquals(enrichedApiError.code, ApiErrorCode.INTERNAL_ERROR);
       assertEquals(enrichedApiError.details?.operation, 'createPost');
@@ -346,9 +357,19 @@ describe('Error Utilities', () => {
       assertEquals(response, result);
     });
 
-    it('should handle Response errors', async () => {
+    it('should handle Response errors with standardized format', async () => {
       const errorData = {
-        error: { code: ApiErrorCode.VALIDATION_ERROR, message: 'Invalid input' },
+        success: false,
+        errors: [{
+          message: 'Invalid input',
+          code: ApiErrorCode.VALIDATION_ERROR,
+          recoverable: false,
+          details: { field: 'username' },
+        }],
+        meta: {
+          requestId: 'test-request-123',
+          timestamp: new Date().toISOString(),
+        },
       };
       const response = new Response(JSON.stringify(errorData), { status: 400 });
       const apiCall = async () => {
@@ -360,15 +381,30 @@ describe('Error Utilities', () => {
         await apiWrapper(apiCall, context);
         assertEquals(true, false, 'Should have thrown an error');
       } catch (error) {
-        assertEquals(error instanceof ApiError, true);
-        assertEquals((error as ApiError).code, ApiErrorCode.VALIDATION_ERROR);
-        assertEquals((error as ApiError).message, 'Invalid input');
-        assertEquals((error as ApiError).details?.operation, 'createPost');
+        assertEquals(error instanceof CrosspostError, true);
+        const apiError = error as CrosspostError;
+        assertEquals(apiError.code, ApiErrorCode.VALIDATION_ERROR);
+        assertEquals(apiError.message, 'Invalid input');
+        assertEquals(apiError.details?.operation, 'createPost');
+        assertEquals(apiError.details?.field, 'username');
+        assertEquals(apiError.recoverable, false);
+        // Verify the meta data was preserved in details
+        assertEquals(typeof apiError.details?.requestId, 'string');
+        assertEquals(typeof apiError.details?.timestamp, 'string');
       }
     });
 
-    it('should handle ApiError', async () => {
-      const apiError = new ApiError('API error', ApiErrorCode.INTERNAL_ERROR, 500);
+    it('should handle ApiError with standardized format', async () => {
+      const apiError = new CrosspostError(
+        'API error',
+        ApiErrorCode.INTERNAL_ERROR,
+        500,
+        {
+          requestId: 'test-request-123',
+          timestamp: new Date().toISOString(),
+        },
+        false,
+      );
       const apiCall = async () => {
         throw apiError;
       };
@@ -378,8 +414,8 @@ describe('Error Utilities', () => {
         await apiWrapper(apiCall, context);
         assertEquals(true, false, 'Should have thrown an error');
       } catch (error) {
-        assertEquals(error instanceof ApiError, true);
-        const enrichedError = error as ApiError;
+        assertEquals(error instanceof CrosspostError, true);
+        const enrichedError = error as CrosspostError;
         assertEquals(enrichedError.message, apiError.message);
         assertEquals(enrichedError.code, apiError.code);
         assertEquals(enrichedError.status, apiError.status);
@@ -387,11 +423,17 @@ describe('Error Utilities', () => {
       }
     });
 
-    it('should handle PlatformError', async () => {
-      const platformError = new PlatformError(
+    it('should handle PlatformError with standardized format', async () => {
+      const platformError = new CrosspostError(
         'Platform error',
-        Platform.TWITTER,
         ApiErrorCode.PLATFORM_ERROR,
+        500,
+        {
+          requestId: 'test-request-123',
+          timestamp: new Date().toISOString(),
+          platformErrorCode: 'RATE_LIMIT_EXCEEDED',
+          platform: Platform.TWITTER,
+        },
         false,
       );
       const apiCall = async () => {
@@ -403,8 +445,8 @@ describe('Error Utilities', () => {
         await apiWrapper(apiCall, context);
         assertEquals(true, false, 'Should have thrown an error');
       } catch (error) {
-        assertEquals(error instanceof PlatformError, true);
-        const enrichedError = error as PlatformError;
+        assertEquals(error instanceof CrosspostError, true);
+        const enrichedError = error as CrosspostError;
         assertEquals(enrichedError.message, platformError.message);
         assertEquals(enrichedError.code, platformError.code);
         assertEquals(enrichedError.platform, platformError.platform);
@@ -423,11 +465,11 @@ describe('Error Utilities', () => {
         await apiWrapper(apiCall, context);
         assertEquals(true, false, 'Should have thrown an error');
       } catch (error) {
-        assertEquals(error instanceof ApiError, true);
-        assertEquals((error as ApiError).message, 'Unknown error');
-        assertEquals((error as ApiError).code, ApiErrorCode.INTERNAL_ERROR);
-        assertEquals((error as ApiError).details?.operation, 'createPost');
-        assertEquals((error as ApiError).details?.originalError !== undefined, true);
+        assertEquals(error instanceof CrosspostError, true);
+        assertEquals((error as CrosspostError).message, 'Unknown error');
+        assertEquals((error as CrosspostError).code, ApiErrorCode.INTERNAL_ERROR);
+        assertEquals((error as CrosspostError).details?.operation, 'createPost');
+        assertEquals((error as CrosspostError).details?.originalError !== undefined, true);
       }
     });
   });

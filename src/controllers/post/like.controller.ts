@@ -1,15 +1,12 @@
-import { createSuccessDetail, LikePostRequest } from '@crosspost/types';
+import type { LikePostRequest, LikeResult } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
+import { createSuccessDetail } from '../../utils/response.utils.ts';
 import { BasePostController } from './base.controller.ts';
 
-/**
- * Like Controller
- * Handles liking an existing post
- */
 export class LikeController extends BasePostController {
   constructor(
     postService: PostService,
@@ -40,20 +37,17 @@ export class LikeController extends BasePostController {
         'like',
         async (target) => {
           // Like the post
-          const likeResult = await this.postService.likePost(
+          const result = await this.postService.likePost(
             request.platform, // Platform of the post being liked
             target.userId,
             request.postId,
           );
 
           // Return success detail
-          return createSuccessDetail(
+          return createSuccessDetail<LikeResult>(
             target.platform,
             target.userId,
-            {
-              postId: request.postId,
-              success: likeResult.success,
-            },
+            result,
           );
         },
       );

@@ -1,174 +1,133 @@
-import {
-  ApiError,
-  ApiErrorCode,
-  CompositeApiError,
-  type ErrorDetail,
-  Platform,
-  PlatformError,
-} from '@crosspost/types';
-import type { StatusCode } from 'hono/utils/http-status';
+import { ApiErrorCode, type ErrorDetails, type StatusCode } from '@crosspost/types';
 
 /**
- * Error categories grouped by type
+ * CrosspostError class for SDK error handling
  */
-export const ERROR_CATEGORIES = {
-  AUTH: [
-    ApiErrorCode.UNAUTHORIZED,
-    ApiErrorCode.FORBIDDEN,
-  ],
-  VALIDATION: [
-    ApiErrorCode.VALIDATION_ERROR,
-    ApiErrorCode.INVALID_REQUEST,
-  ],
-  NETWORK: [
-    ApiErrorCode.NETWORK_ERROR,
-  ],
-  PLATFORM: [
-    ApiErrorCode.PLATFORM_ERROR,
-    ApiErrorCode.PLATFORM_UNAVAILABLE,
-  ],
-  CONTENT: [
-    ApiErrorCode.CONTENT_POLICY_VIOLATION,
-    ApiErrorCode.DUPLICATE_CONTENT,
-  ],
-  RATE_LIMIT: [
-    ApiErrorCode.RATE_LIMITED,
-  ],
-  POST: [
-    ApiErrorCode.POST_CREATION_FAILED,
-    ApiErrorCode.THREAD_CREATION_FAILED,
-    ApiErrorCode.POST_DELETION_FAILED,
-    ApiErrorCode.POST_INTERACTION_FAILED,
-  ],
-  MEDIA: [
-    ApiErrorCode.MEDIA_UPLOAD_FAILED,
-  ],
-};
+export class CrosspostError extends Error {
+  readonly code: ApiErrorCode;
+  readonly status: StatusCode;
+  readonly details?: ErrorDetails;
+  readonly recoverable: boolean;
+
+  constructor(
+    message: string,
+    code: ApiErrorCode,
+    status: StatusCode,
+    details?: ErrorDetails,
+    recoverable: boolean = false,
+  ) {
+    super(message);
+    this.name = 'CrosspostError';
+    this.code = code;
+    this.status = status;
+    this.details = details;
+    this.recoverable = recoverable;
+  }
+
+  /**
+   * Get platform from details if available
+   */
+  get platform(): string | undefined {
+    return this.details?.platform;
+  }
+
+  /**
+   * Get userId from details if available
+   */
+  get userId(): string | undefined {
+    return this.details?.userId;
+  }
+}
 
 /**
- * Check if an error belongs to a specific category
- *
- * @param error The error to check
- * @param category The category to check against
- * @returns True if the error belongs to the category, false otherwise
+ * Check if an error is a specific type based on its code
  */
-export function isErrorOfCategory(error: unknown, category: ApiErrorCode[]): boolean {
-  if (error instanceof ApiError) {
-    return category.includes(error.code);
-  }
-
-  if (error instanceof PlatformError) {
-    return category.includes(error.code);
-  }
-
-  // Fallback for error-like objects with code property
-  if (error && typeof error === 'object' && 'code' in error) {
-    return category.includes((error as any).code);
-  }
-
-  return false;
+function isErrorCode(error: unknown, codes: ApiErrorCode[]): boolean {
+  return error instanceof CrosspostError && codes.includes(error.code);
 }
 
 /**
  * Check if an error is an authentication error
- *
- * @param error The error to check
- * @returns True if the error is an authentication error, false otherwise
  */
 export function isAuthError(error: unknown): boolean {
-  return isErrorOfCategory(error, ERROR_CATEGORIES.AUTH);
+  return isErrorCode(error, [
+    ApiErrorCode.UNAUTHORIZED,
+    ApiErrorCode.FORBIDDEN,
+  ]);
 }
 
 /**
  * Check if an error is a validation error
- *
- * @param error The error to check
- * @returns True if the error is a validation error, false otherwise
  */
 export function isValidationError(error: unknown): boolean {
-  return isErrorOfCategory(error, ERROR_CATEGORIES.VALIDATION);
+  return isErrorCode(error, [
+    ApiErrorCode.VALIDATION_ERROR,
+    ApiErrorCode.INVALID_REQUEST,
+  ]);
 }
 
 /**
  * Check if an error is a network error
- *
- * @param error The error to check
- * @returns True if the error is a network error, false otherwise
  */
 export function isNetworkError(error: unknown): boolean {
-  return isErrorOfCategory(error, ERROR_CATEGORIES.NETWORK);
+  return isErrorCode(error, [
+    ApiErrorCode.NETWORK_ERROR,
+    ApiErrorCode.PLATFORM_UNAVAILABLE,
+  ]);
 }
 
 /**
  * Check if an error is a platform error
- *
- * @param error The error to check
- * @returns True if the error is a platform error, false otherwise
  */
 export function isPlatformError(error: unknown): boolean {
-  return isErrorOfCategory(error, ERROR_CATEGORIES.PLATFORM) || error instanceof PlatformError;
+  return error instanceof CrosspostError && !!error.details?.platform;
 }
 
 /**
  * Check if an error is a content policy error
- *
- * @param error The error to check
- * @returns True if the error is a content policy error, false otherwise
  */
 export function isContentError(error: unknown): boolean {
-  return isErrorOfCategory(error, ERROR_CATEGORIES.CONTENT);
+  return isErrorCode(error, [
+    ApiErrorCode.CONTENT_POLICY_VIOLATION,
+    ApiErrorCode.DUPLICATE_CONTENT,
+  ]);
 }
 
 /**
  * Check if an error is a rate limit error
- *
- * @param error The error to check
- * @returns True if the error is a rate limit error, false otherwise
  */
 export function isRateLimitError(error: unknown): boolean {
-  return isErrorOfCategory(error, ERROR_CATEGORIES.RATE_LIMIT);
+  return isErrorCode(error, [ApiErrorCode.RATE_LIMITED]);
 }
 
 /**
  * Check if an error is a post-related error
- *
- * @param error The error to check
- * @returns True if the error is a post-related error, false otherwise
  */
 export function isPostError(error: unknown): boolean {
-  return isErrorOfCategory(error, ERROR_CATEGORIES.POST);
+  return isErrorCode(error, [
+    ApiErrorCode.POST_CREATION_FAILED,
+    ApiErrorCode.THREAD_CREATION_FAILED,
+    ApiErrorCode.POST_DELETION_FAILED,
+    ApiErrorCode.POST_INTERACTION_FAILED,
+  ]);
 }
 
 /**
  * Check if an error is a media-related error
- *
- * @param error The error to check
- * @returns True if the error is a media-related error, false otherwise
  */
 export function isMediaError(error: unknown): boolean {
-  return isErrorOfCategory(error, ERROR_CATEGORIES.MEDIA);
+  return isErrorCode(error, [ApiErrorCode.MEDIA_UPLOAD_FAILED]);
 }
 
 /**
  * Check if an error is recoverable
- *
- * @param error The error to check
- * @returns True if the error is recoverable, false otherwise
  */
 export function isRecoverableError(error: unknown): boolean {
-  if (error instanceof ApiError || error instanceof PlatformError) {
-    return error.recoverable;
-  }
-
-  return false;
+  return error instanceof CrosspostError && error.recoverable;
 }
 
 /**
  * Get a user-friendly error message
- *
- * @param error The error to get the message from
- * @param defaultMessage The default message to return if no message is found
- * @returns The error message
  */
 export function getErrorMessage(
   error: unknown,
@@ -177,50 +136,47 @@ export function getErrorMessage(
   if (error instanceof Error) {
     return error.message || defaultMessage;
   }
-
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  if (error && typeof error === 'object' && 'message' in error) {
-    return (error as any).message || defaultMessage;
-  }
-
   return defaultMessage;
 }
 
 /**
- * Extract error details if available
- *
- * @param error The error to extract details from
- * @returns The error details or undefined if none are found
+ * Get error details if available
  */
-export function getErrorDetails(error: unknown): Record<string, any> | undefined {
-  if (error instanceof ApiError || error instanceof PlatformError) {
+export function getErrorDetails(error: unknown): ErrorDetails | undefined {
+  if (error instanceof CrosspostError) {
     return error.details;
   }
-
-  if (error && typeof error === 'object' && 'details' in error) {
-    return (error as any).details;
-  }
-
   return undefined;
 }
 
 /**
+ * Create a new error
+ */
+function createError(
+  message: string,
+  code: ApiErrorCode,
+  status: StatusCode,
+  details?: ErrorDetails,
+  recoverable: boolean = false,
+): CrosspostError {
+  return new CrosspostError(
+    message,
+    code,
+    status,
+    details,
+    recoverable,
+  );
+}
+
+/**
  * Enrich an error with additional context
- *
- * @param error The error to enrich
- * @param context The context to add to the error
- * @returns The enriched error
  */
 export function enrichErrorWithContext(
   error: unknown,
-  context: Record<string, any>,
+  context: Record<string, unknown>,
 ): Error {
-  if (error instanceof ApiError) {
-    // Create a new ApiError with the merged details since details is read-only
-    return new ApiError(
+  if (error instanceof CrosspostError) {
+    return createError(
       error.message,
       error.code,
       error.status,
@@ -229,42 +185,22 @@ export function enrichErrorWithContext(
     );
   }
 
-  if (error instanceof PlatformError) {
-    // Create a new PlatformError with the merged details since details is read-only
-    return new PlatformError(
-      error.message,
-      error.platform,
-      error.code,
-      error.recoverable,
-      error.originalError,
-      error.status,
-      error.userId,
-      { ...(error.details || {}), ...context },
-    );
-  }
-
-  // For regular errors or non-Error objects, create a new ApiError with the context
+  // For regular errors or non-Error objects, create a new CrosspostError
   const errorMessage = error instanceof Error ? error.message : String(error);
-  return new ApiError(
+  return createError(
     errorMessage || 'An error occurred',
     ApiErrorCode.INTERNAL_ERROR,
     500,
     { originalError: error, ...context },
-    false,
   );
 }
 
 /**
  * Wrapper for API calls with consistent error handling
- *
- * @param apiCall The API call to wrap
- * @param context Optional context to add to any errors
- * @returns The result of the API call
- * @throws An enriched error if the API call fails
  */
 export async function apiWrapper<T>(
   apiCall: () => Promise<T>,
-  context?: Record<string, any>,
+  context?: Record<string, unknown>,
 ): Promise<T> {
   try {
     return await apiCall();
@@ -281,26 +217,25 @@ export async function apiWrapper<T>(
         // If JSON parsing fails, create a generic error
         if (jsonError instanceof Error && jsonError.name === 'SyntaxError') {
           throw enrichErrorWithContext(
-            new ApiError(
+            createError(
               `API request failed with status ${error.status} and non-JSON response`,
               ApiErrorCode.NETWORK_ERROR,
-              error.status as any,
+              error.status as StatusCode,
               { originalResponse: error.statusText },
             ),
             context || {},
           );
         }
-        // If it's already an enriched error from handleErrorResponse, just throw it
         throw jsonError;
       }
     }
 
-    // If it's already an ApiError or PlatformError, just add context
-    if (error instanceof ApiError || error instanceof PlatformError) {
+    // If it's already a CrosspostError, just add context
+    if (error instanceof CrosspostError) {
       throw enrichErrorWithContext(error, context || {});
     }
 
-    // Otherwise wrap it in an ApiError
+    // Otherwise wrap it in a CrosspostError
     throw enrichErrorWithContext(
       error instanceof Error ? error : new Error(String(error)),
       context || {},
@@ -310,113 +245,81 @@ export async function apiWrapper<T>(
 
 /**
  * Handles error responses from the API and converts them to appropriate error objects.
- *
- * @param data The error response data
- * @param status The HTTP status code
- * @returns An ApiError or PlatformError instance
  */
 export function handleErrorResponse(
   data: any,
   status: number,
-): ApiError | PlatformError | CompositeApiError {
-  // Check for enhanced error response format with multiple errors
-  if (data?.errors && Array.isArray(data.errors)) {
-    if (data.errors.length === 1) {
-      // Single error case - convert to standard error
-      const errorDetail = data.errors[0];
-      if (
-        errorDetail.platform && Object.values(Platform).includes(errorDetail.platform as Platform)
-      ) {
-        return new PlatformError(
-          errorDetail.message,
-          errorDetail.platform as Platform,
-          errorDetail.code,
-          errorDetail.recoverable ?? false,
-          undefined,
-          status as StatusCode,
-          errorDetail.userId,
-          errorDetail.details,
-        );
-      } else {
-        return new ApiError(
-          errorDetail.message,
-          errorDetail.code,
-          status as StatusCode,
-          errorDetail.details,
-          errorDetail.recoverable ?? false,
-        );
-      }
-    } else if (data.errors.length > 1) {
-      // Multiple errors case - return composite error
-      return new CompositeApiError(
-        'Multiple errors occurred',
-        data.errors as ErrorDetail[],
+): CrosspostError {
+  // Validate response format
+  if (!data || typeof data !== 'object' || !('success' in data)) {
+    return createError(
+      'Invalid API response format',
+      ApiErrorCode.INTERNAL_ERROR,
+      status as StatusCode,
+      { originalResponse: data },
+    );
+  }
+
+  // Check for errors array
+  if (!data.errors || !Array.isArray(data.errors) || data.errors.length === 0) {
+    return createError(
+      'Invalid error response format',
+      ApiErrorCode.INTERNAL_ERROR,
+      status as StatusCode,
+      { originalResponse: data },
+    );
+  }
+
+  // Handle single vs multiple errors
+  if (data.errors.length === 1) {
+    const errorDetail = data.errors[0];
+
+    // Validate error detail structure
+    if (!errorDetail.message || !errorDetail.code) {
+      return createError(
+        'Invalid error detail format',
+        ApiErrorCode.INTERNAL_ERROR,
         status as StatusCode,
         { originalResponse: data },
       );
     }
-  }
 
-  // Fall back to legacy error format handling
-  const errorData = data?.error || {};
-  const message = errorData?.message || data?.message || 'An API error occurred';
-  const codeString = errorData?.code || data?.code || ApiErrorCode.UNKNOWN_ERROR;
-  const code = Object.values(ApiErrorCode).includes(codeString as ApiErrorCode)
-    ? codeString as ApiErrorCode
-    : ApiErrorCode.UNKNOWN_ERROR;
-  const details = errorData?.details || data?.details || {};
-  const recoverable = errorData?.recoverable ?? data?.recoverable ?? false;
-  const platform = errorData?.platform || data?.platform;
+    // Merge meta data from the API response with error details
+    const finalDetails = {
+      ...(errorDetail.details || {}),
+      ...(data.meta || {}),
+    };
 
-  // Add original response data to details if not already present
-  const enhancedDetails = { ...details };
-  if (typeof enhancedDetails === 'object' && !enhancedDetails.originalResponse) {
-    enhancedDetails.originalResponse = data;
-  }
-
-  if (platform && Object.values(Platform).includes(platform as Platform)) {
-    return new PlatformError(
-      message,
-      platform as Platform,
-      code,
-      recoverable,
-      undefined,
+    return createError(
+      errorDetail.message,
+      errorDetail.code as ApiErrorCode,
       status as StatusCode,
-      undefined,
-      enhancedDetails,
+      finalDetails,
+      errorDetail.recoverable ?? false,
     );
   } else {
-    return new ApiError(
-      message,
-      code,
+    // Multiple errors - return first error with details about others
+    const firstError = data.errors[0];
+    return createError(
+      'Multiple errors occurred',
+      firstError.code as ApiErrorCode,
       status as StatusCode,
-      enhancedDetails,
-      recoverable,
+      {
+        errors: data.errors,
+        ...(data.meta || {}),
+        originalResponse: data,
+      },
+      false,
     );
   }
 }
 
 /**
  * Creates a network error with appropriate details
- *
- * @param error The original error
- * @param url The request URL
- * @param timeout The request timeout
- * @returns An ApiError instance
  */
-/**
- * Check if an error is a composite error containing multiple error details
- *
- * @param error The error to check
- * @returns True if the error is a composite error, false otherwise
- */
-export function isCompositeApiError(error: unknown): error is CompositeApiError {
-  return error instanceof CompositeApiError;
-}
-
-export function createNetworkError(error: unknown, url: string, timeout: number): ApiError {
+export function createNetworkError(error: unknown, url: string, timeout: number): CrosspostError {
   if (error instanceof DOMException && error.name === 'AbortError') {
-    return new ApiError(
+    return createError(
       `Request timed out after ${timeout}ms`,
       ApiErrorCode.NETWORK_ERROR,
       408,
@@ -424,7 +327,7 @@ export function createNetworkError(error: unknown, url: string, timeout: number)
     );
   }
 
-  return new ApiError(
+  return createError(
     error instanceof Error ? error.message : 'An unexpected error occurred during the request',
     ApiErrorCode.INTERNAL_ERROR,
     500,

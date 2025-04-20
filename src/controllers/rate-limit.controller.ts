@@ -1,14 +1,11 @@
-import { PlatformName } from '@crosspost/types';
+import { PlatformName, RateLimitStatus } from '@crosspost/types';
 import { Context } from '../../deps.ts';
 import { RateLimitService } from '../domain/services/rate-limit.service.ts';
 import { UsageRateLimitMiddleware } from '../middleware/usage-rate-limit.middleware.ts';
 import { PrefixedKvStore } from '../utils/kv-store.utils.ts';
+import { createSuccessResponse } from '../utils/response.utils.ts';
 import { BaseController } from './base.controller.ts';
 
-/**
- * Rate Limit Controller
- * Handles HTTP requests for rate limit-related operations
- */
 export class RateLimitController extends BaseController {
   private rateLimitService: RateLimitService;
   private usageRateLimitKvStore: PrefixedKvStore;
@@ -42,7 +39,7 @@ export class RateLimitController extends BaseController {
       );
 
       // Return the result
-      return c.json({ data: status });
+      return c.json(createSuccessResponse<RateLimitStatus>(c, status));
     } catch (error) {
       return this.handleError(error, c);
     }
@@ -62,7 +59,7 @@ export class RateLimitController extends BaseController {
       const limits = await this.rateLimitService.getAllRateLimits(platform);
 
       // Return the result
-      return c.json({ data: limits });
+      return c.json(createSuccessResponse<Record<string, RateLimitStatus>>(c, limits));
     } catch (error) {
       return this.handleError(error, c);
     }
@@ -104,27 +101,23 @@ export class RateLimitController extends BaseController {
 
       // If no record exists, create a default response
       if (!record) {
-        return c.json({
-          data: {
-            signerId,
-            endpoint,
-            limit: config.maxPostsPerDay,
-            remaining: config.maxPostsPerDay,
-            reset: Math.floor(resetTime / 1000),
-          },
-        });
-      }
-
-      // Return the rate limit status
-      return c.json({
-        data: {
+        return c.json(createSuccessResponse(c, {
           signerId,
           endpoint,
           limit: config.maxPostsPerDay,
-          remaining: Math.max(0, config.maxPostsPerDay - record.count),
+          remaining: config.maxPostsPerDay,
           reset: Math.floor(resetTime / 1000),
-        },
-      });
+        }));
+      }
+
+      // Return the rate limit status
+      return c.json(createSuccessResponse(c, {
+        signerId,
+        endpoint,
+        limit: config.maxPostsPerDay,
+        remaining: Math.max(0, config.maxPostsPerDay - record.count),
+        reset: Math.floor(resetTime / 1000),
+      }));
     } catch (error) {
       return this.handleError(error, c);
     }

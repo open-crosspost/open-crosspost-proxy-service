@@ -1,6 +1,5 @@
 import { PlatformName, UserProfile } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
-import { DEFAULT_CONFIG } from '../../config/index.ts';
 import {
   AuthState,
   PlatformAuth,
@@ -66,7 +65,7 @@ export class AuthService {
     platform: PlatformName,
     signerId: string,
     redirectUri: string,
-    scopes: string[] = DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES,
+    scopes: string[],
     successUrl: string,
     errorUrl?: string,
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {

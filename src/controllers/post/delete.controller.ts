@@ -1,15 +1,12 @@
-import { createSuccessDetail, DeletePostRequest } from '@crosspost/types';
+import type { DeletePostRequest, DeleteResult } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
+import { createSuccessDetail } from '../../utils/response.utils.ts';
 import { BasePostController } from './base.controller.ts';
 
-/**
- * Delete Post Controller
- * Handles deleting existing posts
- */
 export class DeleteController extends BasePostController {
   constructor(
     postService: PostService,
@@ -53,20 +50,17 @@ export class DeleteController extends BasePostController {
           const post = targetPosts[0];
 
           // Delete the post
-          const deleteResult = await this.postService.deletePost(
+          const result = await this.postService.deletePost(
             post.platform,
             post.userId,
             post.postId,
           );
 
           // Return success detail
-          return createSuccessDetail(
+          return createSuccessDetail<DeleteResult>(
             target.platform,
             target.userId,
-            {
-              postId: post.postId,
-              success: deleteResult.success,
-            },
+            result,
           );
         },
       );

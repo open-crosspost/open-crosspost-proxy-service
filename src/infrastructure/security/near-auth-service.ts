@@ -1,10 +1,11 @@
-import { ApiError, ApiErrorCode, PlatformName } from '@crosspost/types';
+import { ApiErrorCode, PlatformName } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { Env } from '../../config/env.ts';
 import { NearAuthData, parseAuthToken, validateSignature } from '../../deps.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { AuthToken, TokenStorage } from '../storage/auth-token-storage.ts';
 import { TokenAccessLogger } from './token-access-logger.ts';
+import { ApiError, createApiError } from '../../errors/api-error.ts';
 
 /**
  * NearAuthService
@@ -43,7 +44,7 @@ export class NearAuthService {
     const authHeader = c.req.header('Authorization');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new ApiError('Missing or invalid Authorization header', ApiErrorCode.UNAUTHORIZED, 401);
+      throw createApiError(ApiErrorCode.UNAUTHORIZED, 'Missing or invalid Authorization header');
     }
 
     // Extract the token part (after 'Bearer ')
@@ -53,11 +54,7 @@ export class NearAuthService {
     const result = await validateSignature(token);
 
     if (!result.valid) {
-      throw new ApiError(
-        `NEAR auth failed: ${result.error}`,
-        ApiErrorCode.UNAUTHORIZED,
-        401,
-      );
+      throw createApiError(ApiErrorCode.UNAUTHORIZED, `NEAR auth failed: ${result.error}`);
     }
 
     // Return the signerId from the validated token
@@ -82,11 +79,7 @@ export class NearAuthService {
     // Check if the account is authorized
     const authStatus = await this.getNearAuthorizationStatus(signerId);
     if (authStatus < 0) { // -1 means not authorized
-      throw new ApiError(
-        'NEAR account is not authorized',
-        ApiErrorCode.UNAUTHORIZED,
-        401,
-      );
+      throw createApiError(ApiErrorCode.UNAUTHORIZED, 'NEAR account is not authorized');
     }
 
     return {
@@ -120,10 +113,9 @@ export class NearAuthService {
         } else {
           // No refresh token, delete the tokens
           await this.deleteTokens(userId, platform);
-          throw new ApiError(
-            'Tokens expired and no refresh token available',
+          throw createApiError(
             ApiErrorCode.UNAUTHORIZED,
-            401,
+            'Tokens expired and no refresh token available',
           );
         }
       }

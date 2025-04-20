@@ -1,11 +1,8 @@
-import { ApiError, ApiErrorCode } from '@crosspost/types';
+import { ApiErrorCode } from '@crosspost/types';
 import { Context, MiddlewareHandler, Next } from '../../deps.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth-service.ts';
+import { ApiError, createApiError } from '../errors/api-error.ts';
 
-/**
- * Authentication middleware for Hono
- * Validates NEAR Signature
- */
 export class AuthMiddleware {
   private static nearAuthService: NearAuthService;
 
@@ -26,11 +23,7 @@ export class AuthMiddleware {
     return async (c: Context, next: Next) => {
       try {
         if (!AuthMiddleware.nearAuthService) {
-          throw new ApiError(
-            'NearAuthService not initialized',
-            ApiErrorCode.INTERNAL_ERROR,
-            500,
-          );
+          throw createApiError(ApiErrorCode.INTERNAL_ERROR, 'NearAuthService not initialized');
         }
 
         // Extract and validate NEAR auth data using the service
@@ -46,12 +39,9 @@ export class AuthMiddleware {
           throw error;
         }
         // Otherwise wrap it in an ApiError
-        throw new ApiError(
-          'NEAR authentication failed',
-          ApiErrorCode.UNAUTHORIZED,
-          401,
-          { originalError: error instanceof Error ? error.message : String(error) },
-        );
+        throw createApiError(ApiErrorCode.UNAUTHORIZED, 'NEAR authentication failed', {
+          originalError: error instanceof Error ? error.message : String(error),
+        });
       }
     };
   }

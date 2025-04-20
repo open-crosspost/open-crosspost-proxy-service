@@ -2,12 +2,7 @@ import { PostContent, PostResult } from '@crosspost/types';
 import { SendTweetV2Params } from 'twitter-api-v2';
 import { TwitterError } from '../twitter-error.ts';
 import { TwitterPostBase } from './base.ts';
-import { enhanceErrorWithContext } from '../../../../utils/error-handling.utils.ts';
 
-/**
- * Twitter Create Post
- * Handles creating posts and threads on Twitter
- */
 export class TwitterCreatePost extends TwitterPostBase {
   /**
    * Create a new post
@@ -45,8 +40,7 @@ export class TwitterCreatePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error creating post:', error);
-      const twitterError = TwitterError.fromTwitterApiError(error, userId);
-      throw enhanceErrorWithContext(twitterError, 'createPost');
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 
@@ -88,8 +82,7 @@ export class TwitterCreatePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error creating thread:', error);
-      const twitterError = TwitterError.fromTwitterApiError(error, userId);
-      throw enhanceErrorWithContext(twitterError, 'createThread');
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 }

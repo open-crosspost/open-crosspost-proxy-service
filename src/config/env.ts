@@ -101,7 +101,7 @@ export function validateSecurityConfig(env: Env): {
   const errors: string[] = [];
 
   // Check encryption key
-  if (env.ENCRYPTION_KEY === 'default-encryption-key') {
+  if (env.ENCRYPTION_KEY === 'your_encryption_key') {
     if (isProduction() || isStaging()) {
       errors.push('Default encryption key used in production/staging environment');
     } else {

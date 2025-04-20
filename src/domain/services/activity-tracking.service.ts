@@ -1,17 +1,17 @@
-import { Env } from '../../config/env.ts';
 import {
   AccountActivity,
-  ApiError,
+  AccountActivityEntry,
+  AccountPost,
   ApiErrorCode,
-  LeaderboardEntry,
+  Platform,
   PlatformAccountActivity,
-  PlatformError,
-  PlatformLeaderboardEntry,
   PlatformName,
   PostRecord,
-  PostRecordResponse,
   TimePeriod,
 } from '@crosspost/types';
+import { Env } from '../../config/env.ts';
+import { createApiError } from '../../errors/api-error.ts';
+import { createPlatformError } from '../../errors/platform-error.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 
 /**
@@ -59,13 +59,10 @@ export class ActivityTrackingService {
       await this.invalidatePlatformLeaderboardCache(platform);
     } catch (error) {
       console.error('Error tracking post:', error);
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.INTERNAL_ERROR,
         'Failed to track post activity',
         platform,
-        ApiErrorCode.INTERNAL_ERROR,
-        false,
-        error,
-        500,
       );
     }
   }
@@ -205,12 +202,9 @@ export class ActivityTrackingService {
       return await this.kvStore.get<AccountActivity>(key);
     } catch (error) {
       console.error('Error getting account activity:', error);
-      throw new ApiError(
-        `Failed to get account activity for ${signerId}`,
+      throw createApiError(
         ApiErrorCode.INTERNAL_ERROR,
-        500,
-        { signerId },
-        false,
+        `Failed to get account activity for ${signerId}`,
       );
     }
   }
@@ -230,13 +224,10 @@ export class ActivityTrackingService {
       return await this.kvStore.get<PlatformAccountActivity>(key);
     } catch (error) {
       console.error('Error getting platform account activity:', error);
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.INTERNAL_ERROR,
         `Failed to get platform account activity for ${signerId} on ${platform}`,
         platform,
-        ApiErrorCode.INTERNAL_ERROR,
-        false,
-        error,
-        500,
       );
     }
   }
@@ -252,7 +243,7 @@ export class ActivityTrackingService {
     signerId: string,
     limit = 10,
     offset = 0,
-  ): Promise<PostRecordResponse[]> {
+  ): Promise<AccountPost[]> {
     try {
       const key = ['near_account_posts', signerId];
       const posts = await this.kvStore.get<PostRecord[]>(key) || [];
@@ -260,21 +251,18 @@ export class ActivityTrackingService {
       // Apply pagination
       const paginatedPosts = posts.slice(offset, offset + limit);
 
-      // Convert to response format
+      // Convert to AccountPost format
       return paginatedPosts.map((post) => ({
-        postId: post.id,
-        platform: post.p,
-        timestamp: new Date(post.t).toISOString(),
-        userId: post.u,
+        id: post.id,
+        platform: post.p as Platform,
+        type: 'post', // Default type since we don't track this yet
+        createdAt: new Date(post.t).toISOString(),
       }));
     } catch (error) {
       console.error('Error getting account posts:', error);
-      throw new ApiError(
-        `Failed to get account posts for ${signerId}`,
+      throw createApiError(
         ApiErrorCode.INTERNAL_ERROR,
-        500,
-        { signerId, limit, offset },
-        false,
+        `Failed to get account posts for ${signerId}`,
       );
     }
   }
@@ -292,7 +280,7 @@ export class ActivityTrackingService {
     platform: PlatformName,
     limit = 10,
     offset = 0,
-  ): Promise<PostRecordResponse[]> {
+  ): Promise<AccountPost[]> {
     try {
       const key = ['near_account_posts', signerId];
       const posts = await this.kvStore.get<PostRecord[]>(key) || [];
@@ -303,22 +291,19 @@ export class ActivityTrackingService {
       // Apply pagination
       const paginatedPosts = platformPosts.slice(offset, offset + limit);
 
-      // Convert to response format
+      // Convert to AccountPost format
       return paginatedPosts.map((post) => ({
-        postId: post.id,
-        platform: post.p,
-        timestamp: new Date(post.t).toISOString(),
-        userId: post.u,
+        id: post.id,
+        platform: post.p as Platform,
+        type: 'post', // Default type since we don't track this yet
+        createdAt: new Date(post.t).toISOString(),
       }));
     } catch (error) {
       console.error('Error getting account platform posts:', error);
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.INTERNAL_ERROR,
         `Failed to get account posts for ${signerId} on ${platform}`,
         platform,
-        ApiErrorCode.INTERNAL_ERROR,
-        false,
-        error,
-        500,
       );
     }
   }
@@ -366,12 +351,12 @@ export class ActivityTrackingService {
     limit = 10,
     offset = 0,
     timePeriod: TimePeriod = TimePeriod.ALL,
-  ): Promise<LeaderboardEntry[]> {
+  ): Promise<AccountActivityEntry[]> {
     try {
       // Try to get from cache first
       const cacheKey = ['leaderboard_cache', timePeriod];
       const cachedLeaderboard = await this.kvStore.get<{
-        entries: LeaderboardEntry[];
+        entries: AccountActivityEntry[];
         timestamp: number;
       }>(cacheKey);
 
@@ -401,17 +386,20 @@ export class ActivityTrackingService {
         timestamp: Date.now(),
       });
 
-      // Return paginated result
-      return sortedAccounts.slice(offset, offset + limit);
+      return sortedAccounts.slice(offset, offset + limit).map((entry, index) => ({
+        signerId: entry.signerId,
+        totalPosts: entry.postCount,
+        totalLikes: 0, // These metrics are not tracked yet
+        totalReposts: 0,
+        totalReplies: 0,
+        totalQuotes: 0,
+        totalScore: entry.postCount, // Currently score is just post count
+        rank: offset + index + 1,
+        lastActive: new Date(entry.lastPostTimestamp).toISOString(),
+      }));
     } catch (error) {
       console.error('Error getting leaderboard:', error);
-      throw new ApiError(
-        'Failed to get leaderboard',
-        ApiErrorCode.INTERNAL_ERROR,
-        500,
-        { timePeriod },
-        false,
-      );
+      throw createApiError(ApiErrorCode.INTERNAL_ERROR, 'Failed to get leaderboard.');
     }
   }
 
@@ -428,12 +416,12 @@ export class ActivityTrackingService {
     limit = 10,
     offset = 0,
     timePeriod: TimePeriod = TimePeriod.ALL,
-  ): Promise<PlatformLeaderboardEntry[]> {
+  ): Promise<AccountActivityEntry[]> {
     try {
       // Try to get from cache first
       const cacheKey = ['leaderboard_cache_platform', platform, timePeriod];
       const cachedLeaderboard = await this.kvStore.get<{
-        entries: PlatformLeaderboardEntry[];
+        entries: AccountActivityEntry[];
         timestamp: number;
       }>(cacheKey);
 
@@ -466,17 +454,24 @@ export class ActivityTrackingService {
         timestamp: Date.now(),
       });
 
-      // Return paginated result
-      return sortedAccounts.slice(offset, offset + limit);
+      // Transform and return paginated result
+      return sortedAccounts.slice(offset, offset + limit).map((entry, index) => ({
+        signerId: entry.signerId,
+        totalPosts: entry.postCount,
+        totalLikes: 0, // These metrics are not tracked yet
+        totalReposts: 0,
+        totalReplies: 0,
+        totalQuotes: 0,
+        totalScore: entry.postCount, // Currently score is just post count
+        rank: offset + index + 1,
+        lastActive: new Date(entry.lastPostTimestamp).toISOString(),
+      }));
     } catch (error) {
       console.error('Error getting platform leaderboard:', error);
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.INTERNAL_ERROR,
         `Failed to get platform leaderboard for ${platform}`,
         platform,
-        ApiErrorCode.INTERNAL_ERROR,
-        false,
-        error,
-        500,
       );
     }
   }
@@ -496,13 +491,7 @@ export class ActivityTrackingService {
         .length;
     } catch (error) {
       console.error('Error getting total accounts:', error);
-      throw new ApiError(
-        'Failed to get total accounts',
-        ApiErrorCode.INTERNAL_ERROR,
-        500,
-        { timePeriod },
-        false,
-      );
+      throw createApiError(ApiErrorCode.INTERNAL_ERROR, 'Failed to get total accounts');
     }
   }
 
@@ -527,13 +516,10 @@ export class ActivityTrackingService {
       ).length;
     } catch (error) {
       console.error('Error getting total platform accounts:', error);
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.INTERNAL_ERROR,
         `Failed to get total accounts for platform ${platform}`,
         platform,
-        ApiErrorCode.INTERNAL_ERROR,
-        false,
-        error,
-        500,
       );
     }
   }

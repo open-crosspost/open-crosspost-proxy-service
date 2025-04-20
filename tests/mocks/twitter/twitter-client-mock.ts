@@ -11,6 +11,7 @@ export class TwitterClientMock extends TwitterClient {
   private mockTokens: Map<string, AuthToken> = new Map();
   private errorScenario?: string;
   private mockNearAuthService: MockNearAuthService;
+  private errorsToThrow: Map<string, Error> = new Map(); // Store errors per method name
 
   /**
    * Constructor
@@ -24,6 +25,15 @@ export class TwitterClientMock extends TwitterClient {
 
     this.mockNearAuthService = mockNearAuthService;
     this.errorScenario = errorScenario;
+  }
+
+  /**
+   * Configure an error to be thrown when a specific method is called on the mock client or its API.
+   * @param methodName The name of the method (e.g., 'tweet', 'uploadMedia')
+   * @param error The error instance to throw
+   */
+  setErrorToThrow(methodName: string, error: Error): void {
+    this.errorsToThrow.set(methodName, error);
   }
 
   /**
@@ -50,8 +60,8 @@ export class TwitterClientMock extends TwitterClient {
     // Use the mock token directly
     const token = this.mockTokens.get(userId) || mockToken;
 
-    // Return a mock Twitter API client
-    return createMockTwitterApi(userId, this.errorScenario);
+    // Return a mock Twitter API client, passing errors to throw
+    return createMockTwitterApi(userId, this.errorScenario, this.errorsToThrow);
   }
 
   /**

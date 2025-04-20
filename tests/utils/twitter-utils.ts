@@ -1,4 +1,28 @@
 /**
+ * A simplified mock error class mimicking the structure of twitter-api-v2 errors
+ * needed for our error handling logic.
+ */
+class MockTwitterApiError extends Error {
+  code: number;
+  data: { errors: Array<{ code: number; message: string }> };
+  rateLimitError?: boolean;
+  isAuthError?: boolean;
+  type?: string; // Add type property for compatibility
+
+  constructor(code: number, message: string) {
+    super(message);
+    this.name = 'ApiResponseError'; // Mimic the name
+    this.code = code;
+    this.data = { errors: [{ code, message }] };
+    this.type = 'response'; // Mimic the type
+
+    // Set special flags based on error code
+    if (code === 88) this.rateLimitError = true;
+    if ([89, 32, 87].includes(code)) this.isAuthError = true;
+  }
+}
+
+/**
  * Error type to mock
  */
 export enum TwitterMockErrorType {
@@ -26,55 +50,39 @@ export function createMockTwitterError(
   type?: string,
   detail?: string,
 ): any {
-  // Base properties for all error types
-  const mockError: any = {
-    message,
-  };
-
-  // Add properties based on error type
+  // Use the simplified MockTwitterApiError or basic Error objects
   switch (errorType) {
     case TwitterMockErrorType.RESPONSE_ERROR:
-      // Mock ApiResponseError
-      mockError.name = 'ApiResponseError';
-      mockError.code = code;
-      mockError.data = { errors: [{ code, message }] };
-      mockError.errors = [{ code, message, title, type, detail }];
+      // Use our simplified mock class
+      return new MockTwitterApiError(code, message);
 
-      // Add special flags for specific error codes
-      if (code === 88) {
-        mockError.rateLimitError = true;
-      }
+    case TwitterMockErrorType.REQUEST_ERROR: {
+      // Create a basic error mimicking ApiRequestError structure
+      const error = new Error(message);
+      error.name = 'ApiRequestError';
+      (error as any).type = 'request';
+      (error as any).requestError = { message, code: 'NETWORK_ERROR' };
+      return error;
+    }
 
-      if (code === 89 || code === 32 || code === 87) {
-        mockError.isAuthError = true;
-      }
-      break;
+    case TwitterMockErrorType.PARTIAL_RESPONSE_ERROR: {
+      // Create a basic error mimicking ApiPartialResponseError structure
+      const error = new Error(message);
+      error.name = 'ApiPartialResponseError';
+      (error as any).type = 'partial';
+      (error as any).responseError = { message };
+      return error;
+    }
 
-    case TwitterMockErrorType.REQUEST_ERROR:
-      // Mock ApiRequestError
-      mockError.name = 'ApiRequestError';
-      mockError.requestError = {
-        message,
-        code: 'NETWORK_ERROR',
-      };
-      break;
+    case TwitterMockErrorType.NETWORK_ERROR: {
+      // Create a basic network error
+      const error = new Error(message);
+      error.name = 'NetworkError';
+      (error as any).code = 'NETWORK_ERROR';
+      return error;
+    }
 
-    case TwitterMockErrorType.PARTIAL_RESPONSE_ERROR:
-      // Mock ApiPartialResponseError
-      mockError.name = 'ApiPartialResponseError';
-      mockError.rawContent = message;
-      mockError.responseError = {
-        message,
-      };
-      mockError.request = {};
-      mockError.response = {};
-      break;
-
-    case TwitterMockErrorType.NETWORK_ERROR:
-      // Mock network error
-      mockError.code = 'NETWORK_ERROR';
-      break;
+    default:
+      throw new Error(`Unknown mock error type: ${errorType}`);
   }
-
-  return mockError;
 }

@@ -1,19 +1,22 @@
 import {
-  ApiError,
   ApiErrorCode,
-  createEnhancedErrorResponse,
-  createErrorDetail,
-  PlatformError,
+  errorCodeToStatusCode,
   PlatformName,
+  ProfileRefreshResponse,
 } from '@crosspost/types';
 import { Context } from '../../deps.ts';
 import { Env } from '../config/env.ts';
-import { DEFAULT_CONFIG } from '../config/index.ts';
 import { AuthService } from '../domain/services/auth.service.ts';
+import { createApiError } from '../errors/api-error.ts';
+import { createPlatformError } from '../errors/platform-error.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth-service.ts';
 import { unlinkAccountFromNear } from '../utils/account-linking.utils.ts';
+import {
+  createErrorDetail,
+  createErrorResponse,
+  createSuccessResponse,
+} from '../utils/response.utils.ts';
 import { BaseController } from './base.controller.ts';
-import { parseAuthToken, validateSignature } from '../deps.ts';
 
 /**
  * Auth Controller
@@ -45,12 +48,12 @@ export class AuthController extends BaseController {
       const isAuthorized = authStatus >= 0; // -1 means not authorized, 0 or greater means authorized
       if (!isAuthorized) {
         console.warn(`Unauthorized NEAR account attempt: ${signerId}`);
-        c.status(403);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
+        c.status(errorCodeToStatusCode[ApiErrorCode.FORBIDDEN]);
+        return c.json(createErrorResponse(c, [createErrorDetail(
           `NEAR account ${signerId} is not authorized. Please authorize via POST /auth/authorize/near first.`,
           ApiErrorCode.FORBIDDEN,
           true,
-          platform,
+          { platform },
         )]));
       }
 
@@ -75,17 +78,16 @@ export class AuthController extends BaseController {
         platform,
         signerId, // Pass the NEAR account ID for linking during callback
         callbackUrl,
-        DEFAULT_CONFIG.AUTH.DEFAULT_SCOPES, // scopes can come from request
+        [],
         successUrl || origin,
         errorUrl || successUrl || origin,
       );
 
       // Return the auth URL and state
-      return c.json({ data: authData });
+      return c.json(createSuccessResponse(c, authData));
     } catch (error) {
       console.error('Error initializing auth with NEAR:', error);
-      this.handleError(error, c, platform);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 
@@ -122,39 +124,33 @@ export class AuthController extends BaseController {
             return c.redirect(errorRedirectUrl.toString());
           } catch {
             // If we can't get the auth state, create a platform error and handle it
-            const platformError = new PlatformError(
+            throw createPlatformError(
+              ApiErrorCode.UNAUTHORIZED,
               `${platform} authorization error: ${error}${
                 error_description ? ` - ${error_description}` : ''
               }`,
               platform,
-              ApiErrorCode.UNAUTHORIZED,
-              false,
             );
-            return this.handleError(platformError, c, platform);
           }
         }
 
         // If no state or couldn't redirect, return a 400 error response
-        c.status(400);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
+        throw createPlatformError(
+          ApiErrorCode.UNAUTHORIZED,
           `${platform} authorization error: ${error}${
             error_description ? ` - ${error_description}` : ''
           }`,
-          ApiErrorCode.UNAUTHORIZED,
-          false,
           platform,
-        )]));
+        );
       }
 
       // Validate required parameters
       if (!code || !state) {
-        const validationError = new PlatformError(
+        throw createPlatformError(
+          ApiErrorCode.VALIDATION_ERROR,
           'Code and state are required',
           platform,
-          ApiErrorCode.VALIDATION_ERROR,
-          true,
         );
-        return this.handleError(validationError, c, platform);
       }
 
       const callbackResult = await this.authService.handleCallback(
@@ -174,8 +170,7 @@ export class AuthController extends BaseController {
       return c.redirect(redirectUrl.toString());
     } catch (error) {
       console.error('Error handling callback:', error);
-      this.handleError(error, c, platform);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 
@@ -186,24 +181,11 @@ export class AuthController extends BaseController {
    * @returns HTTP response with new tokens
    */
   async refreshToken(c: Context, platform: PlatformName): Promise<Response> {
-    let userId: string | undefined;
     try {
       // Extract NEAR account ID from the validated signature
       const { signerId } = await this.nearAuthService.extractAndValidateNearAuth(c);
 
-      // Extract userId from request body
-      const body = await c.req.json();
-      userId = body.userId;
-
-      if (!userId) {
-        c.status(400);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
-          'userId is required',
-          ApiErrorCode.VALIDATION_ERROR,
-          true,
-          platform,
-        )]));
-      }
+      const { userId } = c.get('validatedBody') as { userId: string };
 
       // Refresh token
       const tokens = await this.authService.refreshToken(platform, userId);
@@ -213,11 +195,10 @@ export class AuthController extends BaseController {
       await this.nearAuthService.linkAccount(signerId, platform, userId);
 
       // Return the new tokens
-      return c.json({ data: tokens });
+      return c.json(createSuccessResponse(c, tokens));
     } catch (error) {
       console.error('Error refreshing token:', error);
-      this.handleError(error, c, platform, userId);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 
@@ -228,39 +209,30 @@ export class AuthController extends BaseController {
    * @returns HTTP response with success status
    */
   async revokeToken(c: Context, platform: PlatformName): Promise<Response> {
-    let userId: string | undefined;
     try {
       // Extract NEAR account ID from the validated signature
       const { signerId } = await this.nearAuthService.extractAndValidateNearAuth(c);
 
-      // Extract userId from request body
-      const body = await c.req.json();
-      userId = body.userId;
-
-      if (!userId) {
-        c.status(400);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
-          'userId is required',
-          ApiErrorCode.VALIDATION_ERROR,
-          true,
-          platform,
-        )]));
-      }
+      const { userId } = c.get('validatedBody') as { userId: string };
 
       // Revoke token
+      if (!userId) {
+        throw createApiError(ApiErrorCode.VALIDATION_ERROR, 'userId is required');
+      }
       const success = await this.authService.revokeToken(platform, userId);
 
       // Unlink the account from the NEAR wallet
       if (success) {
-        await unlinkAccountFromNear(signerId, platform, userId, this.nearAuthService);
+        if (userId) {
+          await unlinkAccountFromNear(signerId, platform, userId, this.nearAuthService);
+        }
       }
 
       // Return success status
-      return c.json({ data: { success } });
+      return c.json(createSuccessResponse(c, { success }));
     } catch (error) {
       console.error('Error revoking token:', error);
-      this.handleError(error, c, platform, userId);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 
@@ -271,23 +243,11 @@ export class AuthController extends BaseController {
    * @returns HTTP response with validity status
    */
   async hasValidTokens(c: Context, platform: PlatformName): Promise<Response> {
-    let userId: string | undefined;
     try {
       // Extract NEAR account ID from the validated signature
       const { signerId } = await this.nearAuthService.extractAndValidateNearAuth(c);
 
-      // Extract userId from request body or query parameters
-      userId = c.req.query('userId');
-
-      if (!userId) {
-        c.status(400);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
-          'userId is required',
-          ApiErrorCode.VALIDATION_ERROR,
-          true,
-          platform,
-        )]));
-      }
+      const { userId } = c.get('validatedParams');
 
       // Check if user has valid tokens
       const hasTokens = await this.authService.hasValidTokens(platform, userId);
@@ -296,11 +256,10 @@ export class AuthController extends BaseController {
       const isLinked = await this.nearAuthService.hasAccess(signerId, platform, userId);
 
       // Return validity status
-      return c.json({ data: { hasTokens, isLinked } });
+      return c.json(createSuccessResponse(c, { hasTokens, isLinked }));
     } catch (error) {
       console.error('Error checking tokens:', error);
-      this.handleError(error, c, platform, userId);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 
@@ -311,8 +270,9 @@ export class AuthController extends BaseController {
    */
   async listConnectedAccounts(c: Context): Promise<Response> {
     try {
+      const { signerId } = c.get('validatedParams');
       // Extract NEAR account ID from the validated signature
-      const { signerId } = await this.nearAuthService.extractAndValidateNearAuth(c);
+      // const { signerId } = await this.nearAuthService.extractAndValidateNearAuth(c);
 
       // Get all connected accounts
       const accounts = await this.nearAuthService.getLinkedAccounts(signerId);
@@ -331,7 +291,7 @@ export class AuthController extends BaseController {
       );
 
       // Return the accounts with profiles
-      return c.json({ data: { accounts: accountsWithProfiles } });
+      return c.json(createSuccessResponse(c, { accounts: accountsWithProfiles }));
     } catch (error) {
       console.error('Error listing connected accounts:', error);
       return this.handleError(error, c);
@@ -352,14 +312,12 @@ export class AuthController extends BaseController {
       const result = await this.nearAuthService.authorizeNearAccount(signerId);
 
       if (result.success) {
-        return c.json({ data: { success: true, signerId: signerId } });
+        return c.json(createSuccessResponse(c, { signerId: signerId }));
       } else {
-        c.status(500);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
-          result.error || 'Failed to authorize NEAR account',
+        throw createApiError(
           ApiErrorCode.INTERNAL_ERROR,
-          false,
-        )]));
+          `Failed to authorize NEAR account: ${result.error}`,
+        );
       }
     } catch (error) {
       console.error('Unexpected error authorizing NEAR account:', error);
@@ -418,21 +376,16 @@ export class AuthController extends BaseController {
       const result = await this.nearAuthService.unauthorizeNearAccount(signerId);
 
       if (result.success) {
-        return c.json({
-          data: {
-            success: true,
-            signerId: signerId,
-            accountsUnlinked: linkedAccounts.length,
-            unlinkErrors: unlinkErrors.length > 0 ? unlinkErrors : undefined,
-          },
-        });
+        return c.json(createSuccessResponse(c, {
+          signerId: signerId,
+          accountsUnlinked: linkedAccounts.length,
+          unlinkErrors: unlinkErrors.length > 0 ? unlinkErrors : undefined,
+        }));
       } else {
-        c.status(500);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
-          result.error || 'Failed to unauthorize NEAR account',
+        throw createApiError(
           ApiErrorCode.INTERNAL_ERROR,
-          false,
-        )]));
+          `Failed to unauthorize NEAR account: ${result.error}`,
+        );
       }
     } catch (error) {
       console.error('Unexpected error unauthorizing NEAR account:', error);
@@ -454,12 +407,10 @@ export class AuthController extends BaseController {
       const authStatus = await this.nearAuthService.getNearAuthorizationStatus(signerId);
       const isAuthorized = authStatus >= 0; // -1 means not authorized, 0 or greater means authorized
 
-      return c.json({
-        data: {
-          signerId,
-          isAuthorized,
-        },
-      });
+      return c.json(createSuccessResponse(c, {
+        signerId,
+        isAuthorized,
+      }));
     } catch (error) {
       console.error('Unexpected error checking NEAR account authorization status:', error);
       return this.handleError(error, c);
@@ -473,57 +424,29 @@ export class AuthController extends BaseController {
    * @returns HTTP response with the refreshed profile
    */
   async refreshUserProfile(c: Context, platform: PlatformName): Promise<Response> {
-    let userId: string | undefined;
     try {
       // Extract and validate NEAR auth data from the header
       const { signerId } = await this.nearAuthService.extractAndValidateNearAuth(c);
-
-      const body = await c.req.json();
-      userId = body.userId;
-
-      if (!userId) {
-        c.status(400);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
-          'userId is required',
-          ApiErrorCode.VALIDATION_ERROR,
-          true,
-          platform,
-        )]));
-      }
+      const { userId } = c.get('validatedBody') as { userId: string };
 
       // Check if the tokens are linked to this NEAR account
       const hasAccess = await this.nearAuthService.hasAccess(signerId, platform, userId);
       if (!hasAccess) {
-        c.status(403);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
-          'Account not linked to this NEAR wallet',
-          ApiErrorCode.UNAUTHORIZED,
-          true,
-          platform,
-          userId,
-        )]));
+        throw createApiError(ApiErrorCode.UNAUTHORIZED, 'Account not linked to this NEAR wallet');
       }
 
       // Force refresh the user profile
       const profile = await this.authService.getUserProfile(platform, userId, true);
 
       if (!profile) {
-        c.status(404);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
-          'User profile not found',
-          ApiErrorCode.NOT_FOUND,
-          false,
-          platform,
-          userId,
-        )]));
+        throw createPlatformError(ApiErrorCode.NOT_FOUND, 'User profile not found', platform);
       }
 
       // Return the refreshed profile
-      return c.json({ data: { profile } });
+      return c.json(createSuccessResponse<ProfileRefreshResponse>(c, { profile }));
     } catch (error) {
       console.error('Error refreshing user profile:', error);
-      this.handleError(error, c, platform, userId);
-      return c.res;
+      return this.handleError(error, c);
     }
   }
 }

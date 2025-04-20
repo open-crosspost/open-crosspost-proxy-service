@@ -1,4 +1,4 @@
-import { ApiError, ApiErrorCode, Platform, PlatformError } from '@crosspost/types';
+import { ApiErrorCode, Platform } from '@crosspost/types';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { afterEach, beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { RateLimitController } from '../../../src/controllers/rate-limit.controller.ts';
@@ -6,6 +6,8 @@ import { UsageRateLimitMiddleware } from '../../../src/middleware/usage-rate-lim
 import { MockKvStore } from '../../mocks/kv-store-mock.ts';
 import { MockRateLimitService } from '../../mocks/rate-limit-service-mock.ts';
 import { createMockContext } from '../../utils/test-utils.ts';
+import { createPlatformError } from '../../../src/errors/platform-error.ts';
+import { createApiError } from '../../../src/errors/api-error.ts';
 
 describe('Rate Limit Controller', () => {
   let controller: RateLimitController;
@@ -159,12 +161,9 @@ describe('Rate Limit Controller', () => {
 
     // Override the getRateLimitStatus method to throw an error
     mockRateLimitService.getRateLimitStatus = () => {
-      throw new ApiError(
-        'Test error',
+      throw createApiError(
         ApiErrorCode.INTERNAL_ERROR,
-        500,
-        {},
-        false,
+        'Test error',
       );
     };
 
@@ -180,8 +179,8 @@ describe('Rate Limit Controller', () => {
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'INTERNAL_ERROR');
-    assertEquals(responseBody.errors[0].error, 'Test error');
+    assertEquals(responseBody.errors[0].code, 'INTERNAL_ERROR');
+    assertEquals(responseBody.errors[0].message, 'Test error');
   });
 
   it('should handle platform unavailable errors', async () => {
@@ -195,13 +194,10 @@ describe('Rate Limit Controller', () => {
 
     // Override the getAllRateLimits method to throw a platform unavailable error
     mockRateLimitService.getAllRateLimits = () => {
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.PLATFORM_UNAVAILABLE,
         'Platform unavailable',
         Platform.TWITTER,
-        ApiErrorCode.PLATFORM_UNAVAILABLE,
-        false,
-        undefined,
-        503,
       );
     };
 
@@ -217,9 +213,9 @@ describe('Rate Limit Controller', () => {
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'PLATFORM_UNAVAILABLE');
-    assertEquals(responseBody.errors[0].platform, Platform.TWITTER);
-    assertEquals(responseBody.errors[0].error, 'Platform unavailable');
+    assertEquals(responseBody.errors[0].code, 'PLATFORM_UNAVAILABLE');
+    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.errors[0].message, 'Platform unavailable');
   });
 
   it('should handle authentication errors', async () => {
@@ -234,14 +230,11 @@ describe('Rate Limit Controller', () => {
 
     // Override the getRateLimitStatus method to throw an authentication error
     mockRateLimitService.getRateLimitStatus = () => {
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.UNAUTHORIZED,
         'Authentication failed',
         Platform.TWITTER,
-        ApiErrorCode.UNAUTHORIZED,
-        false,
-        undefined,
-        401,
-        'twitter-user-1',
+        { userId: 'twitter-user-1' },
       );
     };
 
@@ -257,9 +250,9 @@ describe('Rate Limit Controller', () => {
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'UNAUTHORIZED');
-    assertEquals(responseBody.errors[0].platform, Platform.TWITTER);
-    assertEquals(responseBody.errors[0].userId, 'twitter-user-1');
+    assertEquals(responseBody.errors[0].code, 'UNAUTHORIZED');
+    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.errors[0].details.userId, 'twitter-user-1');
   });
 
   it('should handle rate limit errors', async () => {
@@ -274,15 +267,12 @@ describe('Rate Limit Controller', () => {
 
     // Override the getRateLimitStatus method to throw a rate limit error
     mockRateLimitService.getRateLimitStatus = () => {
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.RATE_LIMITED,
         'Rate limit exceeded',
         Platform.TWITTER,
-        ApiErrorCode.RATE_LIMITED,
+        { userId: 'twitter-user-1', retryAfter: 3600 },
         true, // Recoverable
-        undefined,
-        429,
-        'twitter-user-1',
-        { retryAfter: 3600 }, // 1 hour
       );
     };
 
@@ -298,9 +288,9 @@ describe('Rate Limit Controller', () => {
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'RATE_LIMITED');
-    assertEquals(responseBody.errors[0].platform, Platform.TWITTER);
-    assertEquals(responseBody.errors[0].userId, 'twitter-user-1');
+    assertEquals(responseBody.errors[0].code, 'RATE_LIMITED');
+    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.errors[0].details.userId, 'twitter-user-1');
     assertEquals(responseBody.errors[0].recoverable, true);
     assertExists(responseBody.errors[0].details);
     assertEquals(responseBody.errors[0].details.retryAfter, 3600);
@@ -318,14 +308,10 @@ describe('Rate Limit Controller', () => {
 
     // Override the getRateLimitStatus method to throw a validation error
     mockRateLimitService.getRateLimitStatus = () => {
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.VALIDATION_ERROR,
         'Invalid endpoint',
         Platform.TWITTER,
-        ApiErrorCode.VALIDATION_ERROR,
-        false,
-        undefined,
-        400,
-        undefined,
         { field: 'endpoint', message: 'Endpoint not supported' },
       );
     };
@@ -342,8 +328,8 @@ describe('Rate Limit Controller', () => {
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'VALIDATION_ERROR');
-    assertEquals(responseBody.errors[0].platform, Platform.TWITTER);
+    assertEquals(responseBody.errors[0].code, 'VALIDATION_ERROR');
+    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
     assertExists(responseBody.errors[0].details);
     assertEquals(responseBody.errors[0].details.field, 'endpoint');
   });
@@ -375,7 +361,7 @@ describe('Rate Limit Controller', () => {
     const responseBody = await response.json();
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].errorCode, 'INTERNAL_ERROR');
-    assertEquals(responseBody.errors[0].error, 'KV store error');
+    assertEquals(responseBody.errors[0].code, 'INTERNAL_ERROR');
+    assertEquals(responseBody.errors[0].message, 'KV store error');
   });
 });

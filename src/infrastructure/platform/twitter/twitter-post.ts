@@ -1,6 +1,5 @@
-import { Env } from '../../../config/env.ts';
-import { TwitterClient } from './twitter-client.ts';
-import { TwitterMedia } from './twitter-media.ts';
+import { DeleteResult, LikeResult, PostContent, PostResult } from '@crosspost/types';
+import { PlatformPost } from '../abstract/platform-post.interface.ts';
 import {
   TwitterCreatePost,
   TwitterDeletePost,
@@ -9,16 +8,10 @@ import {
   TwitterReplyPost,
   TwitterRepost,
 } from './post/index.ts';
-import { PlatformPost } from '../abstract/platform-post.interface.ts';
-import { DeleteResult, LikeResult, PostContent, PostResult } from '@crosspost/types';
+import { TwitterClient } from './twitter-client.ts';
+import { TwitterMedia } from './twitter-media.ts';
 
-/**
- * Twitter Post
- * Implements the PlatformPost interface for Twitter
- * Delegates to specialized classes for different operations
- */
 export class TwitterPost implements PlatformPost {
-  private env: Env;
   private twitterClient: TwitterClient;
   private twitterMedia: TwitterMedia;
   private createPostService: TwitterCreatePost;
@@ -28,8 +21,7 @@ export class TwitterPost implements PlatformPost {
   private likePostService: TwitterLikePost;
   private deletePostService: TwitterDeletePost;
 
-  constructor(env: Env, twitterClient: TwitterClient, twitterMedia: TwitterMedia) {
-    this.env = env;
+  constructor(twitterClient: TwitterClient, twitterMedia: TwitterMedia) {
     this.twitterClient = twitterClient;
     this.twitterMedia = twitterMedia;
 

@@ -6,6 +6,7 @@ import {
   ActivityLeaderboardQuerySchema,
   AuthCallbackQuerySchema,
   AuthInitRequestSchema,
+  AuthTokenRequestSchema,
   CreatePostRequestSchema,
   DeletePostRequestSchema,
   LikePostRequestSchema,
@@ -23,12 +24,15 @@ import { AuthMiddleware } from './src/middleware/auth.middleware.ts';
 import { corsMiddleware } from './src/middleware/cors.middleware.ts';
 import { errorMiddleware } from './src/middleware/error.middleware.ts';
 import { PlatformMiddleware } from './src/middleware/supported-platforms.middleware.ts';
+import { RequestContextMiddleware } from './src/middleware/request-context.middleware.ts';
 import { UsageRateLimitMiddleware } from './src/middleware/usage-rate-limit.middleware.ts';
 import { ValidationMiddleware } from './src/middleware/validation.middleware.ts';
 import { initializeApp } from './init.ts';
+import { z } from 'zod';
 
 const app = new Hono();
 
+app.use('*', RequestContextMiddleware.initializeContext);
 app.use('*', errorMiddleware());
 app.use('*', corsMiddleware());
 
@@ -78,6 +82,7 @@ auth.post(
   '/:platform/refresh',
   PlatformMiddleware.validatePlatform(),
   ValidationMiddleware.validateParams(PlatformParamSchema),
+  ValidationMiddleware.validateBody(AuthTokenRequestSchema),
   AuthMiddleware.validateNearSignature(),
   (c) => {
     const platform = PlatformMiddleware.getPlatform(c);
@@ -89,6 +94,7 @@ auth.delete(
   '/:platform/revoke',
   PlatformMiddleware.validatePlatform(),
   ValidationMiddleware.validateParams(PlatformParamSchema),
+  ValidationMiddleware.validateBody(AuthTokenRequestSchema),
   AuthMiddleware.validateNearSignature(),
   (c) => {
     const platform = PlatformMiddleware.getPlatform(c);
@@ -97,9 +103,14 @@ auth.delete(
 );
 
 auth.get(
-  '/:platform/status',
+  '/:platform/status/:userId',
   PlatformMiddleware.validatePlatform(),
-  ValidationMiddleware.validateParams(PlatformParamSchema),
+  ValidationMiddleware.validateParams(
+    z.object({
+      platform: z.string().describe('Social media platform'),
+      userId: z.string().describe('User ID on the platform'),
+    }).describe('Token status parameters'),
+  ),
   AuthMiddleware.validateNearSignature(),
   (c) => {
     const platform = PlatformMiddleware.getPlatform(c);
@@ -111,6 +122,7 @@ auth.post(
   '/:platform/refresh-profile',
   PlatformMiddleware.validatePlatform(),
   ValidationMiddleware.validateParams(PlatformParamSchema),
+  ValidationMiddleware.validateBody(AuthTokenRequestSchema),
   AuthMiddleware.validateNearSignature(),
   (c) => {
     const platform = PlatformMiddleware.getPlatform(c);
@@ -121,7 +133,12 @@ auth.post(
 // Common auth routes that aren't platform-specific
 auth.get(
   '/accounts',
-  AuthMiddleware.validateNearSignature(),
+  // AuthMiddleware.validateNearSignature(),
+  ValidationMiddleware.validateParams(
+    z.object({ // temporary
+      signerId: z.string().describe('Signer ID'),
+    }).describe('Connected accounts parameter'),
+  ),
   (c) => authController.listConnectedAccounts(c),
 );
 // Authorize a NEAR account
@@ -153,6 +170,12 @@ post.post(
   UsageRateLimitMiddleware.limitByNearAccount('post'),
   (c) => postControllers.create.handle(c),
 );
+post.delete(
+  '/',
+  AuthMiddleware.validateNearSignature(),
+  ValidationMiddleware.validateBody(DeletePostRequestSchema),
+  (c) => postControllers.delete.handle(c),
+);
 post.post(
   '/repost',
   AuthMiddleware.validateNearSignature(),
@@ -165,12 +188,6 @@ post.post(
   ValidationMiddleware.validateBody(QuotePostRequestSchema),
   (c) => postControllers.quote.handle(c),
 );
-post.delete(
-  '/:id',
-  AuthMiddleware.validateNearSignature(),
-  ValidationMiddleware.validateBody(DeletePostRequestSchema),
-  (c) => postControllers.delete.handle(c),
-);
 post.post(
   '/reply',
   AuthMiddleware.validateNearSignature(),
@@ -178,13 +195,13 @@ post.post(
   (c) => postControllers.reply.handle(c),
 );
 post.post(
-  '/like/:id',
+  '/like',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(LikePostRequestSchema),
   (c) => postControllers.like.handle(c),
 );
 post.delete(
-  '/like/:id',
+  '/like',
   AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateBody(UnlikePostRequestSchema),
   (c) => postControllers.unlike.handle(c),
@@ -194,7 +211,7 @@ post.delete(
 const activity = new Hono();
 activity.get(
   '/',
-  AuthMiddleware.validateNearSignature(),
+  // AuthMiddleware.validateNearSignature(),
   ValidationMiddleware.validateQuery(ActivityLeaderboardQuerySchema),
   (c) => activityController.getLeaderboard(c),
 );

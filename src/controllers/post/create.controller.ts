@@ -1,4 +1,4 @@
-import { CreatePostRequest, createSuccessDetail } from '@crosspost/types';
+import type { CreatePostRequest, CreatePostResponse, PostResult } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
@@ -6,11 +6,8 @@ import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
 import { addContentVariation } from '../../utils/spam-detection.utils.ts';
 import { BasePostController } from './base.controller.ts';
+import { createSuccessDetail } from '../../utils/response.utils.ts';
 
-/**
- * Create Post Controller
- * Handles creating new posts, potentially across multiple platforms
- */
 export class CreateController extends BasePostController {
   constructor(
     postService: PostService,
@@ -58,15 +55,10 @@ export class CreateController extends BasePostController {
           );
 
           // Return success detail
-          return createSuccessDetail(
+          return createSuccessDetail<PostResult>(
             target.platform,
             target.userId,
-            {
-              postId: result.id,
-              postUrl: result.url,
-              createdAt: result.createdAt,
-              threadIds: result.threadIds,
-            },
+            result,
           );
         },
       );

@@ -1,7 +1,6 @@
-import { ApiErrorCode, PlatformError, PlatformName } from '@crosspost/types';
-import type { StatusCode } from 'hono/utils/http-status';
+import { ApiErrorCode, PlatformName } from '@crosspost/types';
 import { Env } from '../../../config/env.ts';
-import { enhanceErrorWithContext } from '../../../utils/error-handling.utils.ts';
+import { createPlatformError, PlatformError } from '../../../errors/platform-error.ts';
 import { PrefixedKvStore } from '../../../utils/kv-store.utils.ts';
 import { NearAuthService } from '../../security/near-auth-service.ts';
 import { AuthToken } from '../../storage/auth-token-storage.ts';
@@ -56,10 +55,11 @@ export abstract class BasePlatformAuth implements PlatformAuth {
 
       return tokens;
     } catch (error) {
-      if (error instanceof PlatformError) {
-        throw error;
-      }
-      throw this.handleAuthError(error, 'getTokensForUser', userId);
+      throw createPlatformError(
+        ApiErrorCode.UNAUTHORIZED,
+        error instanceof Error ? error.message : 'Failed to get tokens',
+        this.platform,
+      );
     }
   }
 
@@ -205,11 +205,10 @@ export abstract class BasePlatformAuth implements PlatformAuth {
       const tokens = await this.nearAuthService.getTokens(userId, this.platform);
 
       if (!tokens.refreshToken) {
-        throw new PlatformError(
+        throw createPlatformError(
+          ApiErrorCode.UNAUTHORIZED,
           'No refresh token available',
           this.platform,
-          ApiErrorCode.UNAUTHORIZED,
-          false, // Not recoverable without re-auth
         );
       }
 
@@ -231,19 +230,28 @@ export abstract class BasePlatformAuth implements PlatformAuth {
             // If the token is invalid (UNAUTHORIZED), delete it
             await this.nearAuthService.deleteTokens(userId, this.platform);
           }
-          throw enhanceErrorWithContext(error, 'refreshToken');
+          throw error;
         }
 
-        // Re-throw other errors
-        throw this.handleAuthError(error, 'refreshToken', userId);
+        // Create a platform error for unknown errors
+        throw createPlatformError(
+          ApiErrorCode.UNAUTHORIZED,
+          error instanceof Error ? error.message : 'Failed to refresh token',
+          this.platform,
+        );
       }
     } catch (error) {
       if (error instanceof PlatformError) {
-        throw enhanceErrorWithContext(error, 'refreshToken');
+        throw error;
       }
 
       console.error(`Error refreshing token for ${userId}:`, error);
-      throw this.handleAuthError(error, 'refreshToken', userId);
+      // Create a platform error for unknown errors
+      throw createPlatformError(
+        ApiErrorCode.UNAUTHORIZED,
+        error instanceof Error ? error.message : 'Failed to refresh token',
+        this.platform,
+      );
     }
   }
 
@@ -292,77 +300,4 @@ export abstract class BasePlatformAuth implements PlatformAuth {
    * @returns The platform client
    */
   abstract getPlatformClient(): PlatformClient;
-
-  /**
-   * Handle common auth errors
-   * @param error The error to handle
-   * @param context Additional context for the error
-   * @param userId Optional user ID associated with the error
-   * @throws PlatformError with appropriate type
-   */
-  protected handleAuthError(error: unknown, context = '', userId?: string): PlatformError {
-    console.error(
-      `Auth Error ${context ? `(${context})` : ''} for user ${userId || 'unknown'}:`,
-      error,
-    );
-
-    // If it's already a PlatformError, just return it
-    if (error instanceof PlatformError) {
-      return error;
-    }
-
-    let message = 'An authentication error occurred';
-    let apiErrorCode: ApiErrorCode = ApiErrorCode.UNAUTHORIZED; // Default to UNAUTHORIZED for auth errors
-    let recoverable = false; // Default recoverable to false
-    let status: number | undefined = 401; // Default status
-
-    // Extract error details if available
-    if (error instanceof Error) {
-      message = error.message;
-    }
-
-    // Check for common error patterns
-    if (typeof error === 'object' && error !== null) {
-      const err = error as Record<string, any>;
-
-      // Check for token-related errors
-      if (
-        err.data?.error === 'invalid_token' ||
-        err.data?.error === 'invalid_request' ||
-        err.code === 'invalid_grant' ||
-        message.includes('token') ||
-        message.includes('expired')
-      ) {
-        apiErrorCode = ApiErrorCode.UNAUTHORIZED;
-        message = 'Authentication token is invalid or expired';
-        // Keep recoverable false, status 401
-      } else if (err.status === 429 || message.includes('rate limit')) {
-        apiErrorCode = ApiErrorCode.RATE_LIMITED;
-        message = 'Rate limit exceeded';
-        recoverable = true; // Rate limit errors are recoverable
-        status = 429;
-      } else if (
-        err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT'
-      ) {
-        apiErrorCode = ApiErrorCode.NETWORK_ERROR;
-        message = 'Network error occurred while authenticating';
-        recoverable = true; // Network errors are often recoverable
-        status = 502; // Bad Gateway often indicates upstream network issues
-      } // Use err.status if available and not already handled (e.g., rate limit)
-      else if (typeof err.status === 'number' && !status) {
-        status = err.status;
-      }
-    }
-
-    return new PlatformError(
-      message,
-      this.platform,
-      apiErrorCode,
-      recoverable,
-      error, // Pass the original error object
-      status as StatusCode | undefined,
-      userId,
-      undefined,
-    );
-  }
 }

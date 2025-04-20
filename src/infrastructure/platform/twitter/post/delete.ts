@@ -1,11 +1,7 @@
-import { ApiErrorCode, DeleteResult } from '@crosspost/types';
+import { DeleteResult } from '@crosspost/types';
 import { TwitterError } from '../twitter-error.ts';
 import { TwitterPostBase } from './base.ts';
 
-/**
- * Twitter Delete Post
- * Handles deleting posts on Twitter
- */
 export class TwitterDeletePost extends TwitterPostBase {
   /**
    * Delete a post
@@ -26,15 +22,7 @@ export class TwitterDeletePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error deleting post:', error);
-      throw new TwitterError(
-        'Failed to delete post',
-        ApiErrorCode.POST_DELETION_FAILED,
-        400,
-        error,
-        undefined,
-        true,
-        userId,
-      );
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 }

@@ -1,15 +1,12 @@
 import { Context } from '../../../deps.ts';
-import { createSuccessDetail, ReplyToPostRequest } from '@crosspost/types';
+import type { PostResult, ReplyToPostRequest } from '@crosspost/types';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
 import { BasePostController } from './base.controller.ts';
+import { createSuccessDetail } from '../../utils/response.utils.ts';
 
-/**
- * Reply Controller
- * Handles replying to an existing post
- */
 export class ReplyController extends BasePostController {
   constructor(
     postService: PostService,
@@ -56,15 +53,10 @@ export class ReplyController extends BasePostController {
           );
 
           // Return success detail
-          return createSuccessDetail(
+          return createSuccessDetail<PostResult>(
             target.platform,
             target.userId,
-            {
-              postId: result.id,
-              postUrl: result.url || `https://twitter.com/i/web/status/${result.id}`,
-              createdAt: result.createdAt,
-              inReplyToId: request.postId,
-            },
+            result,
           );
         },
       );

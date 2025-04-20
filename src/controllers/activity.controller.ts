@@ -1,12 +1,17 @@
 import {
+  type AccountActivityEntry,
+  AccountActivityResponse,
+  type AccountPost,
+  AccountPostsResponse,
+  ActivityLeaderboardResponse,
   ApiErrorCode,
-  createEnhancedErrorResponse,
-  createErrorDetail,
   PlatformName,
   TimePeriod,
 } from '@crosspost/types';
 import { Context } from '../../deps.ts';
 import { ActivityTrackingService } from '../domain/services/activity-tracking.service.ts';
+import { createApiError } from '../errors/api-error.ts';
+import { createSuccessResponse } from '../utils/response.utils.ts';
 import { BaseController } from './base.controller.ts';
 
 /**
@@ -48,8 +53,8 @@ export class ActivityController extends BaseController {
       }
 
       // Get leaderboard data
-      let leaderboard;
-      let total;
+      let leaderboard: AccountActivityEntry[];
+      let total: number;
 
       if (platform) {
         // Get platform-specific leaderboard
@@ -67,18 +72,22 @@ export class ActivityController extends BaseController {
       }
 
       // Return the result
-      return c.json({
-        data: {
+      return c.json(createSuccessResponse<ActivityLeaderboardResponse>(
+        c,
+        {
+          timeframe: timePeriod,
           entries: leaderboard,
+          generatedAt: new Date().toISOString(),
+          platform: platform,
+        },
+        {
           pagination: {
             total,
             limit,
             offset,
           },
-          timeframe: timePeriod,
-          platform,
         },
-      });
+      ));
     } catch (error) {
       return this.handleError(error, c);
     }
@@ -110,20 +119,11 @@ export class ActivityController extends BaseController {
       }
 
       if (!activity) {
-        c.status(404);
-        return c.json(createEnhancedErrorResponse([createErrorDetail(
-          'Account activity not found',
-          ApiErrorCode.NOT_FOUND,
-          false,
-          platform,
-          signerId,
-        )]));
+        throw createApiError(ApiErrorCode.NOT_FOUND, 'Account activity not found');
       }
 
       // Return the result
-      return c.json({
-        data: activity,
-      });
+      return c.json(createSuccessResponse<AccountActivityResponse>(c, activity));
     } catch (error) {
       return this.handleError(error, c);
     }
@@ -143,33 +143,41 @@ export class ActivityController extends BaseController {
       const platform = validatedQuery.platform as PlatformName | undefined;
       const limit = parseInt(validatedQuery.limit || '10');
       const offset = parseInt(validatedQuery.offset || '0');
+      const type = validatedQuery.type as AccountPost['type'] | 'all' | undefined;
 
-      let posts;
-      if (platform) {
-        // Get platform-specific account posts
-        posts = await this.activityTrackingService.getAccountPlatformPosts(
+      // Get posts based on platform filter
+      const posts = platform
+        ? await this.activityTrackingService.getAccountPlatformPosts(
           signerId,
           platform,
           limit,
           offset,
+        )
+        : await this.activityTrackingService.getAccountPosts(
+          signerId,
+          limit,
+          offset,
         );
-      } else {
-        // Get all account posts
-        posts = await this.activityTrackingService.getAccountPosts(signerId, limit, offset);
-      }
 
-      // Return the result
-      return c.json({
-        data: {
+      // Get total count
+      const totalPosts = posts.length;
+
+      return c.json(createSuccessResponse<AccountPostsResponse>(
+        c,
+        { // Data
           signerId,
           posts,
+          platform,
+          type,
+        },
+        { // Meta
           pagination: {
+            total: totalPosts,
             limit,
             offset,
           },
-          platform,
         },
-      });
+      ));
     } catch (error) {
       return this.handleError(error, c);
     }

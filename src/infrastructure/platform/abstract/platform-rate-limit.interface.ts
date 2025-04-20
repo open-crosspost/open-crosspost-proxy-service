@@ -12,7 +12,7 @@ export interface PlatformRateLimit {
    * @param version The API version (if applicable)
    * @returns The rate limit status
    */
-  getRateLimitStatus(endpoint: string, version?: string): Promise<RateLimitStatus | null>;
+  getRateLimitStatus(endpoint: string, version?: string): Promise<RateLimitStatus>;
 
   /**
    * Check if a rate limit has been hit

@@ -1,8 +1,8 @@
 import type {
+  ApiResponse,
   AuthRevokeResponse,
   AuthStatusResponse,
   ConnectedAccountsResponse,
-  EnhancedApiResponse,
   NearAuthorizationResponse,
   Platform,
 } from '@crosspost/types';
@@ -57,8 +57,8 @@ export class AuthApi {
   async loginToPlatform(
     platform: Platform,
     options?: { successUrl?: string; errorUrl?: string },
-  ): Promise<EnhancedApiResponse<any>> { // TODO: Refine response type based on actual API
-    return makeRequest<EnhancedApiResponse<any>>(
+  ): Promise<ApiResponse<any>> { // TODO: Refine response type based on actual API
+    return makeRequest<ApiResponse<any>>(
       'POST',
       `/auth/${platform}/login`,
       this.options,
@@ -71,8 +71,8 @@ export class AuthApi {
    * @param platform The target platform.
    * @returns A promise resolving with the refresh response.
    */
-  async refreshToken(platform: Platform): Promise<EnhancedApiResponse<any>> { // TODO: Refine response type
-    return makeRequest<EnhancedApiResponse<any>>(
+  async refreshToken(platform: Platform): Promise<ApiResponse<any>> { // TODO: Refine response type
+    return makeRequest<ApiResponse<any>>(
       'POST',
       `/auth/${platform}/refresh`,
       this.options,
@@ -84,8 +84,8 @@ export class AuthApi {
    * @param platform The target platform.
    * @returns A promise resolving with the profile refresh response.
    */
-  async refreshProfile(platform: Platform): Promise<EnhancedApiResponse<any>> { // TODO: Refine response type
-    return makeRequest<EnhancedApiResponse<any>>(
+  async refreshProfile(platform: Platform): Promise<ApiResponse<any>> { // TODO: Refine response type
+    return makeRequest<ApiResponse<any>>(
       'POST',
       `/auth/${platform}/refresh-profile`,
       this.options,

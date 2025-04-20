@@ -1,21 +1,9 @@
-import {
-  ApiError,
-  ApiErrorCode,
-  BaseError,
-  createEnhancedErrorResponse,
-  createErrorDetail,
-  ErrorDetail,
-  Platform,
-  PlatformError,
-} from '@crosspost/types';
+import { ApiErrorCode, type ErrorDetail, type StatusCode } from '@crosspost/types';
 import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.ts';
-import type { StatusCode } from 'hono/utils/http-status';
-import { getStatusCodeForError } from '../utils/error-handling.utils.ts';
+import { createErrorDetail, createErrorResponse } from '../utils/response.utils.ts';
+import { ApiError } from '../errors/api-error.ts';
+import { PlatformError } from '../errors/platform-error.ts';
 
-/**
- * Error middleware for Hono
- * @returns Middleware handler
- */
 export const errorMiddleware = (): MiddlewareHandler => {
   return async (c: Context, next: Next) => {
     try {
@@ -27,147 +15,110 @@ export const errorMiddleware = (): MiddlewareHandler => {
       if (err instanceof HTTPException) {
         c.status((err as HTTPException).status);
         return c.json(
-          createEnhancedErrorResponse([
+          createErrorResponse([
             createErrorDetail(
               (err as HTTPException).message,
               ApiErrorCode.UNKNOWN_ERROR,
               false,
-              undefined,
-              undefined,
+              { originalError: err },
             ),
           ]),
         );
       }
 
-      // Handle our new ApiError
       if (err instanceof ApiError) {
-        // Use the status from the error or get it from our map
-        const statusCode = err.status || getStatusCodeForError(err.code);
-        c.status(statusCode as StatusCode);
+        c.status(err.status);
+
+        // For PlatformError, ensure platform is in details
+        const details = err instanceof PlatformError
+          ? { platform: err.platform, ...err.details }
+          : err.details;
 
         return c.json(
-          createEnhancedErrorResponse([
+          createErrorResponse([
             createErrorDetail(
               err.message,
               err.code,
               err.recoverable,
-              undefined,
-              undefined,
-              err.details,
+              details,
             ),
           ]),
         );
       }
 
-      // Handle our new PlatformError
-      if (err instanceof PlatformError) {
-        // Use the status from the error or get it from our map
-        const statusCode = err.status || getStatusCodeForError(err.code);
-        c.status(statusCode as StatusCode);
-
-        return c.json(
-          createEnhancedErrorResponse([
-            createErrorDetail(
-              err.message,
-              err.code,
-              err.recoverable,
-              err.platform as Platform,
-              err.userId,
-              err.details,
-            ),
-          ]),
-        );
-      }
-
-      // Handle arrays of errors (for multi-status responses)
+      // Handle arrays of errors (e.g., from multi-platform operations)
       if (Array.isArray(err)) {
         if (err.length === 0) {
           c.status(500);
-          return c.json(createEnhancedErrorResponse([
+          return c.json(createErrorResponse([
             createErrorDetail(
               'Empty error array received',
-              ApiErrorCode.UNKNOWN_ERROR,
+              ApiErrorCode.INTERNAL_ERROR,
               false,
             ),
           ]));
         }
 
-        // Convert errors to error details
+        // Convert all errors in the array to ErrorDetail
         const errorDetails: ErrorDetail[] = err.map((e) => {
-          if (e instanceof PlatformError) {
+          if (e instanceof ApiError) {
+            const details = e instanceof PlatformError
+              ? { platform: e.platform, ...e.details }
+              : e.details;
             return createErrorDetail(
               e.message,
               e.code,
               e.recoverable,
-              e.platform as Platform,
-              e.userId,
-              e.details,
-            );
-          } else if (e instanceof ApiError) {
-            return createErrorDetail(
-              e.message,
-              e.code,
-              e.recoverable,
-              undefined,
-              undefined,
-              e.details,
+              details,
             );
           } else {
+            // Handle non-ApiError items in the array
             return createErrorDetail(
               e instanceof Error ? e.message : String(e),
               ApiErrorCode.UNKNOWN_ERROR,
               false,
+              { originalError: e },
             );
           }
         });
 
-        // Always use 207 Multi-Status for multiple errors
-        c.status(207);
-        return c.json(createEnhancedErrorResponse(errorDetails));
-      }
-
-      // Handle other BaseError types
-      if (err instanceof BaseError) {
-        c.status(500);
-        return c.json(
-          createEnhancedErrorResponse([
-            createErrorDetail(
-              err.message,
-              ApiErrorCode.UNKNOWN_ERROR,
-              false,
-              undefined,
-              undefined,
-            ),
-          ]),
+        // Determine overall status (usually 207 Multi-Status)
+        // Could be 4xx/5xx if all errors have the same status
+        const allSameStatus = err.every((e) =>
+          e instanceof ApiError && e.status === (err[0] as ApiError).status
         );
+        const status = allSameStatus && err[0] instanceof ApiError ? err[0].status : 207;
+        c.status(status);
+
+        return c.json(createErrorResponse(errorDetails));
       }
 
       // Handle standard Error objects
       if (err instanceof Error) {
+        console.error('Caught standard Error:', err.message, err.stack);
         c.status(500);
         return c.json(
-          createEnhancedErrorResponse([
+          createErrorResponse([
             createErrorDetail(
-              err.message || 'An unexpected error occurred',
+              'An internal server error occurred.',
               ApiErrorCode.INTERNAL_ERROR,
               false,
-              undefined,
-              undefined,
+              { errorName: err.name },
             ),
           ]),
         );
       }
 
-      // Handle unknown errors
+      // Handle unknown errors (non-Error types thrown)
+      console.error('Caught unknown error type:', err);
       c.status(500);
       return c.json(
-        createEnhancedErrorResponse([
+        createErrorResponse([
           createErrorDetail(
-            'An unexpected error occurred',
+            'An unexpected internal error occurred.',
             ApiErrorCode.UNKNOWN_ERROR,
             false,
-            undefined,
-            undefined,
+            { errorType: typeof err },
           ),
         ]),
       );

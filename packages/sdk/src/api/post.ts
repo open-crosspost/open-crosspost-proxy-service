@@ -14,7 +14,6 @@ import type {
   UnlikePostRequest,
   UnlikePostResponse,
 } from '@crosspost/types';
-import { ApiError, ApiErrorCode } from '@crosspost/types';
 import { makeRequest, type RequestOptions } from '../core/request.ts';
 
 /**
@@ -93,10 +92,9 @@ export class PostApi {
    * @returns A promise resolving with the like response.
    */
   async likePost(request: LikePostRequest): Promise<LikePostResponse> {
-    // API endpoint uses postId in the path
     return makeRequest<LikePostResponse>(
       'POST',
-      `/api/post/like/${request.postId}`,
+      `/api/post/like`,
       this.options,
       request,
     );
@@ -108,10 +106,9 @@ export class PostApi {
    * @returns A promise resolving with the unlike response.
    */
   async unlikePost(request: UnlikePostRequest): Promise<UnlikePostResponse> {
-    // API endpoint uses postId in the path
     return makeRequest<UnlikePostResponse>(
       'DELETE',
-      `/api/post/like/${request.postId}`,
+      `/api/post/like`,
       this.options,
       request,
     );
@@ -123,18 +120,9 @@ export class PostApi {
    * @returns A promise resolving with the delete response.
    */
   async deletePost(request: DeletePostRequest): Promise<DeletePostResponse> {
-    // API endpoint uses postId in the path, assuming the first post ID for the URL
-    const postId = request.posts[0]?.postId || '';
-    if (!postId) {
-      throw new ApiError(
-        'Post ID is required for deletion path',
-        ApiErrorCode.VALIDATION_ERROR,
-        400,
-      );
-    }
     return makeRequest<DeletePostResponse>(
       'DELETE',
-      `/api/post/${postId}`,
+      `/api/post`,
       this.options,
       request,
     );

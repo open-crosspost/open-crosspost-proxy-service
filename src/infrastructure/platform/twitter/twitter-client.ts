@@ -1,4 +1,4 @@
-import { ApiErrorCode, Platform, PlatformError } from '@crosspost/types'; // Import ApiErrorCode
+import { Platform } from '@crosspost/types';
 import { TwitterApiCachePluginRedis } from '@twitter-api-v2/plugin-cache-redis';
 import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
 import { TwitterApiAutoTokenRefresher } from '@twitter-api-v2/plugin-token-refresher';
@@ -9,6 +9,7 @@ import { AuthToken, TokenType } from '../../storage/auth-token-storage.ts';
 import { BasePlatformClient } from '../abstract/base-platform-client.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
 import { NearAuthService } from './../../security/near-auth-service.ts';
+import { TwitterError } from './twitter-error.ts';
 
 /**
  * Twitter Client
@@ -82,24 +83,8 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
         onTokenRefreshError: async (error) => {
           console.error('Token refresh error:', error);
 
-          // Handle specific Twitter API error for invalid token
-          if (
-            (error as any).data?.error === 'invalid_request' ||
-            (error as any).data?.error_description?.includes('invalid') ||
-            ((error as any).status === 400 && (error as any).code === 'invalid_grant')
-          ) {
-            await this.nearAuthService.deleteTokens(userId, Platform.TWITTER);
-
-            // Throw a more descriptive error
-            throw new Error(
-              `User authentication expired (${
-                (error as any).data?.error_description || 'invalid token'
-              }). Please reconnect your Twitter account.`,
-            );
-          }
-
-          // For other types of errors, provide more context
-          throw new Error(`Token refresh failed: ${(error as any).message || 'Unknown error'}`);
+          await this.nearAuthService.deleteTokens(userId, Platform.TWITTER);
+          throw TwitterError.fromTwitterApiError(error);
         },
       });
 
@@ -206,25 +191,8 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
         scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write'],
         tokenType: TokenType.OAUTH2,
       };
-    } catch (error: any) {
-      // Handle specific Twitter API error for invalid token
-      if (
-        error.data?.error === 'invalid_request' ||
-        error.data?.error_description?.includes('invalid') ||
-        (error.status === 400 && error.code === 'invalid_grant')
-      ) {
-        throw new PlatformError(
-          `User authentication expired (${
-            error.data?.error_description || 'invalid token'
-          }). Please reconnect your Twitter account.`,
-          Platform.TWITTER,
-          ApiErrorCode.UNAUTHORIZED,
-          false, // Not recoverable
-          error, // Original error
-        );
-      }
-
-      throw this.handleApiError(error, 'refreshPlatformToken');
+    } catch (error) {
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 
@@ -257,50 +225,12 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
     } catch (error) {
       console.error('Error revoking tokens with Twitter API:', error);
 
-      // If it's a 401 error, the token might already be invalid/revoked
-      if (
-        error instanceof Error &&
-        (error.message.includes('401') || error.message.includes('unauthorized'))
-      ) {
+      const twitterError = TwitterError.fromTwitterApiError(error);
+      // If it's an auth error (401), the token is already invalid/revoked
+      if (twitterError.status === 401) {
         return true;
       }
-
-      throw this.handleApiError(error, 'revokePlatformToken');
+      throw twitterError;
     }
-  }
-
-  /**
-   * Get the rate limit status for a specific endpoint
-   * @param endpoint The endpoint to check rate limits for
-   * @param version The API version (v1 or v2)
-   * @returns The rate limit status
-   */
-  async getRateLimitStatus(endpoint: string, version: 'v1' | 'v2' = 'v2'): Promise<any> {
-    try {
-      return await this.rateLimitPlugin[version].getRateLimit(endpoint);
-    } catch (error) {
-      console.error('Error getting rate limit status:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Check if a rate limit has been hit
-   * @param rateLimitStatus The rate limit status object
-   * @returns True if the rate limit has been hit
-   */
-  isRateLimited(rateLimitStatus: any): boolean {
-    if (!rateLimitStatus) return false;
-    return this.rateLimitPlugin.hasHitRateLimit(rateLimitStatus);
-  }
-
-  /**
-   * Check if a rate limit status is obsolete (reset time has passed)
-   * @param rateLimitStatus The rate limit status object
-   * @returns True if the rate limit status is obsolete
-   */
-  isRateLimitObsolete(rateLimitStatus: any): boolean {
-    if (!rateLimitStatus) return true;
-    return this.rateLimitPlugin.isRateLimitStatusObsolete(rateLimitStatus);
   }
 }

@@ -1,11 +1,7 @@
-import { ApiErrorCode, LikeResult } from '@crosspost/types';
+import { LikeResult } from '@crosspost/types';
 import { TwitterError } from '../twitter-error.ts';
 import { TwitterPostBase } from './base.ts';
 
-/**
- * Twitter Like Post
- * Handles liking and unliking posts on Twitter
- */
 export class TwitterLikePost extends TwitterPostBase {
   /**
    * Like a post
@@ -26,15 +22,7 @@ export class TwitterLikePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error liking post:', error);
-      throw new TwitterError(
-        'Failed to like post',
-        ApiErrorCode.POST_INTERACTION_FAILED,
-        400,
-        error,
-        undefined,
-        true,
-        userId,
-      );
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 
@@ -56,16 +44,7 @@ export class TwitterLikePost extends TwitterPostBase {
         id: postId,
       };
     } catch (error) {
-      console.error('Error unliking post:', error);
-      throw new TwitterError(
-        'Failed to unlike post',
-        ApiErrorCode.POST_INTERACTION_FAILED,
-        400,
-        error,
-        undefined,
-        true,
-        userId,
-      );
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 }

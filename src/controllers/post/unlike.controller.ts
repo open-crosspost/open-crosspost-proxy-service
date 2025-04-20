@@ -1,15 +1,12 @@
-import { createSuccessDetail, UnlikePostRequest } from '@crosspost/types';
+import type { LikeResult, UnlikePostRequest } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
+import { createSuccessDetail } from '../../utils/response.utils.ts';
 import { BasePostController } from './base.controller.ts';
 
-/**
- * Unlike Controller
- * Handles unliking a previously liked post
- */
 export class UnlikeController extends BasePostController {
   constructor(
     postService: PostService,
@@ -40,20 +37,17 @@ export class UnlikeController extends BasePostController {
         'like', // Use 'like' for rate limiting since it's the same action type
         async (target) => {
           // Unlike the post
-          const unlikeResult = await this.postService.unlikePost(
+          const result = await this.postService.unlikePost(
             request.platform, // Platform of the post being unliked
             target.userId,
             request.postId,
           );
 
           // Return success detail
-          return createSuccessDetail(
+          return createSuccessDetail<LikeResult>(
             target.platform,
             target.userId,
-            {
-              postId: request.postId,
-              success: unlikeResult.success,
-            },
+            result,
           );
         },
       );

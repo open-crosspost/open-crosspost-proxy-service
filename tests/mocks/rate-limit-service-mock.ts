@@ -1,13 +1,7 @@
-import {
-  ApiErrorCode,
-  Platform,
-  PlatformError,
-  PlatformName,
-  RateLimitStatus,
-} from '@crosspost/types';
+import { ApiErrorCode, Platform, PlatformName, RateLimitStatus } from '@crosspost/types';
 import { Env } from '../../src/config/env.ts';
 import { RateLimitService } from '../../src/domain/services/rate-limit.service.ts';
-import { PlatformRateLimit } from '../../src/infrastructure/platform/abstract/platform-rate-limit.interface.ts';
+import { createPlatformError } from '../../src/errors/platform-error.ts';
 import { MockKvStore } from './kv-store-mock.ts';
 
 /**
@@ -25,7 +19,7 @@ export class MockRateLimitService extends RateLimitService {
     _platform: PlatformName,
     endpoint: string,
     _version?: string,
-  ): Promise<RateLimitStatus | null> {
+  ): Promise<RateLimitStatus> {
     return {
       endpoint: endpoint || 'test-endpoint',
       limit: 100,
@@ -91,13 +85,10 @@ export class MockRateLimitService extends RateLimitService {
   static createErrorMock(): MockRateLimitService {
     const errorMock = new MockRateLimitService();
     errorMock.getRateLimitStatus = () => {
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.INTERNAL_ERROR,
         'Test error',
         Platform.TWITTER,
-        ApiErrorCode.INTERNAL_ERROR,
-        false,
-        null,
-        500,
       );
     };
     return errorMock;

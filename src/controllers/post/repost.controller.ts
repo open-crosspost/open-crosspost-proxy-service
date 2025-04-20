@@ -1,15 +1,11 @@
 import { Context } from '../../../deps.ts';
-import { createSuccessDetail, RepostRequest } from '@crosspost/types';
+import type { PostResult, RepostRequest } from '@crosspost/types';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
 import { BasePostController } from './base.controller.ts';
-
-/**
- * Repost Controller
- * Handles reposting an existing post
- */
+import { createSuccessDetail } from '../../utils/response.utils.ts';
 export class RepostController extends BasePostController {
   constructor(
     postService: PostService,
@@ -40,7 +36,7 @@ export class RepostController extends BasePostController {
         'repost',
         async (target) => {
           // Repost the post
-          const repostResult = await this.postService.repost(
+          const result = await this.postService.repost(
             request.platform, // Platform of the post being reposted
             target.userId,
             request.postId,
@@ -51,17 +47,14 @@ export class RepostController extends BasePostController {
             signerId,
             target.platform,
             target.userId,
-            repostResult.id,
+            result.id,
           );
 
           // Return success detail
-          return createSuccessDetail(
+          return createSuccessDetail<PostResult>(
             target.platform,
             target.userId,
-            {
-              postId: repostResult.id,
-              success: repostResult.success,
-            },
+            result,
           );
         },
       );

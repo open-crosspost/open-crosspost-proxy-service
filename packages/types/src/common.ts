@@ -1,12 +1,7 @@
-/**
- * Common Schemas and Types
- * Defines common Zod schemas and derived TypeScript types used across the API
- */
-
 import { z } from 'zod';
 
 /**
- * Platform enum - All platforms (including planned ones)
+ * Platform enum
  */
 export enum Platform {
   UNKNOWN = 'unknown',
@@ -17,13 +12,13 @@ export enum Platform {
   // INSTAGRAM = 'instagram',
 }
 
-export const PlatformSchema = z.nativeEnum(Platform)
-  .describe('Social media platform');
-
 /**
- * Platform type - Derived from the Platform enum
+ * PlatformName type - Derived from the Platform enum
  */
 export type PlatformName = Platform;
+
+export const PlatformSchema = z.nativeEnum(Platform)
+  .describe('Social media platform');
 
 /**
  * Array of currently supported platforms
@@ -47,3 +42,6 @@ SupportedPlatformSchema.describe('Currently supported social media platforms');
 export function isPlatformSupported(platform: Platform): platform is SupportedPlatformName {
   return (SUPPORTED_PLATFORMS as readonly Platform[]).includes(platform);
 }
+
+// Re-export StatusCode from hono
+export type { StatusCode } from 'hono/utils/http-status';

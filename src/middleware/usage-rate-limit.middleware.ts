@@ -1,15 +1,9 @@
+import { ApiErrorCode } from '@crosspost/types';
 import { Context, MiddlewareHandler, Next } from '../../deps.ts';
-import { ApiError, ApiErrorCode } from '@crosspost/types';
+import { ApiError, createApiError } from '../errors/api-error.ts';
 import { PrefixedKvStore } from '../utils/kv-store.utils.ts';
 
-/**
- * Configuration for NEAR account rate limiting
- */
 export interface UsageRateLimitConfig {
-  /**
-   * Maximum number of posts allowed per day per NEAR account
-   * Default: 10
-   */
   maxPostsPerDay: number;
 }
 
@@ -171,16 +165,16 @@ export class UsageRateLimitMiddleware {
           c.header('X-RateLimit-Remaining', '0');
           c.header('X-RateLimit-Reset', Math.floor(result.reset / 1000).toString());
 
-          throw new ApiError(
-            `Rate limit exceeded for NEAR account ${signerId}. Maximum ${result.limit} requests per day allowed.`,
+          throw createApiError(
             ApiErrorCode.RATE_LIMITED,
-            429,
+            `Rate limit exceeded for NEAR account ${signerId}. Maximum ${result.limit} requests per day allowed.`,
             {
               limit: result.limit,
               current: result.current,
               reset: result.reset,
               signerId,
             },
+            true,
           );
         }
 
@@ -194,10 +188,9 @@ export class UsageRateLimitMiddleware {
         if (error instanceof ApiError) {
           throw error;
         }
-        throw new ApiError(
-          'Error checking rate limit',
+        throw createApiError(
           ApiErrorCode.INTERNAL_ERROR,
-          500,
+          'Error checking rate limit',
           { originalError: error instanceof Error ? error.message : String(error) },
         );
       }

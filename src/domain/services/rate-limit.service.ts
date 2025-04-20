@@ -1,11 +1,8 @@
-import { ApiErrorCode, PlatformError, PlatformName, RateLimitStatus } from '@crosspost/types';
+import { ApiErrorCode, PlatformName, RateLimitStatus } from '@crosspost/types';
 import { Env } from '../../config/env.ts';
+import { createPlatformError, PlatformError } from '../../errors/platform-error.ts';
 import { PlatformRateLimit } from '../../infrastructure/platform/abstract/platform-rate-limit.interface.ts';
 
-/**
- * Rate Limit Service
- * Domain service for rate limit-related operations
- */
 export class RateLimitService {
   private env: Env;
   private platformRateLimits: Map<PlatformName, PlatformRateLimit>;
@@ -25,13 +22,10 @@ export class RateLimitService {
     const platformRateLimit = this.platformRateLimits.get(platform);
 
     if (!platformRateLimit) {
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.PLATFORM_UNAVAILABLE,
         `Unsupported platform: ${platform}`,
         platform,
-        ApiErrorCode.PLATFORM_UNAVAILABLE,
-        false,
-        null,
-        501, // Not Implemented
       );
     }
 
@@ -49,7 +43,7 @@ export class RateLimitService {
     platform: PlatformName,
     endpoint: string,
     version?: string,
-  ): Promise<RateLimitStatus | null> {
+  ): Promise<RateLimitStatus> {
     try {
       const platformRateLimit = this.getPlatformRateLimit(platform);
       return await platformRateLimit.getRateLimitStatus(endpoint, version);
@@ -60,13 +54,10 @@ export class RateLimitService {
         throw error;
       }
 
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.INTERNAL_ERROR,
         `Failed to get rate limit status for ${platform}`,
         platform,
-        ApiErrorCode.INTERNAL_ERROR,
-        false,
-        error,
-        500,
       );
     }
   }
@@ -166,14 +157,10 @@ export class RateLimitService {
       if (error instanceof PlatformError) {
         throw error;
       }
-
-      throw new PlatformError(
+      throw createPlatformError(
+        ApiErrorCode.INTERNAL_ERROR,
         `Failed to get all rate limits for ${platform}`,
         platform,
-        ApiErrorCode.INTERNAL_ERROR,
-        false,
-        error,
-        500,
       );
     }
   }

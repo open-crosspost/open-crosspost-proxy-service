@@ -1,12 +1,8 @@
+import { PostContent, PostResult } from '@crosspost/types'; // Import ApiErrorCode
 import { SendTweetV2Params } from 'twitter-api-v2';
 import { TwitterError } from '../twitter-error.ts';
 import { TwitterPostBase } from './base.ts';
-import { ApiErrorCode, PostContent, PostResult } from '@crosspost/types'; // Import ApiErrorCode
 
-/**
- * Twitter Quote Post
- * Handles quoting posts on Twitter
- */
 export class TwitterQuotePost extends TwitterPostBase {
   /**
    * Quote an existing post
@@ -19,7 +15,7 @@ export class TwitterQuotePost extends TwitterPostBase {
     try {
       const client = await this.twitterClient.getClientForUser(userId);
 
-      // Handle thread of quote tweets
+      // Handle thread of quote tweets¬
       if (Array.isArray(content)) {
         return this.createQuoteThread(userId, postId, content);
       }
@@ -47,15 +43,7 @@ export class TwitterQuotePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error quoting post:', error);
-      throw new TwitterError(
-        'Failed to quote post',
-        ApiErrorCode.POST_CREATION_FAILED,
-        400,
-        error,
-        undefined,
-        true,
-        userId,
-      );
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 
@@ -118,15 +106,7 @@ export class TwitterQuotePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error creating quote thread:', error);
-      throw new TwitterError(
-        'Failed to create quote thread',
-        ApiErrorCode.THREAD_CREATION_FAILED,
-        400,
-        error,
-        undefined,
-        true,
-        userId,
-      );
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 }

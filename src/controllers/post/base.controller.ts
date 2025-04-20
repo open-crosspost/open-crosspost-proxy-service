@@ -1,19 +1,23 @@
 import {
   ApiErrorCode,
-  createErrorDetail,
-  createMultiStatusResponse,
-  createSuccessDetail,
-  PlatformError,
+  errorCodeToStatusCode,
+  ErrorDetail,
   PlatformName,
+  StatusCode,
 } from '@crosspost/types';
-import type { StatusCode } from 'hono/utils/http-status';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
+import { PlatformError } from '../../errors/platform-error.ts';
 import { MediaCache } from '../../utils/media-cache.utils.ts';
-import { getStatusCodeForError } from '../../utils/error-handling.utils.ts';
+import {
+  createErrorDetail,
+  createMultiStatusData,
+  createSuccessDetail,
+  createSuccessResponse,
+} from '../../utils/response.utils.ts';
 import { getPostDelay } from '../../utils/spam-detection.utils.ts';
 import { BaseController } from '../base.controller.ts';
 
@@ -39,7 +43,7 @@ export abstract class BasePostController extends BaseController {
     this.rateLimitService = rateLimitService;
     this.activityTrackingService = activityTrackingService;
     this.authService = authService;
-    this.mediaCache = MediaCache.getInstance(); // MediaCache remains a singleton for now
+    this.mediaCache = MediaCache.getInstance();
   }
 
   /**
@@ -54,7 +58,7 @@ export abstract class BasePostController extends BaseController {
     signerId: string,
     platform: PlatformName,
     userId: string,
-  ): Promise<{ success: boolean; errorDetail?: ReturnType<typeof createErrorDetail> }> {
+  ): Promise<{ success: boolean; errorDetail?: ErrorDetail }> {
     try {
       // Check if the NEAR account has access to this platform and userId
       const hasAccess = await this.authService.hasAccess(signerId, platform, userId);
@@ -72,8 +76,10 @@ export abstract class BasePostController extends BaseController {
           : `No connected ${platform} account found for user ID ${userId}`,
         ApiErrorCode.UNAUTHORIZED,
         true, // Recoverable by connecting the account
-        platform,
-        userId,
+        {
+          platform,
+          userId,
+        },
       );
       return { success: false, errorDetail };
     }
@@ -100,8 +106,10 @@ export abstract class BasePostController extends BaseController {
       `Rate limit reached for ${platform}. Please try again later.`,
       ApiErrorCode.RATE_LIMITED,
       true, // Recoverable by waiting
-      platform,
-      userId,
+      {
+        platform,
+        userId,
+      },
     );
 
     return { success: false, errorDetail };
@@ -161,11 +169,13 @@ export abstract class BasePostController extends BaseController {
             error instanceof Error ? error.message : 'Unknown error',
             error instanceof PlatformError ? error.code : ApiErrorCode.PLATFORM_ERROR,
             error instanceof PlatformError ? error.recoverable : false,
-            target.platform,
-            target.userId,
-            error instanceof PlatformError
-              ? error.details
-              : (error instanceof Error ? { errorStack: error.stack } : undefined),
+            {
+              platform: target.platform,
+              userId: target.userId,
+              ...((error instanceof PlatformError)
+                ? (error as PlatformError).details
+                : (error instanceof Error ? { errorStack: error.stack } : undefined)),
+            },
           ),
         );
       }
@@ -189,8 +199,7 @@ export abstract class BasePostController extends BaseController {
     successResults: ReturnType<typeof createSuccessDetail>[],
     errorDetails: ReturnType<typeof createErrorDetail>[],
   ): Response {
-    // Create a multi-status response
-    const response = createMultiStatusResponse(successResults, errorDetails);
+    const multiStatusData = createMultiStatusData(successResults, errorDetails);
 
     // Determine appropriate status code
     let statusCode = 200;
@@ -198,14 +207,13 @@ export abstract class BasePostController extends BaseController {
       // Complete failure - use appropriate status code based on error type
       const firstError = errorDetails[0];
       // Cast the errorCode to ApiErrorCode since it's stored as a string in the error detail
-      statusCode = getStatusCodeForError(firstError.errorCode as ApiErrorCode);
+      statusCode = errorCodeToStatusCode[firstError.code as ApiErrorCode];
     } else if (successResults.length > 0 && errorDetails.length > 0) {
       // Partial success - use 207 Multi-Status
       statusCode = 207;
     }
 
-    // Return the response with appropriate status code
     c.status(statusCode as StatusCode);
-    return c.json(response);
+    return c.json(createSuccessResponse(c, multiStatusData));
   }
 }

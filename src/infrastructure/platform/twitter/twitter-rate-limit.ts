@@ -1,18 +1,15 @@
-import { TwitterClient } from './twitter-client.ts';
-import { Env } from '../../../config/env.ts';
 import { RateLimitStatus } from '@crosspost/types';
+import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
+import type { TwitterRateLimit as TwitterApiRateLimit } from 'twitter-api-v2';
 import { PlatformRateLimit } from '../abstract/platform-rate-limit.interface.ts';
+import { TwitterError } from './twitter-error.ts';
 
-/**
- * Twitter Rate Limit
- * Implements the PlatformRateLimit interface for Twitter
- */
 export class TwitterRateLimit implements PlatformRateLimit {
-  private twitterClient: TwitterClient;
+  private rateLimitPlugin: TwitterApiRateLimitPlugin;
   private actionEndpointMap: Record<string, { endpoint: string; version: 'v1' | 'v2' }>;
 
-  constructor(env: Env, twitterClient: TwitterClient) {
-    this.twitterClient = twitterClient;
+  constructor() {
+    this.rateLimitPlugin = new TwitterApiRateLimitPlugin();
 
     // Map common actions to their corresponding endpoints
     this.actionEndpointMap = {
@@ -34,12 +31,19 @@ export class TwitterRateLimit implements PlatformRateLimit {
   async getRateLimitStatus(
     endpoint: string,
     version: 'v1' | 'v2' = 'v2',
-  ): Promise<RateLimitStatus | null> {
+  ): Promise<RateLimitStatus> {
     try {
-      const rateLimitData = await this.twitterClient.getRateLimitStatus(endpoint, version);
+      const rateLimitData = await this.rateLimitPlugin[version].getRateLimit(endpoint);
 
       if (!rateLimitData) {
-        return null;
+        // Return a default rate limit status when no data is available
+        return {
+          limit: 0,
+          remaining: 0,
+          reset: new Date().toISOString(),
+          endpoint,
+          resetSeconds: 0,
+        };
       }
 
       // Calculate resetSeconds from reset timestamp
@@ -56,7 +60,7 @@ export class TwitterRateLimit implements PlatformRateLimit {
       };
     } catch (error) {
       console.error('Error getting Twitter rate limit status:', error);
-      return null;
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 
@@ -65,9 +69,14 @@ export class TwitterRateLimit implements PlatformRateLimit {
    * @param rateLimitStatus The rate limit status object
    * @returns True if the rate limit has been hit
    */
-  isRateLimited(rateLimitStatus: RateLimitStatus | null): boolean {
-    if (!rateLimitStatus) return false;
-    return this.twitterClient.isRateLimited(rateLimitStatus);
+  isRateLimited(rateLimitStatus: RateLimitStatus): boolean {
+    // Convert our rate limit format to Twitter's format
+    const twitterRateLimit: TwitterApiRateLimit = {
+      limit: rateLimitStatus.limit,
+      remaining: rateLimitStatus.remaining,
+      reset: Math.floor(new Date(rateLimitStatus.reset).getTime() / 1000),
+    };
+    return this.rateLimitPlugin.hasHitRateLimit(twitterRateLimit);
   }
 
   /**
@@ -75,9 +84,14 @@ export class TwitterRateLimit implements PlatformRateLimit {
    * @param rateLimitStatus The rate limit status object
    * @returns True if the rate limit status is obsolete
    */
-  isRateLimitObsolete(rateLimitStatus: RateLimitStatus | null): boolean {
-    if (!rateLimitStatus) return true;
-    return this.twitterClient.isRateLimitObsolete(rateLimitStatus);
+  isRateLimitObsolete(rateLimitStatus: RateLimitStatus): boolean {
+    // Convert our rate limit format to Twitter's format
+    const twitterRateLimit: TwitterApiRateLimit = {
+      limit: rateLimitStatus.limit,
+      remaining: rateLimitStatus.remaining,
+      reset: Math.floor(new Date(rateLimitStatus.reset).getTime() / 1000),
+    };
+    return this.rateLimitPlugin.isRateLimitStatusObsolete(twitterRateLimit);
   }
 
   /**
@@ -109,23 +123,19 @@ export class TwitterRateLimit implements PlatformRateLimit {
       // Get rate limits for v2 endpoints
       for (const endpoint of endpoints.v2) {
         const status = await this.getRateLimitStatus(endpoint, 'v2');
-        if (status) {
-          rateLimits[`v2:${endpoint}`] = status;
-        }
+        rateLimits[`v2:${endpoint}`] = status;
       }
 
       // Get rate limits for v1 endpoints
       for (const endpoint of endpoints.v1) {
         const status = await this.getRateLimitStatus(endpoint, 'v1');
-        if (status) {
-          rateLimits[`v1:${endpoint}`] = status;
-        }
+        rateLimits[`v1:${endpoint}`] = status;
       }
 
       return rateLimits;
     } catch (error) {
       console.error('Error getting all Twitter rate limits:', error);
-      return {};
+      throw TwitterError.fromTwitterApiError(error);
     }
   }
 

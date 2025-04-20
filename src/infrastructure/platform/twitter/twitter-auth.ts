@@ -10,10 +10,6 @@ import { TwitterClient } from './twitter-client.ts';
 import { TwitterProfile } from './twitter-profile.ts';
 import { NearAuthService } from '../../security/near-auth-service.ts';
 
-/**
- * Twitter Auth
- * Implements the PlatformAuth interface for Twitter
- */
 export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
   constructor(
     env: Env,

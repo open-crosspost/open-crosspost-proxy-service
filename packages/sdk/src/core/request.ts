@@ -1,6 +1,11 @@
-import { ApiError, ApiErrorCode } from '@crosspost/types';
+import { ApiErrorCode, type StatusCode } from '@crosspost/types';
 import { createAuthToken, type NearAuthData } from 'near-sign-verify';
-import { apiWrapper, createNetworkError, handleErrorResponse } from '../utils/error.ts';
+import {
+  apiWrapper,
+  createNetworkError,
+  CrosspostError,
+  handleErrorResponse,
+} from '../utils/error.ts';
 
 /**
  * Options for making a request to the API
@@ -56,10 +61,6 @@ export async function makeRequest<T>(
       url += `?${queryString}`;
     }
   }
-  // Check if authentication data is available
-  if (!options.nearAuthData) {
-    throw ApiError.unauthorized('Authentication required. Please provide NEAR signature.');
-  }
 
   // Create a context object for error enrichment
   const context = {
@@ -97,32 +98,30 @@ export async function makeRequest<T>(
         try {
           responseData = await response.json();
         } catch (jsonError) {
-          // If JSON parsing fails, throw a specific error or handle based on status
+          // If JSON parsing fails, did API throw an error?
           if (!response.ok) {
-            throw new ApiError(
+            throw new CrosspostError(
               `API request failed with status ${response.status} and non-JSON response`,
               ApiErrorCode.NETWORK_ERROR,
-              response.status as any,
+              response.status as StatusCode,
               { originalStatusText: response.statusText },
             );
           }
-          // If response was ok but JSON failed, maybe it was an empty 204 response?
-          if (response.status === 204) return {} as T; // Handle No Content
           // Otherwise, throw a custom error
-          throw new ApiError(
+          throw new CrosspostError(
             `Failed to parse JSON response: ${
               jsonError instanceof Error ? jsonError.message : String(jsonError)
             }`,
             ApiErrorCode.INTERNAL_ERROR,
-            response.status as any,
+            response.status as StatusCode,
           );
         }
 
         if (!response.ok) {
           lastError = handleErrorResponse(responseData, response.status);
-          // Retry only on 5xx errors or potentially recoverable errors if defined
-          const shouldRetry = response.status >= 500 ||
-            (lastError instanceof ApiError && lastError.recoverable);
+          // Only retry rate limit errors
+          const shouldRetry = lastError instanceof CrosspostError &&
+            lastError.code === ApiErrorCode.RATE_LIMITED;
           if (shouldRetry && attempt < options.retries) {
             await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
             continue; // Retry
@@ -130,22 +129,24 @@ export async function makeRequest<T>(
           throw lastError; // Throw error if not retrying or retries exhausted
         }
 
-        // Handle cases where API indicates failure within a 2xx response
-        if (
-          responseData && typeof responseData === 'object' && 'success' in responseData &&
-          !responseData.success && responseData.error
-        ) {
-          lastError = handleErrorResponse(responseData, response.status);
-          // Decide if this specific type of "successful" response with an error payload should be retried
-          const shouldRetry = lastError instanceof ApiError && lastError.recoverable;
-          if (shouldRetry && attempt < options.retries) {
-            await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
-            continue; // Retry
+        // Handle response based on success flag
+        if (responseData && typeof responseData === 'object' && 'success' in responseData) {
+          if (responseData.success) {
+            // Success response - return the data
+            return responseData.data as T;
+          } else {
+            // Error response - handle with our error utilities
+            lastError = handleErrorResponse(responseData, response.status);
+            // Only retry rate limit errors
+            const shouldRetry = lastError instanceof CrosspostError &&
+              lastError.code === ApiErrorCode.RATE_LIMITED;
+            if (shouldRetry && attempt < options.retries) {
+              await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
+              continue; // Retry
+            }
+            throw lastError;
           }
-          throw lastError;
         }
-
-        return responseData as T;
       } catch (error) {
         clearTimeout(timeoutId); // Clear timeout on error
         lastError = error instanceof Error ? error : new Error(String(error)); // Store the error
@@ -159,7 +160,7 @@ export async function makeRequest<T>(
         }
 
         // If it's not a known ApiError/PlatformError, wrap it
-        if (!(error instanceof ApiError)) {
+        if (!(error instanceof CrosspostError)) {
           throw createNetworkError(error, url, options.timeout);
         }
 
@@ -169,6 +170,6 @@ export async function makeRequest<T>(
 
     // Should not be reachable if retries >= 0, but needed for type safety
     throw lastError ||
-      new ApiError('Request failed after multiple retries', ApiErrorCode.INTERNAL_ERROR, 500);
+      new CrosspostError('Request failed after multiple retries', ApiErrorCode.INTERNAL_ERROR, 500);
   }, context);
 }

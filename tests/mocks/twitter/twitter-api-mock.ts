@@ -19,6 +19,7 @@ import { createMockTwitterError } from '../../utils/twitter-utils.ts';
 export class TwitterApiMock {
   private userId: string;
   private errorScenario?: string;
+  private errorsToThrow: Map<string, Error>; // Store specific errors per method
   private mediaIds: string[] = [];
   private tweets: Map<string, TweetV2> = new Map();
   private users: Map<string, UserV2> = new Map();
@@ -28,11 +29,17 @@ export class TwitterApiMock {
   /**
    * Constructor
    * @param userId User ID for the mock client
-   * @param errorScenario Optional error scenario to simulate
+   * @param errorScenario Optional general error scenario to simulate
+   * @param errorsToThrow Optional map of specific errors to throw for specific methods
    */
-  constructor(userId: string, errorScenario?: string) {
+  constructor(
+    userId: string,
+    errorScenario?: string,
+    errorsToThrow: Map<string, Error> = new Map(),
+  ) {
     this.userId = userId;
     this.errorScenario = errorScenario;
+    this.errorsToThrow = errorsToThrow;
 
     // Initialize default user
     this.users.set(userId, {
@@ -415,13 +422,19 @@ export class TwitterApiMock {
 
   /**
    * Check for error scenarios and throw appropriate errors
-   * @param operation Operation being performed
+   * @param methodName The name of the method being called (e.g., 'tweet', 'uploadMedia')
    */
-  private checkForErrors(operation: string): void {
+  private checkForErrors(methodName: string): void {
+    // 1. Check for specific error configured for this method
+    if (this.errorsToThrow.has(methodName)) {
+      throw this.errorsToThrow.get(methodName)!;
+    }
+
+    // 2. Check for general error scenario if no specific error is set
     if (!this.errorScenario) return;
 
-    // Check if the error scenario matches the current operation
-    if (this.errorScenario === operation || this.errorScenario === 'all') {
+    // Check if the general error scenario matches the current operation
+    if (this.errorScenario === methodName || this.errorScenario === 'all') {
       this.throwError();
     }
 
@@ -522,12 +535,14 @@ export class TwitterApiMock {
 /**
  * Create a mock Twitter API client
  * @param userId User ID for the mock client
- * @param errorScenario Optional error scenario to simulate
+ * @param errorScenario Optional general error scenario to simulate
+ * @param errorsToThrow Optional map of specific errors to throw for specific methods
  * @returns Mock Twitter API client
  */
 export function createMockTwitterApi(
   userId: string,
   errorScenario?: string,
+  errorsToThrow: Map<string, Error> = new Map(),
 ): TwitterApi {
-  return new TwitterApiMock(userId, errorScenario) as unknown as TwitterApi;
+  return new TwitterApiMock(userId, errorScenario, errorsToThrow) as unknown as TwitterApi;
 }

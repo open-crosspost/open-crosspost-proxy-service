@@ -15,7 +15,6 @@ export interface AuthToken {
   tokenType: TokenType | string;
 }
 
-import { Env } from '../../config/env.ts';
 import { PlatformName } from '@crosspost/types';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { TokenAccessLogger, TokenOperation } from '../security/token-access-logger.ts';

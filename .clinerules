@@ -15,9 +15,9 @@
    - Keep files focused on a single responsibility
 
 3. **Error Handling**
-   - Use structured error responses with consistent format
-   - Implement proper error classification
-   - Log errors with appropriate context
+   - Use factory functions for error creation (`createApiError`, `createPlatformError`)
+   - Include context in error details object
+   - Let base controller handle error response creation
    - Handle all promise rejections explicitly
 
 4. **Security Practices**
@@ -56,6 +56,25 @@
    - Update memory bank when making significant changes
    - Document environment variables and configuration
 
+## API Response Guidelines
+
+1. **Response Format**
+   - All API responses MUST use `ApiResponse<T>` structure
+   - All responses MUST include `meta` with `requestId` and `timestamp`
+   - Success responses use `createSuccessResponse`
+   - Error responses use `createErrorResponse`
+   - Multi-status responses use HTTP 207
+   - Metadata (pagination, rate limits) belongs in `meta`, not `data`
+   - No redefining response schemas in specific endpoints
+
+2. **Error Handling**
+   - Use `createErrorDetail` and `createErrorResponse` for error responses
+   - Include platform and userId in error details when relevant
+   - Set HTTP status code based on error code mapping
+   - Pass errors to base controller's handleError method
+   - Support multi-error responses for bulk operations
+   - Include debugging context in error details
+
 ## Implementation Guidelines
 
 1. **Authentication Implementation**
@@ -71,11 +90,11 @@
      - Make authentication optional during client initialization
      - Throw authentication errors only when making requests that require auth
    - Error Handling
-     - Use error categories for logical grouping of error types
-     - Provide utility functions for error type checking (isAuthError, etc.)
-     - Include context enrichment for better debugging
-     - Implement consistent API wrapper for all requests
-     - Ensure proper error propagation with original context
+     - Use error type checking functions (isAuthError, isPlatformError, etc.)
+     - Check error.recoverable for retry logic
+     - Access platform/user context via error.details
+     - Use apiWrapper for consistent error handling
+     - Enrich errors with request context when needed
    - Testing Approach
      - Test direct authentication with signatures
      - Mock fetch responses for API testing

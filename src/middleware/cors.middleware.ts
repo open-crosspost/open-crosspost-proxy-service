@@ -1,10 +1,6 @@
 import { cors as honoCors, MiddlewareHandler } from '../../deps.ts';
 import { getAllowedOrigins } from '../config/env.ts';
 
-/**
- * CORS middleware for Hono
- * @returns Middleware handler
- */
 export const corsMiddleware = (): MiddlewareHandler => {
   const allowedOrigins = getAllowedOrigins();
 

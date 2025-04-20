@@ -63,10 +63,10 @@ export function initializeApp() {
 
   // Initialize platform-specific implementations
   const twitterClient = new TwitterClient(env, nearAuthService);
-  const twitterMedia = new TwitterMedia(env, twitterClient);
-  const twitterRateLimit = new TwitterRateLimit(env, twitterClient);
-  const twitterPost = new TwitterPost(env, twitterClient, twitterMedia);
-  const twitterProfile = new TwitterProfile(env, twitterClient, userProfileStorage);
+  const twitterMedia = new TwitterMedia(env);
+  const twitterRateLimit = new TwitterRateLimit();
+  const twitterPost = new TwitterPost(twitterClient, twitterMedia);
+  const twitterProfile = new TwitterProfile(twitterClient, userProfileStorage);
 
   // Create platform auth map with Twitter auth
   const twitterAuth = new TwitterAuth(
