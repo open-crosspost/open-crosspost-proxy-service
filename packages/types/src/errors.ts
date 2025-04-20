@@ -42,6 +42,9 @@ export enum ApiErrorCode {
 
   // Network errors
   NETWORK_ERROR = 'NETWORK_ERROR',
+
+  // Response format errors
+  INVALID_RESPONSE = 'INVALID_RESPONSE',
 }
 
 export const ApiErrorCodeSchema = z.enum(Object.values(ApiErrorCode) as [string, ...string[]]);
@@ -70,6 +73,7 @@ export const errorCodeToStatusCode: Record<ApiErrorCode, StatusCode> = {
   [ApiErrorCode.POST_DELETION_FAILED]: 500,
   [ApiErrorCode.POST_INTERACTION_FAILED]: 500,
   [ApiErrorCode.NETWORK_ERROR]: 503,
+  [ApiErrorCode.INVALID_RESPONSE]: 500,
 };
 
 /**

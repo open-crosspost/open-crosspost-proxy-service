@@ -18,11 +18,6 @@ export interface CrosspostClientConfig {
    * @default 30000
    */
   timeout?: number;
-  /**
-   * Number of retries for failed requests (specifically for network errors or 5xx status codes)
-   * @default 2
-   */
-  retries?: number;
 }
 
 /**
@@ -31,5 +26,4 @@ export interface CrosspostClientConfig {
 export const DEFAULT_CONFIG: Required<Omit<CrosspostClientConfig, 'nearAuthData'>> = {
   baseUrl: 'https://open-crosspost-proxy.deno.dev/',
   timeout: 30000,
-  retries: 2,
 };

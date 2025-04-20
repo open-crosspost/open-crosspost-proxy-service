@@ -1,9 +1,9 @@
 import { ApiErrorCode, type StatusCode } from '@crosspost/types';
 import { createAuthToken, type NearAuthData } from 'near-sign-verify';
 import {
-  apiWrapper,
   createNetworkError,
   CrosspostError,
+  enrichErrorWithContext,
   handleErrorResponse,
 } from '../utils/error.ts';
 
@@ -29,14 +29,10 @@ export interface RequestOptions {
    * Request timeout in milliseconds
    */
   timeout: number;
-  /**
-   * Number of retries for failed requests
-   */
-  retries: number;
 }
 
 /**
- * Makes a request to the API with retry and error handling
+ * Makes a request to the API with error handling
  *
  * @param method The HTTP method
  * @param path The API path
@@ -76,131 +72,118 @@ export async function makeRequest<
     method,
     path,
     url,
-    retries: options.retries,
   };
 
-  return apiWrapper(async () => {
-    let lastError: Error | null = null;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), options.timeout);
 
-    for (let attempt = 0; attempt <= options.retries; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), options.timeout);
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
 
-      try {
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        };
-
-        // For GET requests, use X-Near-Account header if available
-        if (method === 'GET') {
-          const nearAccount = options.nearAccount || options.nearAuthData?.account_id;
-          if (!nearAccount) {
-            throw new CrosspostError(
-              'No NEAR account provided for GET request',
-              ApiErrorCode.UNAUTHORIZED,
-              401,
-            );
-          }
-          headers['X-Near-Account'] = nearAccount;
-        } else {
-          // For non-GET requests, require nearAuthData
-          if (!options.nearAuthData) {
-            throw new CrosspostError(
-              'NEAR authentication data required for non-GET request',
-              ApiErrorCode.UNAUTHORIZED,
-              401,
-            );
-          }
-          headers['Authorization'] = `Bearer ${createAuthToken(options.nearAuthData)}`;
-        }
-
-        const requestOptions: RequestInit = {
-          method,
-          headers,
-          body: method !== 'GET' && data ? JSON.stringify(data) : undefined,
-          signal: controller.signal,
-        };
-
-        const response = await fetch(url, requestOptions);
-        clearTimeout(timeoutId); // Clear timeout if fetch completes
-
-        let responseData: any;
-        try {
-          responseData = await response.json();
-        } catch (jsonError) {
-          // If JSON parsing fails, did API throw an error?
-          if (!response.ok) {
-            throw new CrosspostError(
-              `API request failed with status ${response.status} and non-JSON response`,
-              ApiErrorCode.NETWORK_ERROR,
-              response.status as StatusCode,
-              { originalStatusText: response.statusText },
-            );
-          }
-          // Otherwise, throw a custom error
-          throw new CrosspostError(
-            `Failed to parse JSON response: ${
-              jsonError instanceof Error ? jsonError.message : String(jsonError)
-            }`,
-            ApiErrorCode.INTERNAL_ERROR,
-            response.status as StatusCode,
-          );
-        }
-
-        if (!response.ok) {
-          lastError = handleErrorResponse(responseData, response.status);
-          // Only retry rate limit errors
-          const shouldRetry = lastError instanceof CrosspostError &&
-            lastError.code === ApiErrorCode.RATE_LIMITED;
-          if (shouldRetry && attempt < options.retries) {
-            await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
-            continue; // Retry
-          }
-          throw lastError; // Throw error if not retrying or retries exhausted
-        }
-
-        // Handle response based on success flag
-        if (responseData && typeof responseData === 'object' && 'success' in responseData) {
-          if (responseData.success) {
-            // Success response - return the data
-            return responseData.data as TResponse;
-          } else {
-            // Error response - handle with our error utilities
-            lastError = handleErrorResponse(responseData, response.status);
-            // Only retry rate limit errors
-            const shouldRetry = lastError instanceof CrosspostError &&
-              lastError.code === ApiErrorCode.RATE_LIMITED;
-            if (shouldRetry && attempt < options.retries) {
-              await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
-              continue; // Retry
-            }
-            throw lastError;
-          }
-        }
-      } catch (error) {
-        clearTimeout(timeoutId); // Clear timeout on error
-        lastError = error instanceof Error ? error : new Error(String(error)); // Store the error
-
-        // Handle fetch/network errors specifically for retries
-        const isNetworkError = error instanceof TypeError ||
-          (error instanceof DOMException && error.name === 'AbortError');
-        if (isNetworkError && attempt < options.retries) {
-          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
-          continue; // Retry network error
-        }
-
-        // If it's not a known ApiError/PlatformError, wrap it
-        if (!(error instanceof CrosspostError)) {
-          throw createNetworkError(error, url, options.timeout);
-        }
-
-        throw error; // Re-throw known ApiError or final network error
+    // For GET requests, use X-Near-Account header if available
+    if (method === 'GET') {
+      const nearAccount = options.nearAccount || options.nearAuthData?.account_id;
+      if (!nearAccount) {
+        throw new CrosspostError(
+          'No NEAR account provided for GET request',
+          ApiErrorCode.UNAUTHORIZED,
+          401,
+        );
       }
+      headers['X-Near-Account'] = nearAccount;
+    } else {
+      // For non-GET requests, require nearAuthData
+      if (!options.nearAuthData) {
+        throw new CrosspostError(
+          'NEAR authentication data required for non-GET request',
+          ApiErrorCode.UNAUTHORIZED,
+          401,
+        );
+      }
+      headers['Authorization'] = `Bearer ${createAuthToken(options.nearAuthData)}`;
     }
 
-    // Should not be reachable if retries >= 0, but needed for type safety
-    throw lastError ||
-      new CrosspostError('Request failed after multiple retries', ApiErrorCode.INTERNAL_ERROR, 500);
-  }, context);
+    const requestOptions: RequestInit = {
+      method,
+      headers,
+      body: method !== 'GET' && data ? JSON.stringify(data) : undefined,
+      signal: controller.signal,
+    };
+
+    const response = await fetch(url, requestOptions);
+    clearTimeout(timeoutId);
+
+    let responseData: any;
+    try {
+      responseData = await response.json();
+    } catch (jsonError) {
+      // JSON parsing failed - try to get response text for context
+      let responseText: string | undefined;
+      try {
+        responseText = await response.text();
+      } catch (_) { /* ignore */ }
+
+      throw new CrosspostError(
+        `API request failed with status ${response.status} and non-JSON response`,
+        ApiErrorCode.INVALID_RESPONSE,
+        response.status as StatusCode,
+        {
+          originalStatusText: response.statusText,
+          originalError: jsonError instanceof Error ? jsonError.message : String(jsonError),
+          responseText,
+        },
+      );
+    }
+
+    // Handle non-ok responses (4xx/5xx)
+    if (!response.ok) {
+      throw handleErrorResponse(responseData, response.status);
+    }
+
+    // Validate success response structure
+    if (!responseData || typeof responseData !== 'object' || !('success' in responseData)) {
+      throw new CrosspostError(
+        'Invalid success response format from API',
+        ApiErrorCode.INVALID_RESPONSE,
+        response.status as StatusCode,
+        { responseData },
+      );
+    }
+
+    if (responseData.success) {
+      return responseData.data as TResponse;
+    }
+
+    // If we get here, we have response.ok but success: false
+    // This is unexpected - treat as an error
+    throw handleErrorResponse(responseData, response.status);
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof CrosspostError) {
+      // Enrich CrosspostError with request context
+      throw enrichErrorWithContext(error, context);
+    }
+
+    // Handle network errors (including timeouts)
+    if (
+      error instanceof TypeError || (error instanceof DOMException && error.name === 'AbortError')
+    ) {
+      throw enrichErrorWithContext(createNetworkError(error, url, options.timeout), context);
+    }
+
+    // For any other errors, wrap them with context
+    throw enrichErrorWithContext(
+      new CrosspostError(
+        error instanceof Error ? error.message : String(error),
+        ApiErrorCode.INTERNAL_ERROR,
+        500,
+        { originalError: String(error) },
+      ),
+      context,
+    );
+  }
 }

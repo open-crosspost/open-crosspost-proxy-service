@@ -20,7 +20,7 @@ export const corsMiddleware = (): MiddlewareHandler => {
       return '';
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Near-Account'],
     exposeHeaders: [],
     maxAge: 600, // 10 minutes
     credentials: true,

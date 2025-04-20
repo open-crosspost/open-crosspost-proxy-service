@@ -24,14 +24,12 @@ export class CrosspostClient {
   constructor(config: CrosspostClientConfig = {}) {
     const baseUrl = config.baseUrl || DEFAULT_CONFIG.baseUrl; // you can deploy your own
     const timeout = config.timeout || DEFAULT_CONFIG.timeout;
-    const retries = config.retries ?? DEFAULT_CONFIG.retries;
 
     const nearAuthData = config.nearAuthData;
 
     this.options = {
       baseUrl,
       timeout,
-      retries,
       nearAuthData,
     };
 
