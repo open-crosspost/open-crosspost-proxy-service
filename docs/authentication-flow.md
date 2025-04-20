@@ -71,7 +71,8 @@ sequenceDiagram
 
 ## Flow 2: API Calls with Method-Based Authentication
 
-This flow describes how an authorized client application makes API calls using either the simplified GET request authentication or full NEAR signature authentication for other methods.
+This flow describes how an authorized client application makes API calls using either the simplified
+GET request authentication or full NEAR signature authentication for other methods.
 
 ```mermaid
 sequenceDiagram

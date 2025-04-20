@@ -33,7 +33,8 @@ export class AuthMiddleware {
           signerId = AuthMiddleware.nearAuthService.extractNearAccountHeader(c);
         } else {
           // For other requests, require full NEAR auth validation
-          const { signerId: validatedSignerId } = await AuthMiddleware.nearAuthService.extractAndValidateNearAuth(c);
+          const { signerId: validatedSignerId } = await AuthMiddleware.nearAuthService
+            .extractAndValidateNearAuth(c);
           signerId = validatedSignerId;
         }
 

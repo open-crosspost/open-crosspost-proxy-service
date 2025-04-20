@@ -39,6 +39,7 @@ flowchart TD
 ```
 
 **GET Request Flow:**
+
 ```mermaid
 flowchart LR
     A[Client] -->|1. X-Near-Account Header| B[Proxy Service]
@@ -48,6 +49,7 @@ flowchart LR
 ```
 
 **Non-GET Request Flow:**
+
 ```mermaid
 flowchart LR
     A[Client] -->|1. Sign Message| B[NEAR Wallet]
@@ -59,6 +61,7 @@ flowchart LR
 ```
 
 **Implementation:**
+
 - X-Near-Account header validation for GET requests
 - NEAR wallet signature-based authentication for non-GET requests
 - API key validation for applications
@@ -87,6 +90,7 @@ classDiagram
 ```
 
 **Features:**
+
 - AES-GCM encryption
 - Key versioning support
 - Secure key storage
@@ -105,6 +109,7 @@ flowchart TD
 ```
 
 **Implementation:**
+
 - Method-based authentication requirements
 - CORS restrictions
 - Origin validation

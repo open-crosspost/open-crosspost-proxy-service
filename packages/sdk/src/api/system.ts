@@ -1,8 +1,8 @@
-import type { 
-  EndpointRateLimitResponse, 
-  HealthStatus, 
+import type {
+  EndpointRateLimitResponse,
+  HealthStatus,
+  RateLimitEndpointParam,
   RateLimitResponse,
-  RateLimitEndpointParam 
 } from '@crosspost/types';
 import { makeRequest, type RequestOptions } from '../core/request.ts';
 
@@ -29,7 +29,7 @@ export class SystemApi {
     return makeRequest<RateLimitResponse, never>(
       'GET',
       '/api/rate-limit',
-      this.options
+      this.options,
     );
   }
 
@@ -44,7 +44,7 @@ export class SystemApi {
       `/api/rate-limit/${endpoint}`,
       this.options,
       undefined,
-      { endpoint }
+      { endpoint },
     );
   }
 
@@ -56,7 +56,7 @@ export class SystemApi {
     return makeRequest<HealthStatus, never>(
       'GET',
       '/health',
-      this.options
+      this.options,
     );
   }
 }

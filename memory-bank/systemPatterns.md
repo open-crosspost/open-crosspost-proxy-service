@@ -62,6 +62,7 @@ flowchart TD
 ```
 
 **GET Request Flow:**
+
 ```mermaid
 sequenceDiagram
     participant Client
@@ -78,6 +79,7 @@ sequenceDiagram
 ```
 
 **Write Request Flow:**
+
 ```mermaid
 sequenceDiagram
     participant Client
@@ -97,6 +99,7 @@ sequenceDiagram
 ```
 
 Benefits:
+
 - Simplified authentication for read operations
 - Strong security for write operations
 - Consistent context handling

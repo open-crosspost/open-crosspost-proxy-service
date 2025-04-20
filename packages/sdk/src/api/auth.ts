@@ -1,11 +1,11 @@
 import type {
+  AuthCallbackResponse,
   AuthInitRequest,
   AuthRevokeResponse,
   AuthStatusParams,
   AuthStatusResponse,
   AuthTokenRequest,
   AuthUrlResponse,
-  AuthCallbackResponse,
   ConnectedAccount,
   ConnectedAccountsResponse,
   NearAuthorizationRequest,
@@ -38,7 +38,7 @@ export class AuthApi {
       'POST',
       '/auth/authorize/near',
       this.options,
-      {}
+      {},
     );
   }
 
@@ -50,7 +50,7 @@ export class AuthApi {
     return makeRequest<NearAuthorizationResponse, never>(
       'GET',
       '/auth/authorize/near/status',
-      this.options
+      this.options,
     );
   }
 
@@ -69,7 +69,7 @@ export class AuthApi {
       'POST',
       `/auth/${platform}/login`,
       this.options,
-      options || {}
+      options || {},
     );
   }
 
@@ -83,7 +83,7 @@ export class AuthApi {
       'POST',
       `/auth/${platform}/refresh`,
       this.options,
-      { userId }
+      { userId },
     );
   }
 
@@ -98,7 +98,7 @@ export class AuthApi {
       'POST',
       `/auth/${platform}/refresh-profile`,
       this.options,
-      { userId }
+      { userId },
     );
   }
 
@@ -113,7 +113,7 @@ export class AuthApi {
       `/auth/${platform}/status/${userId}`,
       this.options,
       undefined,
-      { platform, userId }
+      { platform, userId },
     );
   }
 
@@ -126,7 +126,7 @@ export class AuthApi {
       'DELETE',
       '/auth/unauthorize/near',
       this.options,
-      {}
+      {},
     );
   }
 
@@ -140,7 +140,7 @@ export class AuthApi {
       'DELETE',
       `/auth/${platform}/revoke`,
       this.options,
-      { userId }
+      { userId },
     );
   }
 
@@ -152,7 +152,7 @@ export class AuthApi {
     return makeRequest<ConnectedAccountsResponse, never>(
       'GET',
       '/auth/accounts',
-      this.options
+      this.options,
     );
   }
 }
