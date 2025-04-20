@@ -67,9 +67,9 @@ export const ConnectedAccountSchema = z.object({
   connectedAt: z.string().optional().describe('When the account was connected'),
 }).describe('Connected account');
 
-export const ConnectedAccountsResponseSchema = z.array(ConnectedAccountSchema).describe(
-  'Connected accounts response',
-);
+export const ConnectedAccountsResponseSchema = z.object({
+  accounts: z.array(ConnectedAccountSchema),
+}).describe('Response containing an array of connected accounts');
 
 export const NearAuthorizationRequestSchema = z.object({
   // No additional parameters needed, as the NEAR account ID is extracted from the signature
