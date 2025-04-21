@@ -13,6 +13,7 @@ export interface AuthState {
   successUrl: string; // Store the original client return URL
   errorUrl: string; // Store the URL to redirect to on error
   signerId: string; // Store the NEAR account ID for linking
+  redirect: boolean; // Whether to redirect or return data directly
 }
 
 /**

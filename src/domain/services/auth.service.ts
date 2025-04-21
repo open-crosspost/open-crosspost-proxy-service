@@ -68,6 +68,7 @@ export class AuthService {
     scopes: string[],
     successUrl: string,
     errorUrl?: string,
+    redirect: boolean = true,
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
       // Get platform specific auth service
@@ -84,6 +85,7 @@ export class AuthService {
         successUrl: successUrl,
         errorUrl: errorUrl || successUrl,
         signerId, // Store the NEAR account ID
+        redirect,
       };
 
       // Store the state in KV with 1 hour expiration, this is needed for the callback
