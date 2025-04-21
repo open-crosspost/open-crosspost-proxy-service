@@ -253,21 +253,31 @@ export class AuthController extends BaseController {
 
       const { userId } = c.get('validatedBody') as { userId: string };
 
-      // Revoke token
+      // Validate userId
       if (!userId) {
         throw createApiError(ApiErrorCode.VALIDATION_ERROR, 'userId is required');
       }
-      const success = await this.authService.revokeToken(platform, userId);
 
-      // Unlink the account from the NEAR wallet
-      if (success) {
-        if (userId) {
-          await unlinkAccountFromNear(signerId, platform, userId, this.nearAuthService);
-        }
+      let success = false;
+      let error: string | undefined;
+
+      try {
+        // Attempt to revoke token (but don't let failure stop us from unlinking)
+        success = await this.authService.revokeToken(platform, userId);
+      } catch (e) {
+        error = e instanceof Error ? e.message : 'Unknown error revoking token';
+        console.error('Error revoking token:', e);
       }
 
-      // Return success status
-      return c.json(createSuccessResponse(c, { success }));
+      // Always unlink the account from NEAR, even if token revocation failed
+      await unlinkAccountFromNear(signerId, platform, userId, this.nearAuthService);
+
+      // Return status with any error details
+      return c.json(createSuccessResponse(c, {
+        success: true, // Account was unlinked successfully
+        tokenRevoked: success,
+        error,
+      }));
     } catch (error) {
       console.error('Error revoking token:', error);
       return this.handleError(error, c);
