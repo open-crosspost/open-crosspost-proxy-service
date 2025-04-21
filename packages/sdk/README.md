@@ -11,7 +11,7 @@ bun install @crosspost/sdk
 ## Quick Start
 
 ```typescript
-import { ApiError, CrosspostClient, isAuthError, PlatformError } from '@crosspost/sdk';
+import { CrosspostClient, CrosspostError, isAuthError } from '@crosspost/sdk';
 
 // Initialize the client (authentication can be provided later)
 const client = new CrosspostClient({
@@ -43,7 +43,7 @@ async function authorizeNearAccount() {
     return true;
   } catch (error) {
     console.error('NEAR authorization failed');
-    if (error instanceof ApiError) {
+    if (error instanceof CrosspostError) {
       console.error('Error code:', error.code);
       console.error('Status:', error.status);
       console.error('Details:', error.details);
@@ -64,7 +64,7 @@ async function unauthorizeNearAccount() {
     return true;
   } catch (error) {
     console.error('Failed to unauthorize NEAR account');
-    if (error instanceof ApiError) {
+    if (error instanceof CrosspostError) {
       console.error('Error code:', error.code);
       console.error('Status:', error.status);
       console.error('Details:', error.details);
@@ -85,7 +85,7 @@ async function revokePlatformAuth(platform) {
     return true;
   } catch (error) {
     console.error(`Failed to revoke ${platform} authorization`);
-    if (error instanceof ApiError) {
+    if (error instanceof CrosspostError) {
       console.error('Error code:', error.code);
       console.error('Status:', error.status);
       console.error('Details:', error.details);
@@ -120,15 +120,25 @@ async function createPost() {
     } else {
       // Handle other error types
       console.error('Error creating post:', error);
-      if (error instanceof ApiError) {
-        console.error('Error code:', error.code);
-        console.error('Status:', error.status);
-        console.error('Details:', error.details);
-        console.error('Recoverable:', error.recoverable);
-      } else if (error instanceof PlatformError) {
-        console.error('Platform:', error.platform);
-        console.error('Error code:', error.code);
-        console.error('Original error:', error.originalError);
+      if (error instanceof CrosspostError) {
+        // Use error utility functions to handle specific cases
+        if (isPlatformError(error)) {
+          console.error('Platform:', error.platform);
+          console.error('Error code:', error.code);
+          console.error('Details:', error.details);
+        } else if (isRateLimitError(error)) {
+          console.error('Rate limited until:', error.details?.rateLimit?.reset);
+        } else if (isValidationError(error)) {
+          console.error('Validation errors:', error.details?.validationErrors);
+        }
+        
+        // Check if error is recoverable
+        if (error.recoverable) {
+          console.log('This error is recoverable - retry may succeed');
+        }
+      } else if (error instanceof Error) {
+        // Handle non-API errors (network issues, etc)
+        console.error('Unexpected error:', error.message);
       }
     }
   }

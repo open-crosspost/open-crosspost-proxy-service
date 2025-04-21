@@ -93,10 +93,21 @@ interface ErrorDetail {
 3. **SDK Layer**:
    - API error responses are parsed into `CrosspostError` instances
    - Error details are preserved and accessible via properties and helper functions
+   - Helper functions provide type-safe error checking
    ```typescript
-   if (isPostError(error) && error.platform === 'twitter') {
-     console.log(error.message);
-     console.log(error.details.platformMessage);
+   if (error instanceof CrosspostError) {
+     // Use helper functions to check error types
+     if (isPlatformError(error)) {
+       console.log('Platform:', error.platform);
+       console.log('Error details:', error.details);
+     } else if (isRateLimitError(error)) {
+       console.log('Rate limited until:', error.details?.rateLimit?.reset);
+     }
+
+     // Check if error is recoverable
+     if (error.recoverable) {
+       console.log('This error can be retried');
+     }
    }
    ```
 
@@ -134,24 +145,34 @@ Errors are categorized by their `ApiErrorCode`:
 ## Example Usage
 
 ```typescript
-// Creating platform errors
-throw createPlatformError(
-  'Failed to like post',
-  ApiErrorCode.POST_INTERACTION_FAILED,
-  Platform.TWITTER,
-  {
-    userId: '123',
-    platformErrorCode: 400,
-  },
-);
-
 // Handling errors in SDK
 try {
-  await client.posts.like(postId);
+  await client.post.likePost({
+    targets: [{ platform: 'twitter', userId: 'your-twitter-id' }],
+    platform: 'twitter',
+    postId: '1234567890',
+  });
 } catch (error) {
-  if (isRateLimitError(error)) {
-    const reset = error.details?.rateLimit?.reset;
-    console.log(`Rate limited until ${new Date(reset)}`);
+  if (error instanceof CrosspostError) {
+    // Check specific error types using helper functions
+    if (isAuthError(error)) {
+      console.log('Authentication required');
+    } else if (isPlatformError(error)) {
+      console.log('Platform error:', error.platform);
+      console.log('Error details:', error.details);
+    } else if (isRateLimitError(error)) {
+      const reset = error.details?.rateLimit?.reset;
+      console.log(`Rate limited until ${new Date(reset)}`);
+    }
+
+    // Access error properties
+    console.log('Error code:', error.code);
+    console.log('Status:', error.status);
+    console.log('Message:', error.message);
+    console.log('Recoverable:', error.recoverable);
+  } else if (error instanceof Error) {
+    // Handle non-API errors (network issues, etc)
+    console.log('Unexpected error:', error.message);
   }
 }
 ```
