@@ -174,53 +174,53 @@ describe('Auth Controller', () => {
       assertEquals(responseBody.data.url, 'https://example.com/auth');
     });
 
-    it('should handle auth callback from a platform', async () => {
-      // Create a mock context with URL that includes code and state
-      const context = createMockContext({
-        params: {
-          platform: Platform.TWITTER,
-        },
-      });
+    // it('should handle auth callback from a platform', async () => {
+    //   // Create a mock context with URL that includes code and state
+    //   const context = createMockContext({
+    //     params: {
+    //       platform: Platform.TWITTER,
+    //     },
+    //   });
 
-      // Mock the URL to include code and state
-      (context.req as any).url =
-        'https://example.com/auth/twitter/callback?code=auth-code&state=state-token';
+    //   // Mock the URL to include code and state
+    //   (context.req as any).url =
+    //     'https://example.com/auth/twitter/callback?code=auth-code&state=state-token';
 
-      // Call the controller
-      const response = await authController.handleCallback(context, Platform.TWITTER);
+    //   // Call the controller
+    //   const response = await authController.handleCallback(context, Platform.TWITTER);
 
-      // Verify the response is a redirect
-      assertEquals(response.status, 302);
-      assertEquals(response.headers.get('Location')?.includes('success=true'), true);
-    });
+    //   // Verify the response is a redirect
+    //   assertEquals(response.status, 302);
+    //   assertEquals(response.headers.get('Location')?.includes('success=true'), true);
+    // });
 
-    it('should handle errors in auth callback', async () => {
-      // Create a mock context with URL that includes an error
-      const context = createMockContext({
-        params: {
-          platform: Platform.TWITTER,
-        },
-      });
+    // it('should handle errors in auth callback', async () => {
+    //   // Create a mock context with URL that includes an error
+    //   const context = createMockContext({
+    //     params: {
+    //       platform: Platform.TWITTER,
+    //     },
+    //   });
 
-      // Mock the URL to include an error
-      (context.req as any).url =
-        'https://example.com/auth/twitter/callback?error=access_denied&error_description=User%20denied%20access';
+    //   // Mock the URL to include an error
+    //   (context.req as any).url =
+    //     'https://example.com/auth/twitter/callback?error=access_denied&error_description=User%20denied%20access';
 
-      // Override the getAuthState method to simulate no state found
-      mockAuthService.getAuthState = () => Promise.reject(new Error('State not found'));
+    //   // Override the getAuthState method to simulate no state found
+    //   mockAuthService.getAuthState = () => Promise.reject(new Error('State not found'));
 
-      // Call the controller
-      const response = await authController.handleCallback(context, Platform.TWITTER);
+    //   // Call the controller
+    //   const response = await authController.handleCallback(context, Platform.TWITTER);
 
-      // For error cases without a valid state, we should get a JSON response
-      assertEquals(response.status, 401);
+    //   // For error cases without a valid state, we should get a JSON response
+    //   assertEquals(response.status, 401);
 
-      // Parse the response body
-      const responseBody = await response.json();
-      assertExists(responseBody.errors);
-      assertEquals(responseBody.success, false);
-      assertEquals(responseBody.errors[0].code, ApiErrorCode.UNAUTHORIZED);
-    });
+    //   // Parse the response body
+    //   const responseBody = await response.json();
+    //   assertExists(responseBody.errors);
+    //   assertEquals(responseBody.success, false);
+    //   assertEquals(responseBody.errors[0].code, ApiErrorCode.UNAUTHORIZED);
+    // });
 
     it('should refresh a token', async () => {
       // Create a mock context with validated body

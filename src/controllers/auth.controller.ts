@@ -17,6 +17,10 @@ import {
   createErrorResponse,
   createSuccessResponse,
 } from '../utils/response.utils.ts';
+import {
+  createErrorCallbackResponse,
+  createSuccessCallbackResponse,
+} from '../utils/auth-callback.utils.ts';
 import { BaseController } from './base.controller.ts';
 
 /**
@@ -65,9 +69,10 @@ export class AuthController extends BaseController {
       // Construct the platform-specific callback URL
       const callbackUrl = `${baseUrl}/auth/${platform}/callback`;
 
-      // Get successUrl and errorUrl from query parameters
+      // Get successUrl, errorUrl, and redirect from query parameters
       const successUrl = requestUrl.searchParams.get('successUrl');
       const errorUrl = requestUrl.searchParams.get('errorUrl');
+      const redirect = requestUrl.searchParams.get('redirect') === 'true'; // Default to false
 
       // Get the origin from the request headers as fallback
       const origin = c.req.header('origin') || c.req.header('referer') || requestUrl.origin;
@@ -77,11 +82,13 @@ export class AuthController extends BaseController {
       // and retrieved during the callback
       const authData = await this.authService.initializeAuth(
         platform,
-        signerId, // Pass the NEAR account ID for linking during callback
+        signerId,
         callbackUrl,
         [],
         successUrl || origin,
         errorUrl || successUrl || origin,
+        redirect,
+        origin,
       );
 
       // Return the auth URL and state
@@ -116,18 +123,36 @@ export class AuthController extends BaseController {
 
       // Check for errors from the OAuth provider
       if (error) {
-        // Try to redirect to the error URL if we have a valid state
+        const errorMessage = `${platform} authorization error: ${error}${
+          error_description ? ` - ${error_description}` : ''
+        }`;
+        console.warn(errorMessage); // Log the error
+
+        // Try to get auth state if we have a valid state to determine redirect behavior
         if (state) {
           try {
             const platformAuth = this.authService.getPlatformAuth(platform);
             const authState = await platformAuth.getAuthState(state);
 
-            // Create error redirect URL
+            // If redirect=false (default), return HTML to communicate error via postMessage
+            if (!authState.redirect) {
+              return createErrorCallbackResponse(
+                c,
+                platform,
+                error || 'Authorization failed',
+                { origin: authState.origin },
+                error_description || undefined,
+              );
+            }
+
+            // If redirect=true, redirect to the error URL
             const errorRedirectUrl = new URL(authState.errorUrl);
             errorRedirectUrl.searchParams.set('error', error);
             if (error_description) {
               errorRedirectUrl.searchParams.set('error_description', error_description);
             }
+            errorRedirectUrl.searchParams.set('platform', platform);
+            errorRedirectUrl.searchParams.set('success', 'false');
             return c.redirect(errorRedirectUrl.toString());
           } catch {
             // If we can't get the auth state, create a platform error and handle it
@@ -160,17 +185,27 @@ export class AuthController extends BaseController {
         );
       }
 
-      const callbackResult = await this.authService.handleCallback(
+      const { userId, successUrl, redirect } = await this.authService.handleCallback(
         platform,
         code,
         state,
       );
 
-      const { successUrl } = callbackResult;
+      // If redirect=false (default), return HTML to communicate success via postMessage
+      if (!redirect) {
+        const platformAuth = this.authService.getPlatformAuth(platform);
+        const authState = await platformAuth.getAuthState(state);
+        return createSuccessCallbackResponse(
+          c,
+          platform,
+          userId,
+          { origin: authState.origin },
+        );
+      }
 
+      // If redirect=true, perform the full redirect
       const redirectUrl = new URL(successUrl);
-
-      redirectUrl.searchParams.set('userId', callbackResult.userId);
+      redirectUrl.searchParams.set('userId', userId);
       redirectUrl.searchParams.set('platform', platform);
       redirectUrl.searchParams.set('success', 'true');
 

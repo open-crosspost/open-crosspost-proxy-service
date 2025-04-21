@@ -101,6 +101,9 @@ export abstract class BasePlatformAuth implements PlatformAuth {
       const authState = await this.kvStore.get<AuthState>([state]);
 
       if (!authState) {
+        console.error(
+          `[BasePlatformAuth.getAuthState] State not found or expired in KV for key: ${state}`,
+        ); // Added Log
         throw new Error('Invalid or expired state');
       }
 
@@ -123,7 +126,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
   async handleCallback(
     code: string,
     state: string,
-  ): Promise<{ userId: string; token: AuthToken; successUrl: string }> {
+  ): Promise<{ userId: string; token: AuthToken; successUrl: string; redirect: boolean }> {
     try {
       // Get the auth state using the getAuthState method
       const authState = await this.getAuthState(state);
@@ -138,13 +141,16 @@ export abstract class BasePlatformAuth implements PlatformAuth {
       // Link the account to the NEAR wallet
       await this.linkAccountToNear(authState.signerId, userId, token);
 
+      const { successUrl, redirect } = authState;
+
       // Delete the auth state from KV
       await this.kvStore.delete([state]);
 
       return {
         userId,
         token,
-        successUrl: authState.successUrl,
+        successUrl,
+        redirect,
       };
     } catch (error) {
       console.error('Error handling callback:', error);

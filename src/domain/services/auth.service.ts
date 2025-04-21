@@ -68,6 +68,8 @@ export class AuthService {
     scopes: string[],
     successUrl: string,
     errorUrl?: string,
+    redirect: boolean = true,
+    origin?: string,
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
       // Get platform specific auth service
@@ -84,6 +86,8 @@ export class AuthService {
         successUrl: successUrl,
         errorUrl: errorUrl || successUrl,
         signerId, // Store the NEAR account ID
+        redirect,
+        origin: origin || successUrl, // Use successUrl as fallback for origin
       };
 
       // Store the state in KV with 1 hour expiration, this is needed for the callback
@@ -109,7 +113,7 @@ export class AuthService {
     platform: PlatformName,
     code: string,
     state: string,
-  ): Promise<{ userId: string; token: AuthToken; successUrl: string }> {
+  ): Promise<{ userId: string; token: AuthToken; successUrl: string; redirect: boolean }> {
     try {
       const platformAuth = this.getPlatformAuth(platform);
       return await platformAuth.handleCallback(code, state);

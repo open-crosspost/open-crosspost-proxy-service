@@ -13,6 +13,8 @@ export interface AuthState {
   successUrl: string; // Store the original client return URL
   errorUrl: string; // Store the URL to redirect to on error
   signerId: string; // Store the NEAR account ID for linking
+  redirect: boolean; // Whether to redirect or return data directly
+  origin: string; // The origin of the frontend application for secure messaging
 }
 
 /**
@@ -53,7 +55,7 @@ export interface PlatformAuth {
   handleCallback(
     code: string,
     state: string,
-  ): Promise<{ userId: string; token: AuthToken; successUrl: string }>;
+  ): Promise<{ userId: string; token: AuthToken; successUrl: string; redirect: boolean }>;
 
   /**
    * Refresh a user's access token

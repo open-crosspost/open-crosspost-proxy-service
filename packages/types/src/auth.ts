@@ -10,6 +10,9 @@ export const AuthInitRequestSchema = z.object({
     'URL to redirect to on successful authentication',
   ),
   errorUrl: z.string().url().optional().describe('URL to redirect to on authentication error'),
+  redirect: z.boolean().optional().default(false).describe(
+    'Whether to redirect to successUrl/errorUrl (true) or return data directly (false)',
+  ),
 }).describe('Auth initialization request');
 
 export const AuthUrlResponseSchema = z.object({

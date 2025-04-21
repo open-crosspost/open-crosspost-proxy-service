@@ -69,7 +69,7 @@ export class AuthApi {
       'POST',
       `/auth/${platform}/login`,
       this.options,
-      options || {},
+      options,
     );
   }
 
