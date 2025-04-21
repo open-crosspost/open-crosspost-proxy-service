@@ -1,6 +1,7 @@
+import { ApiErrorCode, ErrorDetails, Platform } from '@crosspost/types';
 import { ApiPartialResponseError, ApiRequestError, ApiResponseError } from 'twitter-api-v2';
-import { ApiErrorCode, ErrorDetails, Platform, PlatformName, StatusCode } from '@crosspost/types';
 import { PlatformError } from '../../../errors/platform-error.ts';
+import { sanitizeErrorDetails } from '../../../utils/error-sanitizer.utils.ts';
 
 /**
  * Twitter Error class for Twitter-specific errors
@@ -53,9 +54,9 @@ export class TwitterError extends PlatformError {
       return new TwitterError(
         error.message,
         ApiErrorCode.UNKNOWN_ERROR,
-        {
+        sanitizeErrorDetails({
           originalError: error,
-        },
+        }),
         false,
       );
     }
@@ -64,9 +65,9 @@ export class TwitterError extends PlatformError {
     return new TwitterError(
       'Unknown Twitter API error',
       ApiErrorCode.UNKNOWN_ERROR,
-      {
+      sanitizeErrorDetails({
         originalError: error,
-      },
+      }),
       false,
     );
   }
@@ -84,7 +85,7 @@ export class TwitterError extends PlatformError {
     return new TwitterError(
       `Twitter API request error: ${errorMessage}`,
       ApiErrorCode.NETWORK_ERROR,
-      {
+      sanitizeErrorDetails({
         platformErrorCode: 502,
         platformMessage: errorMessage,
         platformErrorType: error.type,
@@ -93,7 +94,7 @@ export class TwitterError extends PlatformError {
         type: error.type,
         request: error.request,
         requestError: error.requestError,
-      },
+      }),
       true, // Network errors are typically recoverable
     );
   }
@@ -113,7 +114,7 @@ export class TwitterError extends PlatformError {
     return new TwitterError(
       `Twitter API partial response error: ${errorMessage}`,
       ApiErrorCode.NETWORK_ERROR,
-      {
+      sanitizeErrorDetails({
         platformErrorCode: 502,
         platformMessage: errorMessage,
         platformErrorType: error.type,
@@ -124,7 +125,7 @@ export class TwitterError extends PlatformError {
         responseError: error.responseError,
         rawContent: error.rawContent,
         response: error.response,
-      },
+      }),
       true, // Partial response errors are typically recoverable
     );
   }
@@ -139,7 +140,7 @@ export class TwitterError extends PlatformError {
     const twitterErrors = error.errors || [];
 
     // Create base error details
-    const details: ErrorDetails = {
+    const details: ErrorDetails = sanitizeErrorDetails({
       platformErrorCode: error.code || 500,
       platformMessage: errorMessage,
       platformErrorType: error.type,
@@ -152,7 +153,7 @@ export class TwitterError extends PlatformError {
       headers: error.headers,
       response: error.response,
       errors: twitterErrors,
-    };
+    });
 
     // Handle rate limit errors
     if (error.rateLimitError) {
