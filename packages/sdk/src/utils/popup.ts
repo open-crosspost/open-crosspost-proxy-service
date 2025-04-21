@@ -20,9 +20,9 @@ interface AuthCallbackData {
   error?: string;
   error_description?: string;
   status: {
-    message: string;     // User-friendly status message
-    code: string;        // Status code for programmatic handling
-    details?: string;    // Additional details if needed
+    message: string; // User-friendly status message
+    code: string; // Status code for programmatic handling
+    details?: string; // Additional details if needed
   };
 }
 
@@ -115,8 +115,8 @@ export function openAuthPopup(url: string, options: PopupOptions = {}): Promise<
           status: {
             message: 'Authentication Cancelled',
             code: 'AUTH_CANCELLED',
-            details: 'The authentication window was closed before completion.'
-          }
+            details: 'The authentication window was closed before completion.',
+          },
         });
       }
     }

@@ -27,9 +27,9 @@ function createCallbackHtml(data: AuthCallbackData, authState: { origin: string 
   const status = {
     message: data.success ? 'Authentication Successful' : 'Authentication Failed',
     code: data.success ? 'AUTH_SUCCESS' : 'AUTH_ERROR',
-    details: data.success 
+    details: data.success
       ? 'Your account has been connected successfully'
-      : data.error_description || data.error || 'An error occurred during authentication'
+      : data.error_description || data.error || 'An error occurred during authentication',
   };
 
   // Add status to the message data
@@ -37,8 +37,8 @@ function createCallbackHtml(data: AuthCallbackData, authState: { origin: string 
     type: 'AUTH_CALLBACK',
     data: {
       ...data,
-      status
-    }
+      status,
+    },
   });
 
   // Pass auth state to the script
@@ -192,8 +192,8 @@ export function createSuccessCallbackResponse(
     status: {
       message: 'Authentication Successful',
       code: 'AUTH_SUCCESS',
-      details: 'Your account has been connected successfully'
-    }
+      details: 'Your account has been connected successfully',
+    },
   }, authState);
 
   c.header('Content-Type', 'text/html');
@@ -223,8 +223,8 @@ export function createErrorCallbackResponse(
     status: {
       message: 'Authentication Failed',
       code: 'AUTH_ERROR',
-      details: error_description || error || 'An error occurred during authentication'
-    }
+      details: error_description || error || 'An error occurred during authentication',
+    },
   }, authState);
 
   c.header('Content-Type', 'text/html');
