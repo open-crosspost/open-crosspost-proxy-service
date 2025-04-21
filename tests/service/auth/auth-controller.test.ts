@@ -170,8 +170,8 @@ describe('Auth Controller', () => {
       // Verify the response
       assertEquals(response.status, 200);
       assertExists(responseBody.data);
-      assertExists(responseBody.data.authUrl);
-      assertEquals(responseBody.data.authUrl, 'https://example.com/auth');
+      assertExists(responseBody.data.url);
+      assertEquals(responseBody.data.url, 'https://example.com/auth');
     });
 
     it('should handle auth callback from a platform', async () => {
