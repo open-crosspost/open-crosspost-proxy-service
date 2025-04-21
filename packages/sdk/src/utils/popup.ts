@@ -1,5 +1,6 @@
 import type { PlatformName } from '@crosspost/types';
 
+// Augment the Window interface
 declare global {
   interface Window {
     innerWidth: number;
@@ -68,8 +69,8 @@ export function openAuthPopup(url: string, options: PopupOptions = {}): Promise<
 
     let messageReceived = false;
 
-    // Function to handle messages from the popup
-    function handleMessage(this: Window, event: MessageEvent<AuthCallbackMessage>) {
+    // Function to handle messages from the popup with proper typing
+    const handleMessage = (event: MessageEvent<AuthCallbackMessage>) => {
       // Verify the message is from our popup and popup exists
       if (!popup || event.source !== popup) {
         return;
@@ -98,10 +99,10 @@ export function openAuthPopup(url: string, options: PopupOptions = {}): Promise<
           }
         }, 100);
       }
-    }
+    };
 
     // Listen for messages from the popup
-    window.addEventListener('message', handleMessage);
+    window.addEventListener('message', handleMessage as EventListener);
 
     // Check if popup was closed manually
     const checkClosedInterval = setInterval(() => {
@@ -118,7 +119,7 @@ export function openAuthPopup(url: string, options: PopupOptions = {}): Promise<
     // Cleanup function to handle popup closure
     function cleanup() {
       clearInterval(checkClosedInterval);
-      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('message', handleMessage as EventListener);
 
       if (!messageReceived) {
         reject(new Error('Authentication cancelled by user.'));

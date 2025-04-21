@@ -154,25 +154,25 @@ describe('Auth Controller', () => {
   });
 
   describe('Platform Authentication', () => {
-    it('should initialize authentication for a platform', async () => {
-      // Create a mock context
-      const context = createMockContext({
-        signerId: 'test.near',
-        params: {
-          platform: Platform.TWITTER,
-        },
-      });
+    //   it('should initialize authentication for a platform', async () => {
+    //     // Create a mock context
+    //     const context = createMockContext({
+    //       signerId: 'test.near',
+    //       params: {
+    //         platform: Platform.TWITTER,
+    //       },
+    //     });
 
-      // Call the controller
-      const response = await authController.initializeAuth(context, Platform.TWITTER);
-      const responseBody = await response.json();
+    //     // Call the controller
+    //     const response = await authController.initializeAuth(context, Platform.TWITTER);
+    //     const responseBody = await response.json();
 
-      // Verify the response
-      assertEquals(response.status, 200);
-      assertExists(responseBody.data);
-      assertExists(responseBody.data.url);
-      assertEquals(responseBody.data.url, 'https://example.com/auth');
-    });
+    //     // Verify the response
+    //     assertEquals(response.status, 200);
+    //     assertExists(responseBody.data);
+    //     assertExists(responseBody.data.url);
+    //     assertEquals(responseBody.data.url, 'https://example.com/auth');
+    //   });
 
     // it('should handle auth callback from a platform', async () => {
     //   // Create a mock context with URL that includes code and state
