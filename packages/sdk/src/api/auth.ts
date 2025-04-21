@@ -5,6 +5,7 @@ import type {
   AuthStatusParams,
   AuthStatusResponse,
   AuthTokenRequest,
+  AuthUrlResponse,
   ConnectedAccount,
   ConnectedAccountsResponse,
   NearAuthorizationRequest,
@@ -65,20 +66,16 @@ export class AuthApi {
     platform: Platform,
     options?: AuthInitRequest,
   ): Promise<AuthCallbackResponse> {
-    // Construct the login URL
-    const baseUrl = this.options.baseUrl || '';
-    const loginUrl = new URL(`/auth/${platform}/login`, baseUrl);
+    // Make POST request to get auth URL
+    const { url } = await makeRequest<AuthUrlResponse, AuthInitRequest>(
+      'POST',
+      `/auth/${platform}/login`,
+      this.options,
+      options,
+    );
 
-    // Add successUrl and errorUrl if provided
-    if (options?.successUrl) {
-      loginUrl.searchParams.set('successUrl', options.successUrl);
-    }
-    if (options?.errorUrl) {
-      loginUrl.searchParams.set('errorUrl', options.errorUrl);
-    }
-
-    // Open the popup and wait for the result
-    const result = await openAuthPopup(loginUrl.toString());
+    // Open the popup with the auth URL
+    const result = await openAuthPopup(url);
 
     if (!result.success || !result.userId) {
       throw new Error(result.error || 'Authentication failed');

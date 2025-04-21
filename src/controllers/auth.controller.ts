@@ -1,5 +1,6 @@
 import {
   ApiErrorCode,
+  AuthUrlResponse,
   ConnectedAccountsResponse,
   errorCodeToStatusCode,
   PlatformName,
@@ -95,8 +96,7 @@ export class AuthController extends BaseController {
         origin,
       );
 
-      // Redirect to the platform's auth URL
-      return c.redirect(authData.authUrl);
+      return c.json(createSuccessResponse<AuthUrlResponse>(c, { url: authData.authUrl }));
     } catch (error) {
       console.error('Error initializing auth with NEAR:', error);
       return this.handleError(error, c);

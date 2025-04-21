@@ -18,8 +18,6 @@ export const AuthInitRequestSchema = z.object({
 
 export const AuthUrlResponseSchema = z.object({
   url: z.string().describe('Authentication URL to redirect the user to'),
-  state: z.string().describe('State parameter for CSRF protection'),
-  platform: PlatformSchema,
 }).describe('Auth URL response');
 
 export const AuthCallbackQuerySchema = z.object({

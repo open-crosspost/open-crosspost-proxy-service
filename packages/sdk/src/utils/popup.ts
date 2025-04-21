@@ -1,13 +1,6 @@
 // @ts-nocheck
-
 import type { PlatformName } from '@crosspost/types';
-
 declare global {
-  interface Window {
-    innerWidth: number;
-    innerHeight: number;
-    open(url: string, target: string, features: string): Window | null;
-  }
   interface WindowEventMap {
     message: MessageEvent<AuthCallbackMessage>;
   }
