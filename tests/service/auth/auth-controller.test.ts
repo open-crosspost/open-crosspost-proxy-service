@@ -1,11 +1,10 @@
-import { UnlikePostResponse } from './../../../packages/types/src/post';
 import { ApiErrorCode, Platform } from '@crosspost/types';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { Env } from '../../../src/config/env.ts';
 import { AuthController } from '../../../src/controllers/auth.controller.ts';
+import { createPlatformError } from '../../../src/errors/platform-error.ts';
 import { createMockContext } from '../../utils/test-utils.ts';
-import { createPlatformError, PlatformError } from '../../../src/errors/platform-error.ts';
 
 describe('Auth Controller', () => {
   let authController: AuthController;
@@ -172,7 +171,7 @@ describe('Auth Controller', () => {
       assertEquals(response.status, 200);
       assertExists(responseBody.data);
       assertExists(responseBody.data.url);
-      assertEquals(responseBody.data.UnlikePostResponse, 'https://example.com/auth');
+      assertEquals(responseBody.data.url, 'https://example.com/auth');
     });
 
     it('should handle auth callback from a platform', async () => {
