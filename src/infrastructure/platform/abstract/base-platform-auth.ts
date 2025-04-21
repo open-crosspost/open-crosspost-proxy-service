@@ -101,7 +101,9 @@ export abstract class BasePlatformAuth implements PlatformAuth {
       const authState = await this.kvStore.get<AuthState>([state]);
 
       if (!authState) {
-        console.error(`[BasePlatformAuth.getAuthState] State not found or expired in KV for key: ${state}`); // Added Log
+        console.error(
+          `[BasePlatformAuth.getAuthState] State not found or expired in KV for key: ${state}`,
+        ); // Added Log
         throw new Error('Invalid or expired state');
       }
 

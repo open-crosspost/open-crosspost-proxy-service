@@ -131,7 +131,7 @@ async function createPost() {
         } else if (isValidationError(error)) {
           console.error('Validation errors:', error.details?.validationErrors);
         }
-        
+
         // Check if error is recoverable
         if (error.recoverable) {
           console.log('This error is recoverable - retry may succeed');

@@ -69,27 +69,27 @@ export class AuthController extends BaseController {
       // Construct the platform-specific callback URL
       const callbackUrl = `${baseUrl}/auth/${platform}/callback`;
 
-    // Get successUrl, errorUrl, and redirect from query parameters
-    const successUrl = requestUrl.searchParams.get('successUrl');
-    const errorUrl = requestUrl.searchParams.get('errorUrl');
-    const redirect = requestUrl.searchParams.get('redirect') === 'true'; // Default to false
+      // Get successUrl, errorUrl, and redirect from query parameters
+      const successUrl = requestUrl.searchParams.get('successUrl');
+      const errorUrl = requestUrl.searchParams.get('errorUrl');
+      const redirect = requestUrl.searchParams.get('redirect') === 'true'; // Default to false
 
-    // Get the origin from the request headers as fallback
-    const origin = c.req.header('origin') || c.req.header('referer') || requestUrl.origin;
+      // Get the origin from the request headers as fallback
+      const origin = c.req.header('origin') || c.req.header('referer') || requestUrl.origin;
 
-    // Initialize auth with the platform-specific callback URL and the client's return URL
-    // We need to pass the successUrl to the auth service so it can be stored in KV
-    // and retrieved during the callback
-    const authData = await this.authService.initializeAuth(
-      platform,
-      signerId,
-      callbackUrl,
-      [],
-      successUrl || origin,
-      errorUrl || successUrl || origin,
-      redirect,
-      origin,
-    );
+      // Initialize auth with the platform-specific callback URL and the client's return URL
+      // We need to pass the successUrl to the auth service so it can be stored in KV
+      // and retrieved during the callback
+      const authData = await this.authService.initializeAuth(
+        platform,
+        signerId,
+        callbackUrl,
+        [],
+        successUrl || origin,
+        errorUrl || successUrl || origin,
+        redirect,
+        origin,
+      );
 
       // Return the auth URL and state
       return c.json(
