@@ -69,17 +69,21 @@ export class AuthController extends BaseController {
       // Construct the platform-specific callback URL
       const callbackUrl = `${baseUrl}/auth/${platform}/callback`;
 
-      // Get successUrl, errorUrl, and redirect from query parameters
+      // Get successUrl and errorUrl from query parameters
       const successUrl = requestUrl.searchParams.get('successUrl');
       const errorUrl = requestUrl.searchParams.get('errorUrl');
-      const redirect = requestUrl.searchParams.get('redirect') === 'true'; // Default to false
 
-      // Get the origin from the request headers as fallback
-      const origin = c.req.header('origin') || c.req.header('referer') || requestUrl.origin;
+      // Get the origin from request headers
+      const origin = c.req.header('origin') || c.req.header('referer');
+      if (!origin) {
+        throw createApiError(
+          ApiErrorCode.VALIDATION_ERROR,
+          'Origin header is required for authentication',
+        );
+      }
 
-      // Initialize auth with the platform-specific callback URL and the client's return URL
-      // We need to pass the successUrl to the auth service so it can be stored in KV
-      // and retrieved during the callback
+      // Initialize auth with the platform-specific callback URL
+      // Always use redirect=false for popup-based flow
       const authData = await this.authService.initializeAuth(
         platform,
         signerId,
@@ -87,18 +91,12 @@ export class AuthController extends BaseController {
         [],
         successUrl || origin,
         errorUrl || successUrl || origin,
-        redirect,
+        false, // Always false for popup-based flow
         origin,
       );
 
-      // Return the auth URL and state
-      return c.json(
-        createSuccessResponse<AuthUrlResponse>(c, {
-          platform,
-          state: authData.state,
-          url: authData.authUrl,
-        }),
-      );
+      // Redirect to the platform's auth URL
+      return c.redirect(authData.authUrl);
     } catch (error) {
       console.error('Error initializing auth with NEAR:', error);
       return this.handleError(error, c);

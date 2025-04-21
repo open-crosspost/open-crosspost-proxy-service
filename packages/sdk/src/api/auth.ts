@@ -5,7 +5,6 @@ import type {
   AuthStatusParams,
   AuthStatusResponse,
   AuthTokenRequest,
-  AuthUrlResponse,
   ConnectedAccount,
   ConnectedAccountsResponse,
   NearAuthorizationRequest,
@@ -14,6 +13,7 @@ import type {
   Platform,
 } from '@crosspost/types';
 import { makeRequest, type RequestOptions } from '../core/request.ts';
+import { openAuthPopup } from '../utils/popup.ts';
 
 /**
  * Authentication-related API operations
@@ -55,22 +55,40 @@ export class AuthApi {
   }
 
   /**
-   * Initiates the login process for a specific platform.
-   * The service handles the OAuth flow; this method triggers it.
+   * Initiates the login process for a specific platform using a popup window.
    * @param platform The target platform.
    * @param options Optional success and error redirect URLs.
-   * @returns A promise resolving with the response from the service (might indicate success/failure or redirect info).
+   * @returns Promise that resolves with the authentication result when the popup completes.
+   * @throws Error if popups are blocked or if running in a non-browser environment.
    */
   async loginToPlatform(
     platform: Platform,
     options?: AuthInitRequest,
-  ): Promise<AuthUrlResponse> {
-    return makeRequest<AuthUrlResponse, AuthInitRequest>(
-      'POST',
-      `/auth/${platform}/login`,
-      this.options,
-      options,
-    );
+  ): Promise<AuthCallbackResponse> {
+    // Construct the login URL
+    const baseUrl = this.options.baseUrl || '';
+    const loginUrl = new URL(`/auth/${platform}/login`, baseUrl);
+
+    // Add successUrl and errorUrl if provided
+    if (options?.successUrl) {
+      loginUrl.searchParams.set('successUrl', options.successUrl);
+    }
+    if (options?.errorUrl) {
+      loginUrl.searchParams.set('errorUrl', options.errorUrl);
+    }
+
+    // Open the popup and wait for the result
+    const result = await openAuthPopup(loginUrl.toString());
+
+    if (!result.success || !result.userId) {
+      throw new Error(result.error || 'Authentication failed');
+    }
+
+    // Return the result in the expected format
+    return {
+      platform,
+      userId: result.userId,
+    };
   }
 
   /**
