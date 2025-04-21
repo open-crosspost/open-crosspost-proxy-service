@@ -6,6 +6,12 @@ export const PlatformParamSchema = z.object({
   platform: z.string().describe('Social media platform'),
 }).describe('Platform parameter');
 
+export const AuthStatusSchema = z.object({
+  message: z.string().describe('User-friendly status message'),
+  code: z.string().describe('Status code for programmatic handling'),
+  details: z.string().optional().describe('Additional status details'),
+}).describe('Authentication status information');
+
 export const AuthInitRequestSchema = z.object({
   successUrl: z.string().url().optional().describe(
     'URL to redirect to on successful authentication',
@@ -29,6 +35,7 @@ export const AuthCallbackResponseSchema = z.object({
   platform: PlatformSchema,
   userId: z.string().describe('User ID'),
   redirectUrl: z.string().optional().describe('URL to redirect the user to after authentication'),
+  status: AuthStatusSchema.describe('Authentication status information'),
 }).describe('Auth callback response');
 
 export const AuthStatusParamsSchema = z.object({
@@ -102,3 +109,4 @@ export type NearAuthorizationStatusResponse = z.infer<typeof NearAuthorizationSt
 export type AuthTokenRequest = z.infer<typeof AuthTokenRequestSchema>;
 export type AuthStatusParams = z.infer<typeof AuthStatusParamsSchema>;
 export type NearUnauthorizationResponse = z.infer<typeof NearUnauthorizationResponseSchema>;
+export type AuthStatus = z.infer<typeof AuthStatusSchema>;

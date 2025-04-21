@@ -1,5 +1,5 @@
 import { Context } from '../../deps.ts';
-import { PlatformName } from '@crosspost/types';
+import { AuthStatus, PlatformName } from '@crosspost/types';
 
 /**
  * Interface for the data to be sent back to the frontend via postMessage
@@ -10,6 +10,7 @@ export interface AuthCallbackData {
   userId?: string;
   error?: string;
   error_description?: string;
+  status: AuthStatus;
 }
 
 /**
@@ -18,18 +19,29 @@ export interface AuthCallbackData {
  * @returns HTML string for the callback page
  */
 function createCallbackHtml(data: AuthCallbackData, authState: { origin: string }): string {
+  // Create status object
+  const status = {
+    message: data.success ? 'Authentication Successful' : 'Authentication Failed',
+    code: data.success ? 'AUTH_SUCCESS' : 'AUTH_ERROR',
+    details: data.success
+      ? 'Your account has been connected successfully'
+      : data.error_description || data.error || 'An error occurred during authentication',
+  };
+
+  // Add status to the message data
   const message = JSON.stringify({
     type: 'AUTH_CALLBACK',
-    data: data,
+    data: {
+      ...data,
+      status,
+    },
   });
 
   // Pass auth state to the script
   const authStateJson = JSON.stringify({ origin: authState.origin });
 
-  const title = data.success ? 'Authentication Success' : 'Authentication Failed';
-  const bodyText = data.success
-    ? 'Authentication successful. Closing window...'
-    : `Authentication failed: ${data.error || 'Unknown error'}. Closing window...`;
+  const title = status.message;
+  const bodyText = status.details;
 
   return `
 <!DOCTYPE html>
@@ -79,66 +91,76 @@ function createCallbackHtml(data: AuthCallbackData, authState: { origin: string 
       const authState = ${authStateJson};
       let messageSent = false;
       
+      function updateUI(data) {
+        const statusEl = document.getElementById('status');
+        const detailsEl = document.getElementById('details');
+        const closeEl = document.getElementById('close-info');
+        
+        if (data.success) {
+          statusEl.textContent = 'Authentication Successful';
+          detailsEl.textContent = 'Your account has been connected successfully.';
+        } else {
+          statusEl.textContent = 'Authentication Failed';
+          detailsEl.textContent = data.error || 'An error occurred during authentication.';
+        }
+        closeEl.textContent = 'This window will close automatically...';
+      }
+      
+      function showCloseMessage() {
+        document.getElementById('close-info').textContent = 'You can safely close this window.';
+      }
+      
       function sendMessageAndClose() {
         if (messageSent) return;
+        messageSent = true;
         
         try {
           const message = ${message};
           if (window.opener) {
-            // Use the stored origin from auth state for secure messaging
-            window.opener.postMessage(message, authState.origin);
-            messageSent = true;
+            // Update UI first
+            updateUI(message.data);
             
-            // Close window after ensuring message was sent
+            // Send message to opener
+            window.opener.postMessage(message, authState.origin);
+            
+            // Close after a delay to ensure UI updates are visible
             setTimeout(() => {
-              window.close();
-              // If window.close() fails, update UI to show completion state
-              setTimeout(() => {
-                if (!window.closed) {
-                  const statusEl = document.getElementById('status');
-                  const detailsEl = document.getElementById('details');
-                  const closeEl = document.getElementById('close-info');
-                  
-                  if (message.data.success) {
-                    statusEl.textContent = 'Authentication Successful';
-                    detailsEl.textContent = 'Your account has been connected successfully.';
-                  } else {
-                    statusEl.textContent = 'Authentication Failed';
-                    detailsEl.textContent = message.data.error || 'An error occurred during authentication.';
+              try {
+                window.close();
+                // If window doesn't close, show "safe to close" message
+                setTimeout(() => {
+                  if (!window.closed) {
+                    showCloseMessage();
                   }
-                  closeEl.textContent = 'You can safely close this window.';
-                }
-              }, 100);
-            }, 100);
+                }, 100);
+              } catch (e) {
+                showCloseMessage();
+              }
+            }, 500);
           } else {
             console.warn('window.opener not found. Cannot post message.');
             document.getElementById('status').textContent = 'Authentication Complete';
             document.getElementById('details').textContent = 'The authentication process has completed, but we could not communicate with the main window.';
-            document.getElementById('close-info').textContent = 'Please close this window and return to the main application.';
+            showCloseMessage();
           }
         } catch (e) {
           console.error('Error posting message to opener:', e);
           document.getElementById('status').textContent = 'Authentication Error';
           document.getElementById('details').textContent = 'An error occurred while completing the authentication process.';
-          document.getElementById('close-info').textContent = 'Please close this window and try again.';
+          showCloseMessage();
         }
       }
 
-      // Try to send message immediately
+      // Only try once, no load event listener needed
       sendMessageAndClose();
-
-      // Backup: Also try on load in case script runs too early
-      window.addEventListener('load', sendMessageAndClose);
     })();
   </script>
 </head>
 <body>
   <div class="message">
-    <h1 id="status" class="status">${
-    data.success ? 'Completing Authentication...' : 'Authentication Failed'
-  }</h1>
+    <h1 id="status" class="status">${status.message}</h1>
     <p id="details" class="details">${bodyText}</p>
-    <p id="close-info" class="close-info">This window should close automatically...</p>
+    <p id="close-info" class="close-info">This window will close automatically...</p>
   </div>
 </body>
 </html>
@@ -162,6 +184,11 @@ export function createSuccessCallbackResponse(
     success: true,
     platform,
     userId,
+    status: {
+      message: 'Authentication Successful',
+      code: 'AUTH_SUCCESS',
+      details: 'Your account has been connected successfully',
+    },
   }, authState);
 
   c.header('Content-Type', 'text/html');
@@ -188,6 +215,11 @@ export function createErrorCallbackResponse(
     platform,
     error,
     error_description,
+    status: {
+      message: 'Authentication Failed',
+      code: 'AUTH_ERROR',
+      details: error_description || error || 'An error occurred during authentication',
+    },
   }, authState);
 
   c.header('Content-Type', 'text/html');

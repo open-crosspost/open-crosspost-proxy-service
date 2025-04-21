@@ -85,6 +85,7 @@ export class AuthApi {
     return {
       platform,
       userId: result.userId,
+      status: result.status,
     };
   }
 

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { PlatformName } from '@crosspost/types';
+import type { AuthStatus, PlatformName } from '@crosspost/types';
 declare global {
   interface WindowEventMap {
     message: MessageEvent<AuthCallbackMessage>;
@@ -19,6 +19,7 @@ interface AuthCallbackData {
   userId?: string;
   error?: string;
   error_description?: string;
+  status: AuthStatus;
 }
 
 interface AuthCallbackMessage {
@@ -115,7 +116,15 @@ export function openAuthPopup(url: string, options: PopupOptions = {}): Promise<
       window.removeEventListener('message', handleMessage as EventListener);
 
       if (!messageReceived) {
-        reject(new Error('Authentication cancelled by user.'));
+        reject({
+          success: false,
+          error: 'Authentication cancelled by user.',
+          status: {
+            message: 'Authentication Cancelled',
+            code: 'AUTH_CANCELLED',
+            details: 'The authentication window was closed before completion.',
+          },
+        });
       }
     }
   });
