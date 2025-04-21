@@ -1,65 +1,58 @@
 import { MediaContent } from '@crosspost/types';
-import { Buffer } from 'node:buffer';
-import { TwitterApi } from 'twitter-api-v2';
-import { Env } from '../../../config/env.ts';
+import { EUploadMimeType } from 'twitter-api-v2';
+import { convertToBuffer, detectMimeType } from '../../../utils/media.utils.ts';
 import {
   MediaStatusResult,
   MediaUploadResult,
   PlatformMedia,
 } from '../abstract/platform-media.interface.ts';
+import { TwitterClient } from './twitter-client.ts';
 
-// Media upload limitations
 const MEDIA_LIMITS = {
   MAX_IMAGES_PER_TWEET: 4,
   MAX_VIDEOS_PER_TWEET: 1,
   MAX_VIDEO_SIZE_MB: 512,
   MAX_IMAGE_SIZE_MB: 5,
   CHUNK_SIZE_BYTES: 1024 * 1024, // 1MB chunks
+  ADDITIONAL_OWNERS_LIMIT: 100,
 };
 
-export class TwitterMedia implements PlatformMedia {
-  private oauth1Client: TwitterApi | null = null;
+const MEDIA_CATEGORIES: Record<EUploadMimeType, any> = { // MediaV2MediaCategory
+  'image/jpeg': 'tweet_image',
+  'image/png': 'tweet_image',
+  'image/gif': 'tweet_gif',
+  'video/mp4': 'tweet_video',
+  'video/quicktime': 'tweet_video',
+  'image/webp': 'tweet_image',
+  'text/plain': 'tweet_image', // Fallback, though we shouldn't get this
+} as const;
 
-  constructor(env: Env) {
-    // Initialize OAuth 1.0a client for media uploads if credentials are provided
-    if (
-      env.TWITTER_API_KEY &&
-      env.TWITTER_API_SECRET &&
-      env.TWITTER_ACCESS_TOKEN &&
-      env.TWITTER_ACCESS_SECRET
-    ) {
-      try {
-        this.oauth1Client = new TwitterApi({
-          appKey: env.TWITTER_API_KEY,
-          appSecret: env.TWITTER_API_SECRET,
-          accessToken: env.TWITTER_ACCESS_TOKEN,
-          accessSecret: env.TWITTER_ACCESS_SECRET,
-        });
-      } catch (error) {
-        console.error('Failed to initialize OAuth 1.0a client:', error);
-        this.oauth1Client = null;
-      }
-    } else {
-      console.warn('Missing OAuth 1.0a credentials - media uploads will not work');
-    }
+export class TwitterMedia implements PlatformMedia {
+  private twitterClient: TwitterClient;
+
+  constructor(twitterClient: TwitterClient) {
+    this.twitterClient = twitterClient;
   }
 
   /**
    * Upload media to Twitter
    * @param userId The user ID uploading the media
    * @param media The media content to upload
+   * @param additionalOwners Optional array of user IDs who can also use this media
    * @returns The media upload result
    */
-  async uploadMedia(userId: string, media: MediaContent): Promise<MediaUploadResult> {
+  async uploadMedia(
+    userId: string,
+    media: MediaContent,
+    additionalOwners?: string[],
+  ): Promise<MediaUploadResult> {
     try {
-      // Check if OAuth 1.0a client is available
-      if (!this.oauth1Client) {
-        throw new Error('Media uploads require OAuth 1.0a credentials which are not configured');
-      }
+      const client = await this.twitterClient.getClientForUser(userId);
 
       // Convert media data to buffer
-      const mediaBuffer = await this.convertToBuffer(media.data);
-      const mimeType = media.mimeType || 'application/octet-stream';
+      const mediaBuffer = await convertToBuffer(media.data);
+      const detectedType = media.mimeType || detectMimeType(mediaBuffer);
+      const mimeType = detectedType as EUploadMimeType;
 
       // Check file size
       const isVideo = mimeType.startsWith('video/');
@@ -71,62 +64,53 @@ export class TwitterMedia implements PlatformMedia {
         throw new Error(`Image size exceeds maximum of ${MEDIA_LIMITS.MAX_IMAGE_SIZE_MB}MB`);
       }
 
-      // For large files, use chunked upload
-      let mediaId: string;
-      let processingInfo: any = null;
-
-      if (mediaBuffer.byteLength > MEDIA_LIMITS.CHUNK_SIZE_BYTES) {
-        const result = await this.uploadLargeMedia(mediaBuffer, mimeType);
-        mediaId = result.mediaId;
-        processingInfo = result.processingInfo;
-      } else {
-        // Upload the media using OAuth 1.0a client
-        mediaId = await this.oauth1Client.v1.uploadMedia(mediaBuffer, { mimeType });
+      // Determine media category
+      const mediaCategory = MEDIA_CATEGORIES[mimeType as keyof typeof MEDIA_CATEGORIES];
+      if (!mediaCategory) {
+        throw new Error(`Unsupported media type: ${mimeType}`);
       }
+
+      // Validate additional owners
+      if (additionalOwners && additionalOwners.length > MEDIA_LIMITS.ADDITIONAL_OWNERS_LIMIT) {
+        throw new Error(
+          `Too many additional owners. Maximum is ${MEDIA_LIMITS.ADDITIONAL_OWNERS_LIMIT}`,
+        );
+      }
+
+      // Upload media using v2 endpoint
+      const mediaId = await client.v2.uploadMedia(mediaBuffer, {
+        media_type: mimeType,
+        media_category: mediaCategory,
+      });
 
       // Set alt text if provided
       if (media.altText && mediaId) {
-        await this.updateMediaMetadata(mediaId, media.altText);
+        await this.updateMediaMetadata(userId, mediaId, media.altText);
       }
 
-      return {
-        mediaId,
-        processingInfo: processingInfo
-          ? {
-            state: processingInfo.state,
-            checkAfterSecs: processingInfo.check_after_secs,
-            progressPercent: processingInfo.progress_percent,
-            error: processingInfo.error
-              ? {
-                code: processingInfo.error.code,
-                message: processingInfo.error.message,
-              }
-              : undefined,
-          }
-          : undefined,
-      };
-    } catch (error) {
+      return { mediaId };
+    } catch (error: unknown) {
       console.error('Error uploading media:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error during media upload');
     }
   }
 
   /**
    * Get the status of a media upload
+   * @param userId The user ID checking the media status
    * @param mediaId The ID of the media to check
    * @returns The media status result
    */
-  async getMediaStatus(mediaId: string): Promise<MediaStatusResult> {
+  async getMediaStatus(userId: string, mediaId: string): Promise<MediaStatusResult> {
     try {
-      // Check if OAuth 1.0a client is available
-      if (!this.oauth1Client) {
-        throw new Error(
-          'Media status checks require OAuth 1.0a credentials which are not configured',
-        );
-      }
+      // Get user-specific client
+      const client = await this.twitterClient.getClientForUser(userId);
 
       // Get the media status from Twitter
-      const statusResult = await this.oauth1Client.v1.get(
+      const statusResult = await client.v1.get(
         'media/upload',
         { command: 'STATUS', media_id: mediaId },
       );
@@ -145,135 +129,41 @@ export class TwitterMedia implements PlatformMedia {
           }
           : undefined,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error getting media status:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unknown error getting media status');
     }
   }
 
   /**
-   * Update media metadata (e.g., alt text)
+   * Update media metadata (e.g., alt text) using v2 API
+   * @param userId The user ID updating the metadata
    * @param mediaId The ID of the media to update
    * @param altText The alt text to set for the media
    * @returns True if the update was successful
    */
-  async updateMediaMetadata(mediaId: string, altText: string): Promise<boolean> {
+  async updateMediaMetadata(userId: string, mediaId: string, altText: string): Promise<boolean> {
     try {
-      // Check if OAuth 1.0a client is available
-      if (!this.oauth1Client) {
-        throw new Error('Media metadata requires OAuth 1.0a credentials which are not configured');
-      }
+      // Get user-specific client
+      const client = await this.twitterClient.getClientForUser(userId);
 
       // Set the alt text
-      await this.oauth1Client.v1.createMediaMetadata(mediaId, {
-        alt_text: { text: altText },
+      await client.v2.createMediaMetadata(mediaId, {
+        alt_text: {
+          text: altText,
+        }
       });
 
       return true;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error setting media metadata:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Upload large media in chunks
-   * @param mediaBuffer The media buffer to upload
-   * @param mimeType The MIME type of the media
-   * @returns The media ID and processing info
-   */
-  private async uploadLargeMedia(
-    mediaBuffer: Buffer,
-    mimeType: string,
-  ): Promise<{ mediaId: string; processingInfo: any }> {
-    if (!this.oauth1Client) {
-      throw new Error('Media uploads require OAuth 1.0a credentials which are not configured');
-    }
-
-    try {
-      // Initialize the upload
-      const init = await this.oauth1Client.v1.post('media/upload', {
-        command: 'INIT',
-        total_bytes: mediaBuffer.byteLength,
-        media_type: mimeType,
-      });
-
-      const mediaId = init.media_id_string;
-
-      // Upload the media in chunks
-      const chunkSize = MEDIA_LIMITS.CHUNK_SIZE_BYTES;
-      let segmentIndex = 0;
-
-      for (let i = 0; i < mediaBuffer.byteLength; i += chunkSize) {
-        const chunk = mediaBuffer.slice(i, i + chunkSize);
-
-        await this.oauth1Client.v1.post('media/upload', {
-          command: 'APPEND',
-          media_id: mediaId,
-          media: chunk.toString('base64'),
-          segment_index: segmentIndex,
-        });
-
-        segmentIndex++;
+      if (error instanceof Error) {
+        throw error;
       }
-
-      // Finalize the upload
-      const finalize = await this.oauth1Client.v1.post('media/upload', {
-        command: 'FINALIZE',
-        media_id: mediaId,
-      });
-
-      // For videos, we need to wait for processing
-      if (mimeType.startsWith('video/') && finalize.processing_info) {
-        // Wait for initial processing to complete
-        let processingInfo = finalize.processing_info;
-
-        if (processingInfo.state !== 'succeeded') {
-          // Wait for the initial check after time
-          const waitTime = processingInfo.check_after_secs
-            ? processingInfo.check_after_secs * 1000
-            : 2000;
-          await new Promise((resolve) => setTimeout(resolve, waitTime));
-
-          // Check status
-          const status = await this.oauth1Client.v1.get('media/upload', {
-            command: 'STATUS',
-            media_id: mediaId,
-          });
-
-          processingInfo = status.processing_info;
-        }
-
-        return { mediaId, processingInfo };
-      }
-
-      return { mediaId, processingInfo: finalize.processing_info };
-    } catch (error) {
-      console.error('Error uploading large media:', error);
-      throw new Error('Failed to upload large media. The file may be too large.');
-    }
-  }
-
-  /**
-   * Convert media data to buffer
-   * @param data The media data to convert
-   * @returns The media data as a buffer
-   */
-  private async convertToBuffer(data: string | Blob): Promise<Buffer> {
-    if (typeof data === 'string') {
-      // Handle base64 data
-      if (data.startsWith('data:')) {
-        // Extract base64 data from data URL
-        const base64Data = data.split(',')[1];
-        return Buffer.from(base64Data, 'base64');
-      } else {
-        // Assume it's a URL or file path
-        return Buffer.from(data);
-      }
-    } else {
-      // Handle Blob data
-      const arrayBuffer = await data.arrayBuffer();
-      return Buffer.from(arrayBuffer);
+      throw new Error('Unknown error setting media metadata');
     }
   }
 }

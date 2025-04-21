@@ -50,7 +50,7 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
       const { url, codeVerifier, state } = twitterClient.generateOAuth2AuthLink(
         redirectUri,
         {
-          scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write'],
+          scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write', 'media.write'],
         },
       );
 
@@ -106,7 +106,7 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
         accessToken,
         refreshToken: refreshToken || '',
         expiresAt: Date.now() + expiresIn * 1000,
-        scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write'],
+        scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write', 'media.write'],
         tokenType: TokenType.OAUTH2,
       };
 

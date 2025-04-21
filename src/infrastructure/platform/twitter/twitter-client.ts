@@ -157,7 +157,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
       accessToken,
       refreshToken,
       expiresAt: Date.now() + expiresIn * 1000,
-      scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write'],
+      scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write', 'media.write'],
       tokenType: TokenType.OAUTH2,
     };
 
@@ -188,7 +188,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
         accessToken,
         refreshToken: newRefreshToken || refreshToken, // Use old refresh token if new one isn't provided
         expiresAt: Date.now() + expiresIn * 1000,
-        scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write'],
+        scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write', 'media.write'],
         tokenType: TokenType.OAUTH2,
       };
     } catch (error) {

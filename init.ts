@@ -63,7 +63,7 @@ export function initializeApp() {
 
   // Initialize platform-specific implementations
   const twitterClient = new TwitterClient(env, nearAuthService);
-  const twitterMedia = new TwitterMedia(env);
+  const twitterMedia = new TwitterMedia(twitterClient);
   const twitterRateLimit = new TwitterRateLimit();
   const twitterPost = new TwitterPost(twitterClient, twitterMedia);
   const twitterProfile = new TwitterProfile(twitterClient, userProfileStorage);

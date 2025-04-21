@@ -9,7 +9,7 @@ import { MediaContent } from '@crosspost/types';
  */
 export class MediaCache {
   private static instance: MediaCache;
-  private cache: Map<string, string> = new Map();
+  private cache: Map<string, Map<string, string>> = new Map();
 
   /**
    * Get the singleton instance of MediaCache
@@ -53,22 +53,28 @@ export class MediaCache {
 
   /**
    * Get a cached media ID for the given media content
+   * @param userId The user ID to check cache for
    * @param media The media content to check in cache
    * @returns The cached media ID or null if not found
    */
-  async getCachedMediaId(media: MediaContent): Promise<string | null> {
+  async getCachedMediaId(userId: string, media: MediaContent): Promise<string | null> {
     const hash = await this.generateMediaHash(media);
-    return this.cache.get(hash) || null;
+    const userCache = this.cache.get(userId);
+    return userCache?.get(hash) || null;
   }
 
   /**
    * Store a media ID in the cache
+   * @param userId The user ID to cache for
    * @param media The media content used as the cache key
    * @param mediaId The media ID to cache
    */
-  async cacheMediaId(media: MediaContent, mediaId: string): Promise<void> {
+  async cacheMediaId(userId: string, media: MediaContent, mediaId: string): Promise<void> {
     const hash = await this.generateMediaHash(media);
-    this.cache.set(hash, mediaId);
+    if (!this.cache.has(userId)) {
+      this.cache.set(userId, new Map());
+    }
+    this.cache.get(userId)!.set(hash, mediaId);
   }
 
   /**

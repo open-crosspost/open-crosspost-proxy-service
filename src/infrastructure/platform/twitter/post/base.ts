@@ -28,7 +28,7 @@ export abstract class TwitterPostBase {
     for (const mediaFile of mediaFiles) {
       try {
         // Check if we already have this media file cached
-        const cachedMediaId = await mediaCache.getCachedMediaId(mediaFile);
+        const cachedMediaId = await mediaCache.getCachedMediaId(userId, mediaFile);
 
         if (cachedMediaId) {
           console.log('Using cached media ID:', cachedMediaId);
@@ -41,7 +41,7 @@ export abstract class TwitterPostBase {
 
         if (result.mediaId) {
           // Cache the media ID for potential reuse
-          await mediaCache.cacheMediaId(mediaFile, result.mediaId);
+          await mediaCache.cacheMediaId(userId, mediaFile, result.mediaId);
           mediaIds.push(result.mediaId);
         }
       } catch (error) {
