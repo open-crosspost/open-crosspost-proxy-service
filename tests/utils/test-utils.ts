@@ -4,6 +4,7 @@ import { ActivityTrackingService } from '../../src/domain/services/activity-trac
 import { AuthService } from '../../src/domain/services/auth.service.ts';
 import { PostService } from '../../src/domain/services/post.service.ts';
 import { RateLimitService } from '../../src/domain/services/rate-limit.service.ts';
+import { nearAuthServiceMock } from '../mocks/near-auth-service-mock.ts';
 
 /**
  * Create a mock context for testing
@@ -35,6 +36,8 @@ export function createMockContext(options: {
   const mergedHeaders = { ...defaultHeaders, ...(options.headers || {}) };
 
   const c = {
+    env: {},
+    nearAuthService: nearAuthServiceMock,
     // Mock basic context properties
     req: {
       url: 'https://example.com',

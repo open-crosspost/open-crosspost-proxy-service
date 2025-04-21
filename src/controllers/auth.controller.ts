@@ -1,6 +1,6 @@
 import {
   ApiErrorCode,
-  AuthUrlResponse,
+  ConnectedAccountsResponse,
   errorCodeToStatusCode,
   PlatformName,
   ProfileRefreshResponse,
@@ -322,14 +322,18 @@ export class AuthController extends BaseController {
           const profile = await this.authService.getUserProfile(account.platform, account.userId);
 
           return {
-            ...account,
-            profile,
+            platform: account.platform,
+            userId: account.userId,
+            connectedAt: account.connectedAt,
+            profile: profile,
           };
         }),
       );
 
       // Return the accounts with profiles
-      return c.json(createSuccessResponse(c, { accounts: accountsWithProfiles }));
+      return c.json(
+        createSuccessResponse<ConnectedAccountsResponse>(c, { accounts: accountsWithProfiles }),
+      );
     } catch (error) {
       console.error('Error listing connected accounts:', error);
       return this.handleError(error, c);

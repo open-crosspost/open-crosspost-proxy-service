@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PlatformSchema } from './common.ts';
+import { UserProfileSchema } from './user-profile.ts';
 
 export const PlatformParamSchema = z.object({
   platform: z.string().describe('Social media platform'),
@@ -65,9 +66,8 @@ export const AuthRevokeResponseSchema = z.object({
 export const ConnectedAccountSchema = z.object({
   platform: PlatformSchema,
   userId: z.string().describe('User ID on the platform'),
-  username: z.string().optional().describe('Username on the platform (if available)'),
-  profileUrl: z.string().optional().describe('URL to the user profile'),
-  connectedAt: z.string().optional().describe('When the account was connected'),
+  connectedAt: z.string().describe('When the account was connected'),
+  profile: UserProfileSchema.nullable().describe('Full user profile data'),
 }).describe('Connected account');
 
 export const ConnectedAccountsResponseSchema = z.object({

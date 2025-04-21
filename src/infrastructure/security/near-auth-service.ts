@@ -5,7 +5,7 @@ import { NearAuthData, parseAuthToken, validateSignature } from '../../deps.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { AuthToken, TokenStorage } from '../storage/auth-token-storage.ts';
 import { TokenAccessLogger } from './token-access-logger.ts';
-import { ApiError, createApiError } from '../../errors/api-error.ts';
+import { createApiError } from '../../errors/api-error.ts';
 
 /**
  * NearAuthService
@@ -19,7 +19,7 @@ export class NearAuthService {
    */
   async getLinkedAccounts(
     signerId: string,
-  ): Promise<Array<{ platform: PlatformName; userId: string }>> {
+  ): Promise<Array<{ platform: PlatformName; userId: string; connectedAt: string }>> {
     try {
       return await this.listConnectedAccounts(signerId);
     } catch (error) {
@@ -163,7 +163,6 @@ export class NearAuthService {
             await this.storeToken(account.userId, platform, userId, {
               userId,
               platform,
-              linkedAt: new Date().toISOString(),
             });
           }
         }
@@ -295,22 +294,16 @@ export class NearAuthService {
    */
   async listConnectedAccounts(
     signerId: string,
-  ): Promise<Array<{ platform: PlatformName; userId: string }>> {
+  ): Promise<Array<{ platform: PlatformName; userId: string; connectedAt: string }>> {
     try {
       const indexKey = ['index', signerId];
       const accounts = await this.nearAuthKvStore.get<
-        Array<{ platform: PlatformName; userId: string }>
+        Array<{ platform: PlatformName; userId: string; connectedAt: string }>
       >(
         indexKey,
       );
 
-      // Convert platform strings to PlatformName
-      const typedAccounts = (accounts || []).map((account) => ({
-        platform: account.platform as PlatformName,
-        userId: account.userId,
-      }));
-
-      return typedAccounts;
+      return accounts || [];
     } catch (error) {
       console.error('Error listing connected accounts:', error);
       return [];
@@ -330,16 +323,21 @@ export class NearAuthService {
   ): Promise<void> {
     try {
       const indexKey = ['index', signerId];
-      const accounts =
-        await this.nearAuthKvStore.get<Array<{ platform: PlatformName; userId: string }>>(
-          indexKey,
-        ) || [];
+      const accounts = await this.nearAuthKvStore.get<
+        Array<{ platform: PlatformName; userId: string; connectedAt: string }>
+      >(
+        indexKey,
+      ) || [];
 
       // Check if the account is already in the index
       const exists = accounts.some((acc) => acc.platform === platform && acc.userId === userId);
 
       if (!exists) {
-        accounts.push({ platform, userId });
+        accounts.push({
+          platform,
+          userId,
+          connectedAt: new Date().toISOString(),
+        });
         await this.nearAuthKvStore.set(indexKey, accounts);
       }
     } catch (error) {
@@ -362,7 +360,7 @@ export class NearAuthService {
     try {
       const indexKey = ['index', signerId];
       const accounts = await this.nearAuthKvStore.get<
-        Array<{ platform: PlatformName; userId: string }>
+        Array<{ platform: PlatformName; userId: string; connectedAt: string }>
       >(
         indexKey,
       );
@@ -395,7 +393,6 @@ export class NearAuthService {
       await this.storeToken(signerId, platform, userId, {
         userId,
         platform,
-        linkedAt: new Date().toISOString(),
       });
     } catch (error) {
       console.error(

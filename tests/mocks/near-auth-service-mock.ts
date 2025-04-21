@@ -1,4 +1,4 @@
-import { PlatformName } from '@crosspost/types';
+import { Platform, PlatformName } from '@crosspost/types';
 import { Context } from '../../deps.ts';
 import { NearAuthService } from '../../src/infrastructure/security/near-auth-service.ts';
 import { AuthToken } from '../../src/infrastructure/storage/auth-token-storage.ts';
@@ -158,9 +158,13 @@ export class MockNearAuthService extends NearAuthService {
    */
   override async listConnectedAccounts(
     signerId: string,
-  ): Promise<Array<{ platform: PlatformName; userId: string }>> {
+  ): Promise<Array<{ platform: PlatformName; userId: string; connectedAt: string }>> {
     return [
-      { platform: 'twitter' as PlatformName, userId: 'test-user-id' },
+      {
+        platform: Platform.TWITTER,
+        userId: 'test-user-id',
+        connectedAt: '2025-04-21T10:00:00.000Z', // Fixed timestamp for testing
+      },
     ];
   }
 
@@ -218,7 +222,7 @@ export class MockNearAuthService extends NearAuthService {
     await this.storeToken(signerId, platform, userId, {
       userId,
       platform,
-      linkedAt: new Date().toISOString(),
+      linkedAt: '2025-04-21T10:00:00.000Z', // Fixed timestamp for testing
     });
   }
 
@@ -258,7 +262,7 @@ export class MockNearAuthService extends NearAuthService {
    */
   override async getLinkedAccounts(
     signerId: string,
-  ): Promise<Array<{ platform: PlatformName; userId: string }>> {
+  ): Promise<Array<{ platform: PlatformName; userId: string; connectedAt: string }>> {
     return this.listConnectedAccounts(signerId);
   }
 }

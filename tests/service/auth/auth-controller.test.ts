@@ -57,7 +57,11 @@ describe('Auth Controller', () => {
       hasAccess: () => Promise.resolve(true),
       getLinkedAccounts: () =>
         Promise.resolve([
-          { platform: Platform.TWITTER, userId: 'twitter-user-id' },
+          {
+            platform: Platform.TWITTER,
+            userId: 'twitter-user-id',
+            connectedAt: '2025-04-21T10:00:00.000Z', // Fixed timestamp for testing
+          },
         ]),
       extractAndValidateNearAuth: () =>
         Promise.resolve({
@@ -300,6 +304,7 @@ describe('Auth Controller', () => {
       assertExists(responseBody.data.accounts);
       assertEquals(responseBody.data.accounts.length, 1);
       assertEquals(responseBody.data.accounts[0].platform, Platform.TWITTER);
+      assertEquals(responseBody.data.accounts[0].connectedAt, '2025-04-21T10:00:00.000Z');
     });
 
     it('should refresh a user profile', async () => {
