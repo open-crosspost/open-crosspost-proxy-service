@@ -32,13 +32,20 @@ export interface RequestOptions {
 }
 
 /**
- * Makes a request to the API with error handling
+ * Makes a request to the API with error handling and data extraction
  *
  * @param method The HTTP method
  * @param path The API path
  * @param options The request options
  * @param data Optional request data
- * @returns A promise resolving with the response data
+ * @param query Optional query parameters
+ * @returns A promise resolving with the data field from the API response
+ * @throws {CrosspostError}
+ *  - If the request fails (network error, timeout)
+ *  - If the response is not valid JSON
+ *  - If the response does not follow the expected ApiResponse format
+ *  - If the response indicates success but contains no data
+ *  - If the response indicates failure (includes error details and metadata)
  */
 export async function makeRequest<
   TResponse,
@@ -154,6 +161,14 @@ export async function makeRequest<
     }
 
     if (responseData.success) {
+      if (!responseData.data) {
+        throw new CrosspostError(
+          'API returned success but no data',
+          ApiErrorCode.INVALID_RESPONSE,
+          response.status as StatusCode,
+          { responseData },
+        );
+      }
       return responseData.data as TResponse;
     }
 

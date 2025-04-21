@@ -25,7 +25,7 @@ export abstract class BaseController {
     // Get context values
     const platform = c.get('platform');
     const userId = c.get('userId');
-    const signerId = c.get('signerId');
+    const signerId = c.get('signerId') as string;
 
     // Handle platform-specific errors
     if (error instanceof ApiError) {

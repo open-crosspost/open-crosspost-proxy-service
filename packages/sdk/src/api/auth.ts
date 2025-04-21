@@ -146,7 +146,8 @@ export class AuthApi {
 
   /**
    * Lists all accounts connected to the NEAR account.
-   * @returns A promise resolving with the list of connected accounts.
+   * @returns A promise resolving with the connected accounts response containing an array of accounts.
+   * @throws {CrosspostError} If the request fails or returns invalid data.
    */
   async getConnectedAccounts(): Promise<ConnectedAccountsResponse> {
     return makeRequest<ConnectedAccountsResponse, never>(

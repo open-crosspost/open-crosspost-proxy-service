@@ -1,5 +1,6 @@
 import {
   ApiErrorCode,
+  AuthUrlResponse,
   errorCodeToStatusCode,
   PlatformName,
   ProfileRefreshResponse,
@@ -84,7 +85,13 @@ export class AuthController extends BaseController {
       );
 
       // Return the auth URL and state
-      return c.json(createSuccessResponse(c, authData));
+      return c.json(
+        createSuccessResponse<AuthUrlResponse>(c, {
+          platform,
+          state: authData.state,
+          url: authData.authUrl,
+        }),
+      );
     } catch (error) {
       console.error('Error initializing auth with NEAR:', error);
       return this.handleError(error, c);
@@ -270,9 +277,7 @@ export class AuthController extends BaseController {
    */
   async listConnectedAccounts(c: Context): Promise<Response> {
     try {
-      const { signerId } = c.get('validatedParams');
-      // Extract NEAR account ID from the validated signature
-      // const { signerId } = await this.nearAuthService.extractAndValidateNearAuth(c);
+      const signerId = c.get('signerId') as string;
 
       // Get all connected accounts
       const accounts = await this.nearAuthService.getLinkedAccounts(signerId);
@@ -305,8 +310,8 @@ export class AuthController extends BaseController {
    */
   async authorizeNear(c: Context): Promise<Response> {
     try {
-      // Validate the signature and get the signer ID
-      const signerId = await this.nearAuthService.validateNearAuthSignature(c);
+      // Extract and validate NEAR auth data from the header
+      const { signerId } = await this.nearAuthService.extractAndValidateNearAuth(c);
 
       // Authorize the NEAR account
       const result = await this.nearAuthService.authorizeNearAccount(signerId);

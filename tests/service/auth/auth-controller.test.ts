@@ -3,8 +3,8 @@ import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { Env } from '../../../src/config/env.ts';
 import { AuthController } from '../../../src/controllers/auth.controller.ts';
+import { createPlatformError } from '../../../src/errors/platform-error.ts';
 import { createMockContext } from '../../utils/test-utils.ts';
-import { createPlatformError, PlatformError } from '../../../src/errors/platform-error.ts';
 
 describe('Auth Controller', () => {
   let authController: AuthController;
@@ -170,8 +170,8 @@ describe('Auth Controller', () => {
       // Verify the response
       assertEquals(response.status, 200);
       assertExists(responseBody.data);
-      assertExists(responseBody.data.authUrl);
-      assertEquals(responseBody.data.authUrl, 'https://example.com/auth');
+      assertExists(responseBody.data.url);
+      assertEquals(responseBody.data.url, 'https://example.com/auth');
     });
 
     it('should handle auth callback from a platform', async () => {
