@@ -1,3 +1,4 @@
+import { UnlikePostResponse } from './../../../packages/types/src/post';
 import { ApiErrorCode, Platform } from '@crosspost/types';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
@@ -171,7 +172,7 @@ describe('Auth Controller', () => {
       assertEquals(response.status, 200);
       assertExists(responseBody.data);
       assertExists(responseBody.data.url);
-      assertEquals(responseBody.data.url, 'https://example.com/auth');
+      assertEquals(responseBody.data.UnlikePostResponse, 'https://example.com/auth');
     });
 
     it('should handle auth callback from a platform', async () => {
