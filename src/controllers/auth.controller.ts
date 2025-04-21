@@ -85,7 +85,13 @@ export class AuthController extends BaseController {
       );
 
       // Return the auth URL and state
-      return c.json(createSuccessResponse<AuthUrlResponse>(c, { platform, state: authData.state, url: authData.authUrl }));
+      return c.json(
+        createSuccessResponse<AuthUrlResponse>(c, {
+          platform,
+          state: authData.state,
+          url: authData.authUrl,
+        }),
+      );
     } catch (error) {
       console.error('Error initializing auth with NEAR:', error);
       return this.handleError(error, c);
@@ -127,7 +133,8 @@ export class AuthController extends BaseController {
             // If we can't get the auth state, create a platform error and handle it
             throw createPlatformError(
               ApiErrorCode.UNAUTHORIZED,
-              `${platform} authorization error: ${error}${error_description ? ` - ${error_description}` : ''
+              `${platform} authorization error: ${error}${
+                error_description ? ` - ${error_description}` : ''
               }`,
               platform,
             );
@@ -137,7 +144,8 @@ export class AuthController extends BaseController {
         // If no state or couldn't redirect, return a 400 error response
         throw createPlatformError(
           ApiErrorCode.UNAUTHORIZED,
-          `${platform} authorization error: ${error}${error_description ? ` - ${error_description}` : ''
+          `${platform} authorization error: ${error}${
+            error_description ? ` - ${error_description}` : ''
           }`,
           platform,
         );
