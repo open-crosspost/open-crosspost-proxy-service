@@ -17,11 +17,14 @@ export interface AuthCallbackData {
  * @param data The data to be sent back to the opener window
  * @returns HTML string for the callback page
  */
-function createCallbackHtml(data: AuthCallbackData): string {
+function createCallbackHtml(data: AuthCallbackData, authState: { origin: string }): string {
   const message = JSON.stringify({
     type: 'AUTH_CALLBACK',
     data: data,
   });
+
+  // Pass auth state to the script
+  const authStateJson = JSON.stringify({ origin: authState.origin });
 
   const title = data.success ? 'Authentication Success' : 'Authentication Failed';
   const bodyText = data.success
@@ -35,21 +38,47 @@ function createCallbackHtml(data: AuthCallbackData): string {
   <meta charset="utf-8">
   <title>${title}</title>
   <script>
-    try {
-      const message = ${message};
-      if (window.opener) {
-        // IMPORTANT: In a real application, specify the exact target origin
-        // instead of '*' for security.
-        window.opener.postMessage(message, '*');
-      } else {
-        console.warn('window.opener not found. Cannot post message.');
+    (function() {
+      // Initialize auth state from server
+      const authState = ${authStateJson};
+      let messageSent = false;
+      
+      function sendMessageAndClose() {
+        if (messageSent) return;
+        
+        try {
+          const message = ${message};
+          if (window.opener) {
+            // Use the stored origin from auth state for secure messaging
+            window.opener.postMessage(message, authState.origin);
+            messageSent = true;
+            
+            // Close window after ensuring message was sent
+            setTimeout(() => {
+              window.close();
+              // If window.close() fails (some browsers), redirect to blank
+              setTimeout(() => {
+                if (!window.closed) {
+                  document.body.innerHTML = '<p>Authentication complete. You can close this window.</p>';
+                }
+              }, 100);
+            }, 100);
+          } else {
+            console.warn('window.opener not found. Cannot post message.');
+            document.body.innerHTML = '<p>Authentication complete. You can close this window.</p>';
+          }
+        } catch (e) {
+          console.error('Error posting message to opener:', e);
+          document.body.innerHTML = '<p>Error completing authentication. Please close this window and try again.</p>';
+        }
       }
-    } catch (e) {
-      console.error('Error posting message to opener:', e);
-    } finally {
-      // Attempt to close the window after a short delay
-      setTimeout(() => window.close(), 500);
-    }
+
+      // Try to send message immediately
+      sendMessageAndClose();
+
+      // Backup: Also try on load in case script runs too early
+      window.addEventListener('load', sendMessageAndClose);
+    })();
   </script>
 </head>
 <body>
@@ -71,12 +100,13 @@ export function createSuccessCallbackResponse(
   c: Context,
   platform: PlatformName,
   userId: string,
+  authState: { origin: string },
 ): Response {
   const html = createCallbackHtml({
     success: true,
     platform,
     userId,
-  });
+  }, authState);
 
   c.header('Content-Type', 'text/html');
   return c.body(html);
@@ -94,6 +124,7 @@ export function createErrorCallbackResponse(
   c: Context,
   platform: PlatformName,
   error: string,
+  authState: { origin: string },
   error_description?: string,
 ): Response {
   const html = createCallbackHtml({
@@ -101,7 +132,7 @@ export function createErrorCallbackResponse(
     platform,
     error,
     error_description,
-  });
+  }, authState);
 
   c.header('Content-Type', 'text/html');
   return c.body(html);

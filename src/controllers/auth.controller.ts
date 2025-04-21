@@ -82,12 +82,13 @@ export class AuthController extends BaseController {
     // and retrieved during the callback
     const authData = await this.authService.initializeAuth(
       platform,
-      signerId, // Pass the NEAR account ID for linking
+      signerId,
       callbackUrl,
       [],
       successUrl || origin,
       errorUrl || successUrl || origin,
-      redirect, // Pass the redirect preference
+      redirect,
+      origin,
     );
 
       // Return the auth URL and state
@@ -139,6 +140,7 @@ export class AuthController extends BaseController {
                 c,
                 platform,
                 error || 'Authorization failed',
+                { origin: authState.origin },
                 error_description || undefined,
               );
             }
@@ -183,29 +185,27 @@ export class AuthController extends BaseController {
         );
       }
 
-      const callbackResult = await this.authService.handleCallback(
+      const { userId, successUrl, redirect } = await this.authService.handleCallback(
         platform,
         code,
         state,
       );
 
-      // Successfully handled callback, now check redirect preference from AuthState
-      const platformAuth = this.authService.getPlatformAuth(platform);
-      const authState = await platformAuth.getAuthState(state); // State is validated here
-
       // If redirect=false (default), return HTML to communicate success via postMessage
-      if (!authState.redirect) {
+      if (!redirect) {
+        const platformAuth = this.authService.getPlatformAuth(platform);
+        const authState = await platformAuth.getAuthState(state);
         return createSuccessCallbackResponse(
           c,
           platform,
-          callbackResult.userId,
+          userId,
+          { origin: authState.origin },
         );
       }
 
       // If redirect=true, perform the full redirect
-      const { successUrl } = callbackResult; // Use the successUrl stored in AuthState
       const redirectUrl = new URL(successUrl);
-      redirectUrl.searchParams.set('userId', callbackResult.userId);
+      redirectUrl.searchParams.set('userId', userId);
       redirectUrl.searchParams.set('platform', platform);
       redirectUrl.searchParams.set('success', 'true');
 
