@@ -183,7 +183,7 @@ export class AuthController extends BaseController {
         );
       }
 
-      const { userId, successUrl, redirect } = await this.authService.handleCallback(
+      const { userId, successUrl, redirect, origin } = await this.authService.handleCallback(
         platform,
         code,
         state,
@@ -191,13 +191,11 @@ export class AuthController extends BaseController {
 
       // If redirect=false (default), return HTML to communicate success via postMessage
       if (!redirect) {
-        const platformAuth = this.authService.getPlatformAuth(platform);
-        const authState = await platformAuth.getAuthState(state);
         return createSuccessCallbackResponse(
           c,
           platform,
           userId,
-          { origin: authState.origin },
+          { origin },
         );
       }
 

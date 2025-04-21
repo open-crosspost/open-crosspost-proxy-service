@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { AuthStatus, PlatformName } from '@crosspost/types';
+import type { PlatformName } from '@crosspost/types';
 declare global {
   interface WindowEventMap {
     message: MessageEvent<AuthCallbackMessage>;
@@ -19,7 +19,11 @@ interface AuthCallbackData {
   userId?: string;
   error?: string;
   error_description?: string;
-  status: AuthStatus;
+  status: {
+    message: string;     // User-friendly status message
+    code: string;        // Status code for programmatic handling
+    details?: string;    // Additional details if needed
+  };
 }
 
 interface AuthCallbackMessage {
@@ -81,17 +85,6 @@ export function openAuthPopup(url: string, options: PopupOptions = {}): Promise<
         } else {
           reject(message.data);
         }
-
-        // Give a moment for any final operations before closing
-        setTimeout(() => {
-          try {
-            if (popup && !popup.closed) {
-              popup.close();
-            }
-          } catch (e) {
-            console.warn('Failed to close popup window:', e);
-          }
-        }, 100);
       }
     };
 
@@ -122,8 +115,8 @@ export function openAuthPopup(url: string, options: PopupOptions = {}): Promise<
           status: {
             message: 'Authentication Cancelled',
             code: 'AUTH_CANCELLED',
-            details: 'The authentication window was closed before completion.',
-          },
+            details: 'The authentication window was closed before completion.'
+          }
         });
       }
     }

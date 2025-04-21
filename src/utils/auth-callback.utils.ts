@@ -1,5 +1,5 @@
 import { Context } from '../../deps.ts';
-import { AuthStatus, PlatformName } from '@crosspost/types';
+import { PlatformName } from '@crosspost/types';
 
 /**
  * Interface for the data to be sent back to the frontend via postMessage
@@ -10,7 +10,11 @@ export interface AuthCallbackData {
   userId?: string;
   error?: string;
   error_description?: string;
-  status: AuthStatus;
+  status: {
+    message: string;
+    code: string;
+    details?: string;
+  };
 }
 
 /**
@@ -23,9 +27,9 @@ function createCallbackHtml(data: AuthCallbackData, authState: { origin: string 
   const status = {
     message: data.success ? 'Authentication Successful' : 'Authentication Failed',
     code: data.success ? 'AUTH_SUCCESS' : 'AUTH_ERROR',
-    details: data.success
+    details: data.success 
       ? 'Your account has been connected successfully'
-      : data.error_description || data.error || 'An error occurred during authentication',
+      : data.error_description || data.error || 'An error occurred during authentication'
   };
 
   // Add status to the message data
@@ -33,8 +37,8 @@ function createCallbackHtml(data: AuthCallbackData, authState: { origin: string 
     type: 'AUTH_CALLBACK',
     data: {
       ...data,
-      status,
-    },
+      status
+    }
   });
 
   // Pass auth state to the script
@@ -112,31 +116,32 @@ function createCallbackHtml(data: AuthCallbackData, authState: { origin: string 
       
       function sendMessageAndClose() {
         if (messageSent) return;
-        messageSent = true;
         
         try {
           const message = ${message};
           if (window.opener) {
-            // Update UI first
+            // Send message to opener first
+            window.opener.postMessage(message, authState.origin);
+            messageSent = true;
+
+            // Update UI
             updateUI(message.data);
             
-            // Send message to opener
-            window.opener.postMessage(message, authState.origin);
-            
-            // Close after a delay to ensure UI updates are visible
+            // Close after a short delay
             setTimeout(() => {
               try {
                 window.close();
-                // If window doesn't close, show "safe to close" message
+                // If window doesn't close after 100ms, show manual close message
                 setTimeout(() => {
                   if (!window.closed) {
                     showCloseMessage();
                   }
                 }, 100);
               } catch (e) {
+                console.error('Failed to close window:', e);
                 showCloseMessage();
               }
-            }, 500);
+            }, 1000); // Give time for the user to see the success message
           } else {
             console.warn('window.opener not found. Cannot post message.');
             document.getElementById('status').textContent = 'Authentication Complete';
@@ -151,7 +156,7 @@ function createCallbackHtml(data: AuthCallbackData, authState: { origin: string 
         }
       }
 
-      // Only try once, no load event listener needed
+      // Send message immediately when the script runs
       sendMessageAndClose();
     })();
   </script>
@@ -187,8 +192,8 @@ export function createSuccessCallbackResponse(
     status: {
       message: 'Authentication Successful',
       code: 'AUTH_SUCCESS',
-      details: 'Your account has been connected successfully',
-    },
+      details: 'Your account has been connected successfully'
+    }
   }, authState);
 
   c.header('Content-Type', 'text/html');
@@ -218,8 +223,8 @@ export function createErrorCallbackResponse(
     status: {
       message: 'Authentication Failed',
       code: 'AUTH_ERROR',
-      details: error_description || error || 'An error occurred during authentication',
-    },
+      details: error_description || error || 'An error occurred during authentication'
+    }
   }, authState);
 
   c.header('Content-Type', 'text/html');

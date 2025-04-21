@@ -116,17 +116,24 @@ export abstract class BasePlatformAuth implements PlatformAuth {
       throw new Error('Failed to retrieve auth state');
     }
   }
+
   /**
    * Handle the OAuth callback
    * @param code The authorization code from the OAuth callback
    * @param state The state parameter from the callback
-   * @returns The user ID, tokens, and success URL
+   * @returns The user ID, tokens, success URL, redirect flag, and origin
    * @throws PlatformError if the callback handling fails
    */
   async handleCallback(
     code: string,
     state: string,
-  ): Promise<{ userId: string; token: AuthToken; successUrl: string; redirect: boolean }> {
+  ): Promise<{
+    userId: string;
+    token: AuthToken;
+    successUrl: string;
+    redirect: boolean;
+    origin: string;
+  }> {
     try {
       // Get the auth state using the getAuthState method
       const authState = await this.getAuthState(state);
@@ -141,7 +148,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
       // Link the account to the NEAR wallet
       await this.linkAccountToNear(authState.signerId, userId, token);
 
-      const { successUrl, redirect } = authState;
+      const { successUrl, redirect, origin } = authState;
 
       // Delete the auth state from KV
       await this.kvStore.delete([state]);
@@ -151,6 +158,7 @@ export abstract class BasePlatformAuth implements PlatformAuth {
         token,
         successUrl,
         redirect,
+        origin,
       };
     } catch (error) {
       console.error('Error handling callback:', error);

@@ -51,7 +51,11 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
         redirectUri,
         {
           scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write'],
+          extras: {
+            force_login: 'true'
+          }
         },
+        
       );
 
       return {

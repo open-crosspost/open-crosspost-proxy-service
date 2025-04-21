@@ -49,13 +49,19 @@ export interface PlatformAuth {
    * Handle the OAuth callback
    * @param code The authorization code from the OAuth callback
    * @param state The state parameter from the callback
-   * @returns The user ID, tokens, and success URL
+   * @returns The user ID, tokens, success URL, redirect flag, and origin
    * @throws PlatformError if the callback handling fails
    */
   handleCallback(
     code: string,
     state: string,
-  ): Promise<{ userId: string; token: AuthToken; successUrl: string; redirect: boolean }>;
+  ): Promise<{
+    userId: string;
+    token: AuthToken;
+    successUrl: string;
+    redirect: boolean;
+    origin: string;
+  }>;
 
   /**
    * Refresh a user's access token

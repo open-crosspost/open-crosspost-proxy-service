@@ -107,13 +107,19 @@ export class AuthService {
    * @param platform The platform name (e.g., Platform.TWITTER)
    * @param code The authorization code from the OAuth callback
    * @param state The state parameter from the callback
-   * @returns The user ID and tokens
+   * @returns The user ID, tokens, success URL, redirect flag, and origin
    */
   async handleCallback(
     platform: PlatformName,
     code: string,
     state: string,
-  ): Promise<{ userId: string; token: AuthToken; successUrl: string; redirect: boolean }> {
+  ): Promise<{
+    userId: string;
+    token: AuthToken;
+    successUrl: string;
+    redirect: boolean;
+    origin: string;
+  }> {
     try {
       const platformAuth = this.getPlatformAuth(platform);
       return await platformAuth.handleCallback(code, state);
