@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { PlatformSchema } from './common.ts';
-import { ErrorDetailSchema } from './errors.ts';
 
 export const MediaContentSchema = z.object({
   data: z.union([z.string(), z.instanceof(Blob)]).describe('Media data as string or Blob'),
@@ -58,14 +57,6 @@ export const LikeResultSchema = z.object({
   success: z.boolean().describe('Whether the like was successful'),
   id: z.string().describe('ID of the liked post'),
 }).describe('Like result');
-
-export const PostSuccessDetailSchema = z.object({
-  platform: PlatformSchema,
-  userId: z.string().describe('User ID'),
-  status: z.literal('success'),
-  postId: z.string().optional().describe('Post ID'),
-  postUrl: z.string().optional().describe('URL to the post'),
-}).catchall(z.any()).describe('Post success detail');
 
 export const TargetSchema = z.object({
   platform: PlatformSchema.describe('The platform to post to (e.g., "twitter")'),
@@ -160,16 +151,6 @@ export const UnlikePostResponseSchema = z.object({
   id: z.string().describe('ID of the unliked post'),
 }).describe('Unlike post response');
 
-export const PostMultiStatusResponseSchema = z.object({
-  summary: z.object({
-    total: z.number().describe('Total number of operations'),
-    succeeded: z.number().describe('Number of successful operations'),
-    failed: z.number().describe('Number of failed operations'),
-  }),
-  results: z.array(PostSuccessDetailSchema).describe('Successful operations'),
-  errors: z.array(ErrorDetailSchema).describe('Failed operations'),
-}).describe('Multi-status response for post operations');
-
 export type Media = z.infer<typeof MediaSchema>;
 export type MediaContent = z.infer<typeof MediaContentSchema>;
 export type PostMetrics = z.infer<typeof PostMetricsSchema>;
@@ -178,7 +159,6 @@ export type PostContent = z.infer<typeof PostContentSchema>;
 export type PostResult = z.infer<typeof PostResultSchema>;
 export type DeleteResult = z.infer<typeof DeleteResultSchema>;
 export type LikeResult = z.infer<typeof LikeResultSchema>;
-export type PostSuccessDetail = z.infer<typeof PostSuccessDetailSchema>;
 export type Target = z.infer<typeof TargetSchema>;
 export type PostToDelete = z.infer<typeof PostToDeleteSchema>;
 
@@ -190,7 +170,6 @@ export type DeletePostRequest = z.infer<typeof DeletePostRequestSchema>;
 export type LikePostRequest = z.infer<typeof LikePostRequestSchema>;
 export type UnlikePostRequest = z.infer<typeof UnlikePostRequestSchema>;
 
-export type PostResponse = z.infer<typeof PostResponseSchema>;
 export type CreatePostResponse = z.infer<typeof CreatePostResponseSchema>;
 export type RepostResponse = z.infer<typeof RepostResponseSchema>;
 export type QuotePostResponse = z.infer<typeof QuotePostResponseSchema>;
@@ -198,4 +177,3 @@ export type ReplyToPostResponse = z.infer<typeof ReplyToPostResponseSchema>;
 export type DeletePostResponse = z.infer<typeof DeletePostResponseSchema>;
 export type LikePostResponse = z.infer<typeof LikePostResponseSchema>;
 export type UnlikePostResponse = z.infer<typeof UnlikePostResponseSchema>;
-export type PostMultiStatusResponse = z.infer<typeof PostMultiStatusResponseSchema>;

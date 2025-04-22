@@ -92,19 +92,19 @@ export function createErrorDetail(
  * Create a success detail for multi-status operations
  * @param platform Platform
  * @param userId User ID
- * @param additionalData Additional data
+ * @param details Additional data
  * @returns Success detail object
  */
 export function createSuccessDetail<T>(
   platform: PlatformName,
   userId: string,
-  additionalData?: T,
+  details?: T,
 ): SuccessDetail {
   return {
     platform,
     userId,
     status: 'success',
-    ...additionalData,
+    details: details,
   };
 }
 

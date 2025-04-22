@@ -1,6 +1,6 @@
 {
   "name": "@crosspost/types",
-  "version": "0.1.14",
+  "version": "0.2.0",
   "description": "Shared type definitions for Crosspost API",
   "type": "module",
   "main": "dist/index.cjs",

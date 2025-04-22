@@ -58,10 +58,10 @@ describe('Post Creation Controller', () => {
     assertEquals(responseBody.data.errors.length, 0);
     assertEquals(responseBody.data.results[0].platform, Platform.TWITTER);
     assertEquals(responseBody.data.results[0].userId, 'test-user-id');
-    assertExists(responseBody.data.results[0]);
-    assertExists(responseBody.data.results[0].id);
-    assertExists(responseBody.data.results[0].text);
-    assertExists(responseBody.data.results[0].createdAt);
+    assertExists(responseBody.data.results[0].details);
+    assertExists(responseBody.data.results[0].details.id);
+    assertExists(responseBody.data.results[0].details.text);
+    assertExists(responseBody.data.results[0].details.createdAt);
   });
 
   it('should handle rate limit errors from RateLimitService', async () => {

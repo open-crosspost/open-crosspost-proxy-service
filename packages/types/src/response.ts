@@ -24,7 +24,7 @@ export const ResponseMetaSchema = z.object({
 export const SuccessDetailSchema = z.object({
   platform: z.string(),
   userId: z.string(),
-  additionalData: z.any().optional(),
+  details: z.any().optional(),
   status: z.literal('success'),
 }).catchall(z.any());
 
@@ -34,24 +34,27 @@ export const HealthStatusSchema = z.object({
   timestamp: z.string().datetime().describe('Current server time'),
 }).describe('Health status response');
 
+export const MultiStatusSummarySchema = z.object({
+  total: z.number().int().nonnegative(),
+  succeeded: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+});
+
 export const MultiStatusDataSchema = z.object({
-  summary: z.object({
-    total: z.number().int().nonnegative(),
-    succeeded: z.number().int().nonnegative(),
-    failed: z.number().int().nonnegative(),
-  }),
+  summary: MultiStatusSummarySchema,
   results: z.array(SuccessDetailSchema),
   errors: z.array(ErrorDetailSchema),
 });
 
 export interface ApiResponse<T> {
   success: boolean;
-  data?: T | MultiStatusData | null; // Allow null for success without data
+  data?: T | MultiStatusData | null; // Allow null for success without data, updated type name
   errors?: ErrorDetail[] | null; // Allow null for success
   meta: ResponseMeta; // Mandatory, holds request id
 }
 
 export type ResponseMeta = z.infer<typeof ResponseMetaSchema>;
 export type SuccessDetail = z.infer<typeof SuccessDetailSchema>;
-export type MultiStatusData = z.infer<typeof MultiStatusDataSchema>;
+export type MultiStatusSummary = z.infer<typeof MultiStatusSummarySchema>;
+export type MultiStatusData = z.infer<typeof MultiStatusDataSchema>; // Renamed type
 export type HealthStatus = z.infer<typeof HealthStatusSchema>;
