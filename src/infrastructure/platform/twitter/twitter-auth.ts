@@ -10,6 +10,15 @@ import { TwitterClient } from './twitter-client.ts';
 import { TwitterProfile } from './twitter-profile.ts';
 import { NearAuthService } from '../../security/near-auth-service.ts';
 
+export const TWITTER_SCOPES: string[] = [
+  'tweet.read',
+  'tweet.write',
+  'users.read',
+  'offline.access',
+  'like.write',
+  'media.write',
+];
+
 export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
   constructor(
     env: Env,
@@ -49,9 +58,7 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
       // Generate the OAuth 2.0 auth link with PKCE
       const { url, codeVerifier, state } = twitterClient.generateOAuth2AuthLink(
         redirectUri,
-        {
-          scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write', 'media.write'],
-        },
+        { scope: TWITTER_SCOPES },
       );
 
       return {
@@ -106,7 +113,7 @@ export class TwitterAuth extends BasePlatformAuth implements PlatformAuth {
         accessToken,
         refreshToken: refreshToken || '',
         expiresAt: Date.now() + expiresIn * 1000,
-        scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write', 'media.write'],
+        scope: TWITTER_SCOPES,
         tokenType: TokenType.OAUTH2,
       };
 

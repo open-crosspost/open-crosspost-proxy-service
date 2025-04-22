@@ -26,7 +26,7 @@ export const ErrorDetailsSchema = z.object({
 }).transform((data) => {
   // Filter out potentially problematic fields
   const { originalError, request, response, ...rest } = data;
-  
+
   // Extract useful information from originalError if it exists
   if (originalError instanceof Error) {
     return {
@@ -35,12 +35,12 @@ export const ErrorDetailsSchema = z.object({
       errorStack: originalError.stack,
     };
   }
-  
+
   return rest;
 }).transform((data) => {
   // Remove undefined values
   return Object.fromEntries(
-    Object.entries(data).filter(([_, v]) => v !== undefined)
+    Object.entries(data).filter(([_, v]) => v !== undefined),
   );
 });
 

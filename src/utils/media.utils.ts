@@ -7,7 +7,7 @@ import { Buffer } from 'node:buffer';
  */
 export function detectMimeType(buffer: Buffer): string {
   const header = buffer.slice(0, 4);
-  
+
   // Check magic numbers
   if (header.toString('hex').startsWith('89504e47')) {
     return 'image/png';
@@ -30,10 +30,10 @@ export function detectMimeType(buffer: Buffer): string {
 }
 
 /**
-   * Convert media data to buffer
-   * @param data The media data to convert
-   * @returns The media data as a buffer
-   */
+ * Convert media data to buffer
+ * @param data The media data to convert
+ * @returns The media data as a buffer
+ */
 export async function convertToBuffer(data: string | Blob): Promise<Buffer> {
   if (typeof data === 'string') {
     // Handle base64 data

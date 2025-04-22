@@ -154,7 +154,7 @@ export class TwitterMedia implements PlatformMedia {
       await client.v2.createMediaMetadata(mediaId, {
         alt_text: {
           text: altText,
-        }
+        },
       });
 
       return true;

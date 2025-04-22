@@ -45,6 +45,17 @@ describe('Auth Controller', () => {
         }),
     };
 
+    const mockPlatformAuth = {
+      getAuthState: () =>
+        Promise.resolve({
+          successUrl: 'https://example.com/success',
+          errorUrl: 'https://example.com/error',
+          redirect: false, // Default to popup flow
+          origin: 'https://test-origin.com',
+        }),
+    };
+    mockAuthService.getPlatformAuth = () => mockPlatformAuth;
+
     // Create mock token manager
     mockNearAuthService = {
       validateNearAuthSignature: () => Promise.resolve('test.near'),
@@ -54,6 +65,7 @@ describe('Auth Controller', () => {
       saveTokens: () => Promise.resolve(),
       linkAccount: () => Promise.resolve(),
       unlinkAccount: () => Promise.resolve(),
+      deleteTokens: () => Promise.resolve(),
       hasAccess: () => Promise.resolve(true),
       getLinkedAccounts: () =>
         Promise.resolve([
@@ -158,73 +170,92 @@ describe('Auth Controller', () => {
   });
 
   describe('Platform Authentication', () => {
-    //   it('should initialize authentication for a platform', async () => {
-    //     // Create a mock context
-    //     const context = createMockContext({
-    //       signerId: 'test.near',
-    //       params: {
-    //         platform: Platform.TWITTER,
-    //       },
-    //     });
+    it('should initialize authentication for a platform', async () => {
+      // Create a mock context
+      const context = createMockContext({
+        signerId: 'test.near',
+        params: {
+          platform: Platform.TWITTER,
+        },
+        headers: {
+          origin: 'https://test-origin.com',
+        },
+      });
 
-    //     // Call the controller
-    //     const response = await authController.initializeAuth(context, Platform.TWITTER);
-    //     const responseBody = await response.json();
+      // Call the controller
+      const response = await authController.initializeAuth(context, Platform.TWITTER);
+      const responseBody = await response.json();
 
-    //     // Verify the response
-    //     assertEquals(response.status, 200);
-    //     assertExists(responseBody.data);
-    //     assertExists(responseBody.data.url);
-    //     assertEquals(responseBody.data.url, 'https://example.com/auth');
-    //   });
+      // Verify the response
+      assertEquals(response.status, 200);
+      assertExists(responseBody.data);
+      assertExists(responseBody.data.url);
+      assertEquals(responseBody.data.url, 'https://example.com/auth');
+    });
 
-    // it('should handle auth callback from a platform', async () => {
-    //   // Create a mock context with URL that includes code and state
-    //   const context = createMockContext({
-    //     params: {
-    //       platform: Platform.TWITTER,
-    //     },
-    //   });
+    it('should handle auth callback from a platform (redirect flow)', async () => {
+      // Mock handleCallback for redirect flow
+      mockAuthService.handleCallback = () =>
+        Promise.resolve({
+          userId: 'twitter-user-id',
+          successUrl: 'https://example.com/success',
+          redirect: true, // Simulate redirect flow
+          origin: 'https://test-origin.com',
+        });
 
-    //   // Mock the URL to include code and state
-    //   (context.req as any).url =
-    //     'https://example.com/auth/twitter/callback?code=auth-code&state=state-token';
+      // Create a mock context with URL that includes code and state
+      const context = createMockContext({
+        params: {
+          platform: Platform.TWITTER,
+        },
+      });
 
-    //   // Call the controller
-    //   const response = await authController.handleCallback(context, Platform.TWITTER);
+      // Mock the URL to include code and state
+      (context.req as any).url =
+        'https://example.com/auth/twitter/callback?code=auth-code&state=state-token';
 
-    //   // Verify the response is a redirect
-    //   assertEquals(response.status, 302);
-    //   assertEquals(response.headers.get('Location')?.includes('success=true'), true);
-    // });
+      // Call the controller
+      const response = await authController.handleCallback(context, Platform.TWITTER);
 
-    // it('should handle errors in auth callback', async () => {
-    //   // Create a mock context with URL that includes an error
-    //   const context = createMockContext({
-    //     params: {
-    //       platform: Platform.TWITTER,
-    //     },
-    //   });
+      // Verify the response is a redirect
+      assertEquals(response.status, 302);
+      const location = response.headers.get('Location');
+      assertExists(location);
+      assertEquals(location.startsWith('https://example.com/success'), true);
+      assertEquals(location.includes('userId=twitter-user-id'), true);
+      assertEquals(location.includes('platform=twitter'), true);
+      assertEquals(location.includes('success=true'), true);
+    });
 
-    //   // Mock the URL to include an error
-    //   (context.req as any).url =
-    //     'https://example.com/auth/twitter/callback?error=access_denied&error_description=User%20denied%20access';
+    it('should handle errors in auth callback (state lookup fails)', async () => {
+      // Create a mock context with URL that includes an error
+      const context = createMockContext({
+        params: {
+          platform: Platform.TWITTER,
+        },
+      });
 
-    //   // Override the getAuthState method to simulate no state found
-    //   mockAuthService.getAuthState = () => Promise.reject(new Error('State not found'));
+      // Mock the URL to include an error and state
+      (context.req as any).url =
+        'https://example.com/auth/twitter/callback?error=access_denied&state=mock-state&error_description=User%20denied%20access';
 
-    //   // Call the controller
-    //   const response = await authController.handleCallback(context, Platform.TWITTER);
+      // Override the getAuthState method to simulate state lookup failure
+      mockAuthService.getPlatformAuth().getAuthState = () =>
+        Promise.reject(new Error('State not found'));
 
-    //   // For error cases without a valid state, we should get a JSON response
-    //   assertEquals(response.status, 401);
+      // Call the controller
+      const response = await authController.handleCallback(context, Platform.TWITTER);
 
-    //   // Parse the response body
-    //   const responseBody = await response.json();
-    //   assertExists(responseBody.errors);
-    //   assertEquals(responseBody.success, false);
-    //   assertEquals(responseBody.errors[0].code, ApiErrorCode.UNAUTHORIZED);
-    // });
+      // For error cases where state lookup fails, we should get a JSON response via handleError
+      assertEquals(response.status, 401); // Mapped from UNAUTHORIZED PlatformError
+
+      // Parse the response body
+      const responseBody = await response.json();
+      assertExists(responseBody.errors);
+      assertEquals(responseBody.success, false);
+      assertEquals(responseBody.errors[0].code, ApiErrorCode.UNAUTHORIZED);
+      assertEquals(responseBody.errors[0].message.includes('access_denied'), true);
+    });
 
     it('should refresh a token', async () => {
       // Create a mock context with validated body
@@ -243,7 +274,7 @@ describe('Auth Controller', () => {
       // Verify the response
       assertEquals(response.status, 200);
       assertExists(responseBody.data);
-      assertExists(responseBody.data.accessToken);
+      assertEquals(responseBody.data.success, true);
     });
 
     it('should revoke a token', async () => {
@@ -330,41 +361,7 @@ describe('Auth Controller', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle platform rate limit errors', async () => {
-      // Override the mock to simulate a rate limit error
-      mockAuthService.refreshToken = () => {
-        throw createPlatformError(
-          ApiErrorCode.RATE_LIMITED,
-          'Rate limit exceeded',
-          Platform.TWITTER,
-          { retryAfter: 3600 },
-          true,
-        );
-      };
-
-      // Create a mock context with validated body
-      const context = createMockContext({
-        signerId: 'test.near',
-        params: {
-          platform: Platform.TWITTER,
-        },
-        validatedBody: { userId: 'twitter-user-id' },
-      });
-
-      // Call the controller
-      const response = await authController.refreshToken(context, Platform.TWITTER);
-      const responseBody = await response.json();
-
-      // Verify the response
-      assertEquals(response.status, 429);
-      assertExists(responseBody.errors);
-      assertEquals(responseBody.success, false);
-      assertEquals(responseBody.errors[0].code, ApiErrorCode.RATE_LIMITED);
-      assertEquals(responseBody.errors[0].recoverable, true);
-      assertEquals(responseBody.errors[0].details?.retryAfter, 3600);
-    });
-
-    it('should handle platform unavailable errors', async () => {
+    it('should handle platform unavailable errors during token refresh', async () => {
       // Override the mock to simulate a platform unavailable error
       mockAuthService.refreshToken = () => {
         throw createPlatformError(

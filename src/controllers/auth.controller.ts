@@ -9,8 +9,8 @@ import {
 import { Context } from '../../deps.ts';
 import { Env } from '../config/env.ts';
 import { AuthService } from '../domain/services/auth.service.ts';
-import { createApiError } from '../errors/api-error.ts';
-import { createPlatformError } from '../errors/platform-error.ts';
+import { ApiError, createApiError } from '../errors/api-error.ts';
+import { createPlatformError, PlatformError } from '../errors/platform-error.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth-service.ts';
 import { unlinkAccountFromNear } from '../utils/account-linking.utils.ts';
 import {
@@ -216,7 +216,7 @@ export class AuthController extends BaseController {
    * Refresh a user's access token
    * @param c The Hono context
    * @param platform The platform name (e.g., Platform.TWITTER)
-   * @returns HTTP response with new tokens
+   * @returns HTTP response with success true
    */
   async refreshToken(c: Context, platform: PlatformName): Promise<Response> {
     try {
@@ -225,15 +225,41 @@ export class AuthController extends BaseController {
 
       const { userId } = c.get('validatedBody') as { userId: string };
 
-      // Refresh token
-      const tokens = await this.authService.refreshToken(platform, userId);
+      // Check if the tokens are linked to this NEAR account
+      const hasAccess = await this.nearAuthService.hasAccess(signerId, platform, userId);
+      if (!hasAccess) {
+        throw createApiError(
+          ApiErrorCode.UNAUTHORIZED,
+          'Account not linked to this NEAR wallet',
+          { platform, userId },
+        );
+      }
 
-      // Save tokens and link account
-      await this.nearAuthService.saveTokens(userId, platform, tokens);
-      await this.nearAuthService.linkAccount(signerId, platform, userId);
+      try {
+        // Delete existing tokens first to ensure clean state
+        await this.nearAuthService.deleteTokens(userId, platform);
 
-      // Return the new tokens
-      return c.json(createSuccessResponse(c, tokens));
+        // Refresh token
+        const tokens = await this.authService.refreshToken(platform, userId);
+
+        // Save tokens and link account
+        await this.nearAuthService.saveTokens(userId, platform, tokens);
+        await this.nearAuthService.linkAccount(signerId, platform, userId);
+      } catch (tokenError) {
+        console.error(`Error during token refresh for ${platform}:${userId}:`, tokenError);
+        if (tokenError instanceof ApiError || tokenError instanceof PlatformError) {
+          throw tokenError;
+        }
+        throw createPlatformError(
+          ApiErrorCode.TOKEN_REFRESH_FAILED,
+          `Failed to refresh token for ${platform}:${userId}. ${
+            tokenError instanceof Error ? tokenError.message : 'Unknown error'
+          }`,
+          platform,
+          { userId },
+        );
+      }
+      return c.json(createSuccessResponse(c, { success: true }));
     } catch (error) {
       console.error('Error refreshing token:', error);
       return this.handleError(error, c);

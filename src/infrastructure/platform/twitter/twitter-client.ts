@@ -10,6 +10,7 @@ import { BasePlatformClient } from '../abstract/base-platform-client.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
 import { NearAuthService } from './../../security/near-auth-service.ts';
 import { TwitterError } from './twitter-error.ts';
+import { TWITTER_SCOPES } from './twitter-auth.ts';
 
 /**
  * Twitter Client
@@ -157,7 +158,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
       accessToken,
       refreshToken,
       expiresAt: Date.now() + expiresIn * 1000,
-      scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write', 'media.write'],
+      scope: TWITTER_SCOPES,
       tokenType: TokenType.OAUTH2,
     };
 
@@ -188,7 +189,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
         accessToken,
         refreshToken: newRefreshToken || refreshToken, // Use old refresh token if new one isn't provided
         expiresAt: Date.now() + expiresIn * 1000,
-        scope: ['tweet.read', 'tweet.write', 'users.read', 'offline.access', 'like.write', 'media.write'],
+        scope: TWITTER_SCOPES,
         tokenType: TokenType.OAUTH2,
       };
     } catch (error) {
