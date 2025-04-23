@@ -72,7 +72,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
           // Create new tokens object
           const newToken: AuthToken = {
             accessToken: token.accessToken,
-            refreshToken: token.refreshToken || token.refreshToken, // Use old refresh token if new one isn't provided
+            refreshToken: token.refreshToken,
             expiresAt: Date.now() + 7200 * 1000, // Twitter tokens typically expire in 2 hours
             scope: token.scope,
             tokenType: TokenType.OAUTH2,
@@ -82,7 +82,7 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
           await this.nearAuthService.saveTokens(userId, Platform.TWITTER, newToken);
         },
         onTokenRefreshError: async (error) => {
-          console.error('Token refresh error:', error);
+          console.error(`Token refresh error for user ${userId}:`, error);
 
           await this.nearAuthService.deleteTokens(userId, Platform.TWITTER);
           throw TwitterError.fromTwitterApiError(error);

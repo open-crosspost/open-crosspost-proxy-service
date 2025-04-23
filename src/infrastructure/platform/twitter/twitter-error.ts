@@ -204,6 +204,22 @@ export class TwitterError extends PlatformError {
           false, // Not recoverable
         );
       case 400: // Bad Request
+        if (
+          error.data && typeof error.data === 'object' &&
+          'error' in error.data && error.data.error === 'invalid_grant'
+        ) {
+          return new TwitterError(
+            `Token refresh failed: Invalid or expired refresh token`,
+            ApiErrorCode.UNAUTHORIZED,
+            {
+              ...details,
+              refreshFailure: true,
+              message: 'Refresh token is invalid or expired. User needs to re-authenticate.',
+              errorData: error.data,
+            },
+            false, // Not recoverable without user re-authentication
+          );
+        }
         return new TwitterError(
           `Invalid request: ${errorMessage}`,
           ApiErrorCode.INVALID_REQUEST, // Use a generic invalid request code
