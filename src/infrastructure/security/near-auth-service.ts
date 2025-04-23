@@ -90,10 +90,12 @@ export class NearAuthService {
     // Get the token again to return the full auth data
     const token = parseAuthToken(c.req.header('Authorization')!.substring(7));
 
-    // Check if the account is authorized
-    const authStatus = await this.getNearAuthorizationStatus(signerId);
-    if (authStatus < 0) { // -1 means not authorized
-      throw createApiError(ApiErrorCode.UNAUTHORIZED, 'NEAR account is not authorized');
+    // Check if the NEAR account is authorized (skip check for /auth/authorize/near)
+    if (!c.req.path.endsWith('/auth/authorize/near')) {
+      const authStatus = await this.getNearAuthorizationStatus(signerId);
+      if (authStatus < 0) { // -1 means not authorized
+        throw createApiError(ApiErrorCode.UNAUTHORIZED, 'NEAR account is not authorized');
+      }
     }
 
     return {

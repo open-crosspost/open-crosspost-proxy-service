@@ -31,16 +31,6 @@ export class AuthMiddleware {
         // For GET requests, only require X-Near-Account header
         if (c.req.method === 'GET') {
           signerId = AuthMiddleware.nearAuthService.extractNearAccountHeader(c);
-
-          // Check if the NEAR account is authorized (skip check for /auth/authorize/near)
-          if (!c.req.path.endsWith('/auth/authorize/near')) {
-            const authStatus = await AuthMiddleware.nearAuthService.getNearAuthorizationStatus(
-              signerId,
-            );
-            if (authStatus < 0) { // -1 means not authorized
-              throw createApiError(ApiErrorCode.UNAUTHORIZED, 'NEAR account is not authorized');
-            }
-          }
         } else {
           // For other requests, require full NEAR auth validation
           const { signerId: validatedSignerId } = await AuthMiddleware.nearAuthService

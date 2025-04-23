@@ -1,8 +1,8 @@
-import { ApiErrorCode, type ErrorDetail, type StatusCode } from '@crosspost/types';
+import { ApiErrorCode, type ErrorDetail } from '@crosspost/types';
 import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.ts';
-import { createErrorDetail, createErrorResponse } from '../utils/response.utils.ts';
 import { ApiError } from '../errors/api-error.ts';
 import { PlatformError } from '../errors/platform-error.ts';
+import { createErrorDetail, createErrorResponse } from '../utils/response.utils.ts';
 
 export const errorMiddleware = (): MiddlewareHandler => {
   return async (c: Context, next: Next) => {
@@ -15,7 +15,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
       if (err instanceof HTTPException) {
         c.status((err as HTTPException).status);
         return c.json(
-          createErrorResponse([
+          createErrorResponse(c, [
             createErrorDetail(
               (err as HTTPException).message,
               ApiErrorCode.UNKNOWN_ERROR,
@@ -35,7 +35,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
           : err.details;
 
         return c.json(
-          createErrorResponse([
+          createErrorResponse(c, [
             createErrorDetail(
               err.message,
               err.code,
@@ -50,7 +50,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
       if (Array.isArray(err)) {
         if (err.length === 0) {
           c.status(500);
-          return c.json(createErrorResponse([
+          return c.json(createErrorResponse(c, [
             createErrorDetail(
               'Empty error array received',
               ApiErrorCode.INTERNAL_ERROR,
@@ -90,7 +90,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
         const status = allSameStatus && err[0] instanceof ApiError ? err[0].status : 207;
         c.status(status);
 
-        return c.json(createErrorResponse(errorDetails));
+        return c.json(createErrorResponse(c, errorDetails));
       }
 
       // Handle standard Error objects
@@ -98,7 +98,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
         console.error('Caught standard Error:', err.message, err.stack);
         c.status(500);
         return c.json(
-          createErrorResponse([
+          createErrorResponse(c, [
             createErrorDetail(
               'An internal server error occurred.',
               ApiErrorCode.INTERNAL_ERROR,
@@ -113,7 +113,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
       console.error('Caught unknown error type:', err);
       c.status(500);
       return c.json(
-        createErrorResponse([
+        createErrorResponse(c, [
           createErrorDetail(
             'An unexpected internal error occurred.',
             ApiErrorCode.UNKNOWN_ERROR,
