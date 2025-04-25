@@ -38,7 +38,7 @@ export class ReplyController extends BasePostController {
         async (target) => {
           // Reply to the post
           const result = await this.postService.replyToPost(
-            request.platform, // Platform of the post being replied to
+            target.platform,
             target.userId,
             request.postId,
             request.content,
@@ -59,6 +59,7 @@ export class ReplyController extends BasePostController {
             result,
           );
         },
+        request.platform
       );
 
       // Create a multi-status response using the base controller method

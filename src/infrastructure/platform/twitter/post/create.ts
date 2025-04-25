@@ -40,7 +40,7 @@ export class TwitterCreatePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error creating post:', error);
-      throw TwitterError.fromTwitterApiError(error);
+      throw this.handleError(error);
     }
   }
 

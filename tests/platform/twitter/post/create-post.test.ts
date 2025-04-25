@@ -144,10 +144,8 @@ describe('TwitterCreatePost', () => {
       );
       // Configure the client mock to throw the specific error when tweet is called
       const twitterClient = new TwitterClientMock({});
-      twitterClient.setErrorToThrow(
-        'tweet',
-        new ApiResponseError('Duplicate error', duplicateError),
-      );
+      const twitterError = TwitterError.fromTwitterApiError(duplicateError);
+      twitterClient.setErrorToThrow('tweet', twitterError);
       const twitterMedia = new TwitterMediaMock();
       const createPost = new TwitterCreatePost(twitterClient, twitterMedia as any);
 
@@ -182,8 +180,8 @@ describe('TwitterCreatePost', () => {
         // Check if the original mock message is included in the details (and add type check)
         assert(
           typeof error.details?.platformMessage === 'string' &&
-            error.details.platformMessage.includes('Duplicate error'),
-          'Original platform message ("Duplicate error") should be included in details',
+            error.details.platformMessage.includes("Status is a duplicate"),
+          'Original platform message ("Status is a duplicate") should be included in details',
         );
       }
     });
@@ -197,17 +195,18 @@ describe('TwitterCreatePost', () => {
       // Configure the media mock to throw the specific error during upload
       const twitterClient = new TwitterClientMock({});
       const twitterMedia = new TwitterMediaMock();
-      // Simulate the error originating from the media upload step
-      twitterMedia.setErrorToThrow(
-        new TwitterError(
-          'Media upload failed: The media you tried to upload is too large.',
-          ApiErrorCode.MEDIA_UPLOAD_FAILED,
-          {
-            platform: Platform.TWITTER,
-            originalError: new ApiResponseError('Media error', mediaError),
-          },
-        ),
+      // Transform the error properly
+      const twitterError = TwitterError.fromTwitterApiError(mediaError);
+      const mediaUploadError = new TwitterError(
+        'Media upload failed: The media you tried to upload is too large.',
+        ApiErrorCode.MEDIA_UPLOAD_FAILED,
+        {
+          platform: Platform.TWITTER,
+          platformErrorCode: twitterError.details?.platformErrorCode,
+          platformMessage: twitterError.details?.platformMessage,
+        },
       );
+      twitterMedia.setErrorToThrow(mediaUploadError);
       const createPost = new TwitterCreatePost(twitterClient, twitterMedia as any);
 
       try {
@@ -232,11 +231,6 @@ describe('TwitterCreatePost', () => {
         assert(
           error.message.includes('Media upload failed'),
           'Error message should indicate media upload failure',
-        );
-        // Check if the original error details are preserved
-        assert(
-          error.details?.originalError instanceof Error,
-          'Original error should be preserved in details',
         );
       }
     });

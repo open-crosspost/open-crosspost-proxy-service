@@ -390,10 +390,15 @@ export class AuthController extends BaseController {
       if (result.success) {
         return c.json(createSuccessResponse(c, { signerId: signerId }));
       } else {
-        throw createApiError(
-          ApiErrorCode.INTERNAL_ERROR,
-          `Failed to authorize NEAR account: ${result.error}`,
-        );
+        c.status(400);
+        return c.json(createErrorResponse(c, [
+          createErrorDetail(
+            `Failed to authorize NEAR account: ${result.error}`,
+            ApiErrorCode.VALIDATION_ERROR,
+            false,
+            { signerId }
+          )
+        ]));
       }
     } catch (error) {
       console.error('Unexpected error authorizing NEAR account:', error);

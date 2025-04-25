@@ -21,6 +21,9 @@ export class TwitterError extends PlatformError {
       details,
       recoverable,
     );
+
+    // Ensure proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, TwitterError.prototype);
   }
 
   /**

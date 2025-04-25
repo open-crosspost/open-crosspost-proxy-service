@@ -22,7 +22,7 @@ export class TwitterLikePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error liking post:', error);
-      throw TwitterError.fromTwitterApiError(error);
+       this.handleError(error);
     }
   }
 
@@ -44,7 +44,7 @@ export class TwitterLikePost extends TwitterPostBase {
         id: postId,
       };
     } catch (error) {
-      throw TwitterError.fromTwitterApiError(error);
+       this.handleError(error);
     }
   }
 }

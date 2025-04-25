@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import { PlatformSchema } from './common.ts';
 
+export const RateLimitPlatformEndpointParamsSchema = z.object({
+  platform: z.string().describe('Platform to get rate limits for'),
+  endpoint: z.string().describe('Endpoint to get rate limits for'),
+}).describe('Rate limit platform endpoint parameters');
+
+export const RateLimitPlatformParamsSchema = z.object({
+  platform: z.string().describe('Platform to get rate limits for'),
+}).describe('Rate limit platform parameters');
+
 export const RateLimitEndpointParamSchema = z.object({
   endpoint: z.string().optional().describe(
     'Specific endpoint to get rate limit information for (optional)',
@@ -95,6 +104,8 @@ export const EndpointRateLimitResponseSchema = z.object({
   signerId: z.string().describe('NEAR account ID'),
 }).describe('Endpoint rate limit response');
 
+export type RateLimitPlatformEndpointParams = z.infer<typeof RateLimitPlatformEndpointParamsSchema>;
+export type RateLimitPlatformParams = z.infer<typeof RateLimitPlatformParamsSchema>;
 export type RateLimitEndpointParam = z.infer<typeof RateLimitEndpointParamSchema>;
 export type RateLimitEndpoint = z.infer<typeof RateLimitEndpointSchema>;
 export type RateLimitStatus = z.infer<typeof RateLimitStatusSchema>;

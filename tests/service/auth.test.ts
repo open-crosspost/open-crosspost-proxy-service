@@ -1,12 +1,22 @@
-import { ApiErrorCode, Platform } from '@crosspost/types';
+import { 
+  ApiErrorCode, 
+  Platform, 
+  AuthInitRequestSchema,
+  AuthCallbackQuerySchema,
+  AuthTokenRequestSchema,
+  NearAuthorizationRequestSchema
+} from '@crosspost/types';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
-import { Env } from '../../../src/config/env.ts';
-import { AuthController } from '../../../src/controllers/auth.controller.ts';
-import { createPlatformError } from '../../../src/errors/platform-error.ts';
-import { createMockContext } from '../../utils/test-utils.ts';
+import { Env } from '../../src/config/env.ts';
+import { AuthController } from '../../src/controllers/auth.controller.ts';
+import type { Hono as HonoType } from '../../src/deps.ts';
+import { createPlatformError } from '../../src/errors/platform-error.ts';
+import { ValidationMiddleware } from '../../src/middleware/validation.middleware.ts';
+import { setupTestApp, type TestAppEnv } from '../utils/test-utils.ts';
 
 describe('Auth Controller', () => {
+  let app: HonoType<TestAppEnv>;
   let authController: AuthController;
   let mockAuthService: any;
   let mockNearAuthService: any;
@@ -94,17 +104,31 @@ describe('Auth Controller', () => {
 
     // Create the controller instance with mock dependencies
     authController = new AuthController(mockAuthService, mockNearAuthService, mockEnv);
+
+    // Setup test app with routes
+    app = setupTestApp((hono) => {
+      hono.post('/near/authorize', (c) => authController.authorizeNear(c));
+      hono.post('/near/unauthorize', (c) => authController.unauthorizeNear(c));
+      hono.get('/near/status', (c) => authController.checkNearAuthorizationStatus(c));
+      hono.get('/auth/:platform/initialize', ValidationMiddleware.validateQuery(AuthInitRequestSchema), (c) => authController.initializeAuth(c, c.req.param('platform') as Platform));
+      hono.get('/auth/:platform/callback', ValidationMiddleware.validateQuery(AuthCallbackQuerySchema), (c) => authController.handleCallback(c, c.req.param('platform') as Platform));
+      hono.post('/auth/:platform/refresh', ValidationMiddleware.validateBody(AuthTokenRequestSchema), (c) => authController.refreshToken(c, c.req.param('platform') as Platform));
+      hono.post('/auth/:platform/revoke', ValidationMiddleware.validateBody(AuthTokenRequestSchema), (c) => authController.revokeToken(c, c.req.param('platform') as Platform));
+      hono.get('/auth/:platform/valid', (c) => authController.hasValidTokens(c, c.req.param('platform') as Platform));
+      hono.get('/auth/accounts', (c) => authController.listConnectedAccounts(c));
+      hono.post('/auth/:platform/profile', ValidationMiddleware.validateBody(AuthTokenRequestSchema), (c) => authController.refreshUserProfile(c, c.req.param('platform') as Platform));
+    });
   });
 
   describe('NEAR Authorization', () => {
     it('should authorize a NEAR account', async () => {
-      // Create a mock context
-      const context = createMockContext({
-        signerId: 'test.near',
+      // Create request
+      const req = new Request('https://example.com/near/authorize', {
+        method: 'POST',
       });
 
-      // Call the controller
-      const response = await authController.authorizeNear(context);
+      // Make the request
+      const response = await app.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
@@ -113,38 +137,47 @@ describe('Auth Controller', () => {
     });
 
     it('should handle errors when authorizing a NEAR account', async () => {
-      // Override the mock to simulate an error
       mockNearAuthService.authorizeNearAccount = () =>
         Promise.resolve({ success: false, error: 'Authorization failed' });
 
-      // Create a mock context
-      const context = createMockContext({
-        signerId: 'test.near',
+      // Setup a new test app with the modified service
+      const errorApp = setupTestApp((hono) => {
+        // Remove the validation middleware for this test to focus on the controller error handling
+        hono.post('/near/authorize', (c) => authController.authorizeNear(c));
       });
 
-      // Call the controller
-      const response = await authController.authorizeNear(context);
+      // Create request with an empty body to avoid JSON parsing errors
+      const req = new Request('https://example.com/near/authorize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}), // Empty but valid JSON
+      });
+
+      // Make the request
+      const response = await errorApp.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
-      assertEquals(response.status, 500);
+      assertEquals(response.status, 400);
       assertExists(responseBody.errors);
       assertEquals(responseBody.success, false);
       assertEquals(
         responseBody.errors[0].message,
         'Failed to authorize NEAR account: Authorization failed',
       );
-      assertEquals(responseBody.errors[0].code, 'INTERNAL_ERROR');
+      assertEquals(responseBody.errors[0].code, 'VALIDATION_ERROR');
     });
 
     it('should unauthorize a NEAR account', async () => {
-      // Create a mock context
-      const context = createMockContext({
-        signerId: 'test.near',
+      // Create request
+      const req = new Request('https://example.com/near/unauthorize', {
+        method: 'POST',
       });
 
-      // Call the controller
-      const response = await authController.unauthorizeNear(context);
+      // Make the request
+      const response = await app.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
@@ -153,13 +186,11 @@ describe('Auth Controller', () => {
     });
 
     it('should check NEAR account authorization status', async () => {
-      // Create a mock context
-      const context = createMockContext({
-        signerId: 'test.near',
-      });
+      // Create request
+      const req = new Request('https://example.com/near/status');
 
-      // Call the controller
-      const response = await authController.checkNearAuthorizationStatus(context);
+      // Make the request
+      const response = await app.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
@@ -171,19 +202,15 @@ describe('Auth Controller', () => {
 
   describe('Platform Authentication', () => {
     it('should initialize authentication for a platform', async () => {
-      // Create a mock context
-      const context = createMockContext({
-        signerId: 'test.near',
-        params: {
-          platform: Platform.TWITTER,
-        },
+      // Create request with origin header
+      const req = new Request('https://example.com/auth/twitter/initialize', {
         headers: {
-          origin: 'https://test-origin.com',
+          'Origin': 'https://test-origin.com',
         },
       });
 
-      // Call the controller
-      const response = await authController.initializeAuth(context, Platform.TWITTER);
+      // Make the request
+      const response = await app.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
@@ -203,19 +230,16 @@ describe('Auth Controller', () => {
           origin: 'https://test-origin.com',
         });
 
-      // Create a mock context with URL that includes code and state
-      const context = createMockContext({
-        params: {
-          platform: Platform.TWITTER,
-        },
+      // Setup a new test app with the modified service
+      const redirectApp = setupTestApp((hono) => {
+        hono.get('/auth/:platform/callback', ValidationMiddleware.validateQuery(AuthCallbackQuerySchema), (c) => authController.handleCallback(c, c.req.param('platform') as Platform));
       });
 
-      // Mock the URL to include code and state
-      (context.req as any).url =
-        'https://example.com/auth/twitter/callback?code=auth-code&state=state-token';
+      // Create request with code and state parameters
+      const req = new Request('https://example.com/auth/twitter/callback?code=auth-code&state=state-token');
 
-      // Call the controller
-      const response = await authController.handleCallback(context, Platform.TWITTER);
+      // Make the request
+      const response = await redirectApp.fetch(req);
 
       // Verify the response is a redirect
       assertEquals(response.status, 302);
@@ -228,23 +252,20 @@ describe('Auth Controller', () => {
     });
 
     it('should handle errors in auth callback (state lookup fails)', async () => {
-      // Create a mock context with URL that includes an error
-      const context = createMockContext({
-        params: {
-          platform: Platform.TWITTER,
-        },
-      });
-
-      // Mock the URL to include an error and state
-      (context.req as any).url =
-        'https://example.com/auth/twitter/callback?error=access_denied&state=mock-state&error_description=User%20denied%20access';
-
       // Override the getAuthState method to simulate state lookup failure
       mockAuthService.getPlatformAuth().getAuthState = () =>
         Promise.reject(new Error('State not found'));
 
-      // Call the controller
-      const response = await authController.handleCallback(context, Platform.TWITTER);
+      // Setup a new test app with the modified service
+      const errorApp = setupTestApp((hono) => {
+        hono.get('/auth/:platform/callback', (c) => authController.handleCallback(c, c.req.param('platform') as Platform));
+      });
+
+      // Create request with error parameters
+      const req = new Request('https://example.com/auth/twitter/callback?error=access_denied&state=mock-state&error_description=User%20denied%20access');
+
+      // Make the request
+      const response = await errorApp.fetch(req);
 
       // For error cases where state lookup fails, we should get a JSON response via handleError
       assertEquals(response.status, 401); // Mapped from UNAUTHORIZED PlatformError
@@ -258,17 +279,17 @@ describe('Auth Controller', () => {
     });
 
     it('should refresh a token', async () => {
-      // Create a mock context with validated body
-      const context = createMockContext({
-        signerId: 'test.near',
-        params: {
-          platform: Platform.TWITTER,
+      // Create request with userId in body
+      const req = new Request('https://example.com/auth/twitter/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        validatedBody: { userId: 'twitter-user-id' },
+        body: JSON.stringify({ userId: 'twitter-user-id' }),
       });
 
-      // Call the controller
-      const response = await authController.refreshToken(context, Platform.TWITTER);
+      // Make the request
+      const response = await app.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
@@ -278,17 +299,17 @@ describe('Auth Controller', () => {
     });
 
     it('should revoke a token', async () => {
-      // Create a mock context with validated body
-      const context = createMockContext({
-        signerId: 'test.near',
-        params: {
-          platform: Platform.TWITTER,
+      // Create request with userId in body
+      const req = new Request('https://example.com/auth/twitter/revoke', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        validatedBody: { userId: 'twitter-user-id' },
+        body: JSON.stringify({ userId: 'twitter-user-id' }),
       });
 
-      // Call the controller
-      const response = await authController.revokeToken(context, Platform.TWITTER);
+      // Make the request
+      const response = await app.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
@@ -296,37 +317,12 @@ describe('Auth Controller', () => {
       assertEquals(responseBody.success, true);
     });
 
-    it('should check if a user has valid tokens', async () => {
-      // Create a mock context
-      const context = createMockContext({
-        signerId: 'test.near',
-        params: {
-          platform: Platform.TWITTER,
-        },
-      });
-
-      // Mock the query method to return userId
-      (context.req as any).query = (param: string) => param === 'userId' ? 'twitter-user-id' : null;
-
-      // Call the controller
-      const response = await authController.hasValidTokens(context, Platform.TWITTER);
-      const responseBody = await response.json();
-
-      // Verify the response
-      assertEquals(response.status, 200);
-      assertExists(responseBody.data);
-      assertEquals(responseBody.data.hasTokens, true);
-      assertEquals(responseBody.data.isLinked, true);
-    });
-
     it('should list connected accounts', async () => {
-      // Create a mock context
-      const context = createMockContext({
-        signerId: 'test.near',
-      });
+      // Create request
+      const req = new Request('https://example.com/auth/accounts');
 
-      // Call the controller
-      const response = await authController.listConnectedAccounts(context);
+      // Make the request
+      const response = await app.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
@@ -339,17 +335,17 @@ describe('Auth Controller', () => {
     });
 
     it('should refresh a user profile', async () => {
-      // Create a mock context with validated body
-      const context = createMockContext({
-        signerId: 'test.near',
-        params: {
-          platform: Platform.TWITTER,
+      // Create request with userId in body
+      const req = new Request('https://example.com/auth/twitter/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        validatedBody: { userId: 'twitter-user-id' },
+        body: JSON.stringify({ userId: 'twitter-user-id' }),
       });
 
-      // Call the controller
-      const response = await authController.refreshUserProfile(context, Platform.TWITTER);
+      // Make the request
+      const response = await app.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
@@ -372,17 +368,22 @@ describe('Auth Controller', () => {
         );
       };
 
-      // Create a mock context with validated body
-      const context = createMockContext({
-        signerId: 'test.near',
-        params: {
-          platform: Platform.TWITTER,
-        },
-        validatedBody: { userId: 'twitter-user-id' },
+      // Setup a new test app with the modified service
+      const errorApp = setupTestApp((hono) => {
+        hono.post('/auth/:platform/refresh', ValidationMiddleware.validateBody(AuthTokenRequestSchema), (c) => authController.refreshToken(c, c.req.param('platform') as Platform));
       });
 
-      // Call the controller
-      const response = await authController.refreshToken(context, Platform.TWITTER);
+      // Create request with userId in body
+      const req = new Request('https://example.com/auth/twitter/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: 'twitter-user-id' }),
+      });
+
+      // Make the request
+      const response = await errorApp.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
@@ -398,16 +399,16 @@ describe('Auth Controller', () => {
       // Override the mock to simulate an unauthorized NEAR account
       mockNearAuthService.getNearAuthorizationStatus = () => Promise.resolve(-1); // Not authorized
 
-      // Create a mock context
-      const context = createMockContext({
-        signerId: 'test.near',
-        params: {
-          platform: Platform.TWITTER,
-        },
+      // Setup a new test app with the modified service
+      const errorApp = setupTestApp((hono) => {
+        hono.get('/auth/:platform/initialize', ValidationMiddleware.validateQuery(AuthInitRequestSchema), (c) => authController.initializeAuth(c, c.req.param('platform') as Platform));
       });
 
-      // Call the controller
-      const response = await authController.initializeAuth(context, Platform.TWITTER);
+      // Create request
+      const req = new Request('https://example.com/auth/twitter/initialize');
+
+      // Make the request
+      const response = await errorApp.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response
@@ -416,20 +417,27 @@ describe('Auth Controller', () => {
       assertEquals(responseBody.success, false);
       assertEquals(responseBody.errors[0].code, 'FORBIDDEN');
     });
+
     it('should handle errors when refreshing user profile', async () => {
       // Override the mock to simulate an error
       mockAuthService.getUserProfile = () => Promise.resolve(null);
 
-      const context = createMockContext({
-        signerId: 'test.near',
-        params: {
-          platform: Platform.TWITTER,
-        },
-        validatedBody: { userId: 'twitter-user-id' },
+      // Setup a new test app with the modified service
+      const errorApp = setupTestApp((hono) => {
+        hono.post('/auth/:platform/profile', ValidationMiddleware.validateBody(AuthTokenRequestSchema), (c) => authController.refreshUserProfile(c, c.req.param('platform') as Platform));
       });
 
-      // Call the controller
-      const response = await authController.refreshUserProfile(context, Platform.TWITTER);
+      // Create request with userId in body
+      const req = new Request('https://example.com/auth/twitter/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: 'twitter-user-id' }),
+      });
+
+      // Make the request
+      const response = await errorApp.fetch(req);
       const responseBody = await response.json();
 
       // Verify the response

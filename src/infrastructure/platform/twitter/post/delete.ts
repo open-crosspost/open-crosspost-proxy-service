@@ -22,7 +22,7 @@ export class TwitterDeletePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error deleting post:', error);
-      throw TwitterError.fromTwitterApiError(error);
+      this.handleError(error);
     }
   }
 }

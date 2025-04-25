@@ -10,8 +10,7 @@ import {
 } from '@crosspost/types';
 import { Context } from '../../deps.ts';
 import { ActivityTrackingService } from '../domain/services/activity-tracking.service.ts';
-import { createApiError } from '../errors/api-error.ts';
-import { createSuccessResponse } from '../utils/response.utils.ts';
+import { createErrorDetail, createErrorResponse, createSuccessResponse } from '../utils/response.utils.ts';
 import { BaseController } from './base.controller.ts';
 
 /**
@@ -119,7 +118,15 @@ export class ActivityController extends BaseController {
       }
 
       if (!activity) {
-        throw createApiError(ApiErrorCode.NOT_FOUND, 'Account activity not found');
+        c.status(404);
+        return c.json(createErrorResponse(c, [
+          createErrorDetail(
+            'Account activity not found',
+            ApiErrorCode.NOT_FOUND,
+            false,
+            { signerId }
+          )
+        ]));
       }
 
       // Return the result

@@ -20,6 +20,9 @@ export class PlatformError extends ApiError {
     const errorDetails = details ? { ...details, platform } : { platform };
     super(message, code, errorCodeToStatusCode[code], errorDetails, recoverable);
     this.platform = platform;
+    
+    // Ensure proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, PlatformError.prototype);
   }
 }
 

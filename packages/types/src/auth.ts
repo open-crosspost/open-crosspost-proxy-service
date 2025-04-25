@@ -27,7 +27,7 @@ export const AuthUrlResponseSchema = z.object({
 }).describe('Auth URL response');
 
 export const AuthCallbackQuerySchema = z.object({
-  code: z.string().describe('Authorization code from OAuth provider'),
+  code: z.string().describe('Authorization code from OAuth provider').optional(),
   state: z.string().describe('State parameter for CSRF protection'),
 }).describe('Auth callback query');
 

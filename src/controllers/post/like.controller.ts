@@ -1,10 +1,13 @@
+import { PlatformError } from '../../errors/platform-error.ts';
+import { SuccessDetail } from '../../../packages/types/src/response.ts';
+import { ErrorDetail, ApiErrorCode } from '../../../packages/types/src/errors.ts';
 import type { LikePostRequest, LikeResult } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
-import { createSuccessDetail } from '../../utils/response.utils.ts';
+import { createErrorDetail, createSuccessDetail } from '../../utils/response.utils.ts';
 import { BasePostController } from './base.controller.ts';
 
 export class LikeController extends BasePostController {
@@ -30,7 +33,7 @@ export class LikeController extends BasePostController {
       // Get validated body from context
       const request = c.get('validatedBody') as LikePostRequest;
 
-      // Process all targets using the base controller method
+      // Process all targets at once with platform validation
       const { successResults, errorDetails } = await this.processMultipleTargets(
         signerId,
         request.targets,
@@ -38,7 +41,7 @@ export class LikeController extends BasePostController {
         async (target) => {
           // Like the post
           const result = await this.postService.likePost(
-            request.platform, // Platform of the post being liked
+            target.platform,
             target.userId,
             request.postId,
           );
@@ -50,6 +53,7 @@ export class LikeController extends BasePostController {
             result,
           );
         },
+        request.platform // Ensure all targets match the post platform
       );
 
       return this.createMultiStatusResponse(c, successResults, errorDetails);

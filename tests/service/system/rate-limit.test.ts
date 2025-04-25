@@ -1,15 +1,49 @@
-import { ApiErrorCode, Platform } from '@crosspost/types';
+import { ValidationMiddleware } from '../../../src/middleware/validation.middleware.ts';
+import { 
+  ApiErrorCode, 
+  Platform,
+  RateLimitPlatformEndpointParamsSchema,
+  RateLimitPlatformParamsSchema,
+  RateLimitEndpointParamSchema
+} from '@crosspost/types';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { afterEach, beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { RateLimitController } from '../../../src/controllers/rate-limit.controller.ts';
+import type { Hono as HonoType } from '../../../src/deps.ts';
+import { Hono } from '../../../src/deps.ts';
+import { createApiError } from '../../../src/errors/api-error.ts';
+import { createPlatformError } from '../../../src/errors/platform-error.ts';
+import { errorMiddleware } from '../../../src/middleware/error.middleware.ts';
+import { RequestContextMiddleware } from '../../../src/middleware/request-context.middleware.ts';
 import { UsageRateLimitMiddleware } from '../../../src/middleware/usage-rate-limit.middleware.ts';
 import { MockKvStore } from '../../mocks/kv-store-mock.ts';
 import { MockRateLimitService } from '../../mocks/rate-limit-service-mock.ts';
-import { createMockContext } from '../../utils/test-utils.ts';
-import { createPlatformError } from '../../../src/errors/platform-error.ts';
-import { createApiError } from '../../../src/errors/api-error.ts';
+import { setupTestApp, type TestAppEnv } from '../../utils/test-utils.ts';
+
+// Helper function to create a test app with error middleware
+function setupErrorTestApp(configureRoutes: (app: Hono<TestAppEnv>) => void): Hono<TestAppEnv> {
+  const app = new Hono<TestAppEnv>();
+
+  // Add request context middleware first (to set requestId)
+  app.use('*', RequestContextMiddleware.initializeContext);
+
+  // Add error middleware
+  app.use('*', errorMiddleware());
+
+  // Add mock auth middleware
+  app.use('*', (c, next) => {
+    c.set('signerId', 'test.near');
+    return next();
+  });
+
+  // Configure routes
+  configureRoutes(app);
+
+  return app;
+}
 
 describe('Rate Limit Controller', () => {
+  let app: HonoType<TestAppEnv>;
   let controller: RateLimitController;
   let mockRateLimitService: MockRateLimitService;
   let mockKvStore: MockKvStore;
@@ -28,6 +62,13 @@ describe('Rate Limit Controller', () => {
     UsageRateLimitMiddleware.initialize({
       maxPostsPerDay: 10,
     });
+
+    // Setup test app with routes
+    app = setupTestApp((hono) => {
+      hono.get('/rate-limits/:platform/:endpoint', ValidationMiddleware.validateParams(RateLimitPlatformEndpointParamsSchema), (c) => controller.getRateLimitStatus(c));
+      hono.get('/rate-limits/:platform', ValidationMiddleware.validateParams(RateLimitPlatformParamsSchema), (c) => controller.getAllRateLimits(c));
+      hono.get('/usage-rate-limits/:endpoint', ValidationMiddleware.validateParams(RateLimitEndpointParamSchema), (c) => controller.getUsageRateLimit(c));
+    });
   });
 
   afterEach(async () => {
@@ -37,17 +78,11 @@ describe('Rate Limit Controller', () => {
 
   // Test cases for getRateLimitStatus
   it('should get rate limit status successfully', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      params: {
-        platform: Platform.TWITTER,
-        endpoint: 'test-endpoint',
-      },
-    });
+    // Create request
+    const req = new Request('https://example.com/rate-limits/twitter/test-endpoint');
 
-    // Call the controller
-    const response = await controller.getRateLimitStatus(context);
+    // Make the request
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response
@@ -60,16 +95,11 @@ describe('Rate Limit Controller', () => {
 
   // Test cases for getAllRateLimits
   it('should get all rate limits successfully', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      params: {
-        platform: Platform.TWITTER,
-      },
-    });
+    // Create request
+    const req = new Request('https://example.com/rate-limits/twitter');
 
-    // Call the controller
-    const response = await controller.getAllRateLimits(context);
+    // Make the request
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response
@@ -88,16 +118,11 @@ describe('Rate Limit Controller', () => {
 
   // Test cases for getUsageRateLimit
   it('should get usage rate limit successfully', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      params: {
-        endpoint: 'post',
-      },
-    });
+    // Create request
+    const req = new Request('https://example.com/usage-rate-limits/post');
 
-    // Call the controller
-    const response = await controller.getUsageRateLimit(context);
+    // Make the request
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response
@@ -110,14 +135,6 @@ describe('Rate Limit Controller', () => {
   });
 
   it('should handle existing usage rate limit record', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      params: {
-        endpoint: 'post',
-      },
-    });
-
     // Create a mock KV store with existing data
     const customKvStore = new MockKvStore(['usage_rate_limit']);
     customKvStore.get = async <T>(key: string[]): Promise<T | null> => {
@@ -132,9 +149,19 @@ describe('Rate Limit Controller', () => {
       return null;
     };
 
+    // Create a new controller with the custom KV store
     const testController = new RateLimitController(mockRateLimitService, customKvStore);
 
-    const response = await testController.getUsageRateLimit(context);
+    // Setup a new test app with the custom controller
+    const customApp = setupTestApp((hono) => {
+      hono.get('/usage-rate-limits/:endpoint', ValidationMiddleware.validateParams(RateLimitEndpointParamSchema), (c) => testController.getUsageRateLimit(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/usage-rate-limits/post');
+
+    // Make the request
+    const response = await customApp.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response
@@ -150,15 +177,6 @@ describe('Rate Limit Controller', () => {
   });
 
   it('should handle internal errors gracefully', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      params: {
-        platform: Platform.TWITTER,
-        endpoint: 'test-endpoint',
-      },
-    });
-
     // Override the getRateLimitStatus method to throw an error
     mockRateLimitService.getRateLimitStatus = () => {
       throw createApiError(
@@ -170,8 +188,16 @@ describe('Rate Limit Controller', () => {
     // Create a new controller with the mock service
     const errorController = new RateLimitController(mockRateLimitService);
 
-    // Call the controller
-    const response = await errorController.getRateLimitStatus(context);
+    // Setup a new test app with the error controller
+    const errorApp = setupErrorTestApp((hono) => {
+      hono.get('/rate-limits/:platform/:endpoint', ValidationMiddleware.validateParams(RateLimitPlatformEndpointParamsSchema), (c) => errorController.getRateLimitStatus(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/rate-limits/twitter/test-endpoint');
+
+    // Make the request
+    const response = await errorApp.fetch(req);
 
     // Verify the response
     assertEquals(response.status, 500);
@@ -184,14 +210,6 @@ describe('Rate Limit Controller', () => {
   });
 
   it('should handle platform unavailable errors', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      params: {
-        platform: Platform.TWITTER,
-      },
-    });
-
     // Override the getAllRateLimits method to throw a platform unavailable error
     mockRateLimitService.getAllRateLimits = () => {
       throw createPlatformError(
@@ -204,8 +222,18 @@ describe('Rate Limit Controller', () => {
     // Create a new controller with the mock service
     const errorController = new RateLimitController(mockRateLimitService);
 
-    // Call the controller
-    const response = await errorController.getAllRateLimits(context);
+    // Setup a new test app with the error controller
+    const errorApp = setupErrorTestApp((hono) => {
+      hono.get('/rate-limits/:platform', ValidationMiddleware.validateParams(RateLimitPlatformParamsSchema), (c) => errorController.getAllRateLimits(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/rate-limits/twitter');
+
+    // Make the request
+    const response = await errorApp.fetch(req);
+
+    console.log("response", response);
 
     // Verify the response
     assertEquals(response.status, 503);
@@ -219,15 +247,6 @@ describe('Rate Limit Controller', () => {
   });
 
   it('should handle authentication errors', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      params: {
-        platform: Platform.TWITTER,
-        endpoint: 'test-endpoint',
-      },
-    });
-
     // Override the getRateLimitStatus method to throw an authentication error
     mockRateLimitService.getRateLimitStatus = () => {
       throw createPlatformError(
@@ -241,8 +260,16 @@ describe('Rate Limit Controller', () => {
     // Create a new controller with the mock service
     const errorController = new RateLimitController(mockRateLimitService);
 
-    // Call the controller
-    const response = await errorController.getRateLimitStatus(context);
+    // Setup a new test app with the error controller
+    const errorApp = setupErrorTestApp((hono) => {
+      hono.get('/rate-limits/:platform/:endpoint', ValidationMiddleware.validateParams(RateLimitPlatformEndpointParamsSchema), (c) => errorController.getRateLimitStatus(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/rate-limits/twitter/test-endpoint');
+
+    // Make the request
+    const response = await errorApp.fetch(req);
 
     // Verify the response
     assertEquals(response.status, 401);
@@ -256,15 +283,6 @@ describe('Rate Limit Controller', () => {
   });
 
   it('should handle rate limit errors', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      params: {
-        platform: Platform.TWITTER,
-        endpoint: 'test-endpoint',
-      },
-    });
-
     // Override the getRateLimitStatus method to throw a rate limit error
     mockRateLimitService.getRateLimitStatus = () => {
       throw createPlatformError(
@@ -279,8 +297,16 @@ describe('Rate Limit Controller', () => {
     // Create a new controller with the mock service
     const errorController = new RateLimitController(mockRateLimitService);
 
-    // Call the controller
-    const response = await errorController.getRateLimitStatus(context);
+    // Setup a new test app with the error controller
+    const errorApp = setupErrorTestApp((hono) => {
+      hono.get('/rate-limits/:platform/:endpoint', ValidationMiddleware.validateParams(RateLimitPlatformEndpointParamsSchema), (c) => errorController.getRateLimitStatus(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/rate-limits/twitter/test-endpoint');
+
+    // Make the request
+    const response = await errorApp.fetch(req);
 
     // Verify the response
     assertEquals(response.status, 429);
@@ -297,15 +323,6 @@ describe('Rate Limit Controller', () => {
   });
 
   it('should handle validation errors', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      params: {
-        platform: Platform.TWITTER,
-        endpoint: 'invalid-endpoint',
-      },
-    });
-
     // Override the getRateLimitStatus method to throw a validation error
     mockRateLimitService.getRateLimitStatus = () => {
       throw createPlatformError(
@@ -319,8 +336,16 @@ describe('Rate Limit Controller', () => {
     // Create a new controller with the mock service
     const errorController = new RateLimitController(mockRateLimitService);
 
-    // Call the controller
-    const response = await errorController.getRateLimitStatus(context);
+    // Setup a new test app with the error controller
+    const errorApp = setupErrorTestApp((hono) => {
+      hono.get('/rate-limits/:platform/:endpoint', ValidationMiddleware.validateParams(RateLimitPlatformEndpointParamsSchema), (c) => errorController.getRateLimitStatus(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/rate-limits/twitter/invalid-endpoint');
+
+    // Make the request
+    const response = await errorApp.fetch(req);
 
     // Verify the response
     assertEquals(response.status, 400);
@@ -335,14 +360,6 @@ describe('Rate Limit Controller', () => {
   });
 
   it('should handle KV store errors in getUsageRateLimit', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      params: {
-        endpoint: 'post',
-      },
-    });
-
     // Create a mock KV store that throws an error
     const errorKvStore = new MockKvStore(['usage_rate_limit']);
     errorKvStore.get = async <T>(): Promise<T | null> => {
@@ -352,8 +369,16 @@ describe('Rate Limit Controller', () => {
     // Create a new controller with the mock KV store
     const errorController = new RateLimitController(mockRateLimitService, errorKvStore);
 
-    // Call the controller
-    const response = await errorController.getUsageRateLimit(context);
+    // Setup a new test app with the error controller
+    const errorApp = setupErrorTestApp((hono) => {
+      hono.get('/usage-rate-limits/:endpoint', ValidationMiddleware.validateParams(RateLimitEndpointParamSchema), (c) => errorController.getUsageRateLimit(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/usage-rate-limits/post');
+
+    // Make the request
+    const response = await errorApp.fetch(req);
 
     // Verify the response
     assertEquals(response.status, 500);

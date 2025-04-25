@@ -46,7 +46,7 @@ export class PostService {
       const platformPost = this.getPlatformPost(platform);
       return await platformPost.createPost(userId, content);
     } catch (error) {
-      console.error(`Error creating post on ${platform}:`, error);
+      console.error(`Error creating post on ${platform} for ${userId}:`, error);
       throw error;
     }
   }

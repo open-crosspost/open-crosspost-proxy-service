@@ -23,7 +23,7 @@ export class TwitterRepost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error reposting:', error);
-      throw TwitterError.fromTwitterApiError(error);
+      this.handleError(error);
     }
   }
 }

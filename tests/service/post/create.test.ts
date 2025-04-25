@@ -1,21 +1,22 @@
-import { ApiErrorCode, Platform, PostContent } from '@crosspost/types';
-import { createPlatformError } from '../../../src/errors/platform-error.ts';
+import { ApiErrorCode, CreatePostRequestSchema, Platform, PostContent } from '@crosspost/types';
 import { assertArrayIncludes, assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { CreateController } from '../../../src/controllers/post/create.controller.ts';
+import type { Hono as HonoType } from '../../../src/deps.ts';
+import { createPlatformError } from '../../../src/errors/platform-error.ts';
+import { ValidationMiddleware } from '../../../src/middleware/validation.middleware.ts';
 import {
   createAuthErrorServices,
-  createMockContext,
   createMockServices,
-  createPlatformErrorServices,
   createRateLimitErrorServices,
+  setupTestApp,
+  type TestAppEnv,
 } from '../../utils/test-utils.ts';
-import { ApiResponseError } from 'twitter-api-v2';
-import { createMockTwitterError } from '../../utils/twitter-utils.ts';
 
 describe('Post Creation Controller', () => {
-  let controller: CreateController;
+  let app: HonoType<TestAppEnv>;
   let services: ReturnType<typeof createMockServices>;
+  let controller: CreateController;
 
   // Setup before each test
   beforeEach(() => {
@@ -29,13 +30,21 @@ describe('Post Creation Controller', () => {
       services.activityTrackingService,
       services.authService,
     );
+
+    // Setup test app with routes
+    app = setupTestApp((hono) => {
+      hono.post('/post', ValidationMiddleware.validateBody(CreatePostRequestSchema), (c) => controller.handle(c));
+    });
   });
 
   it('should create a post successfully', async () => {
-    // Create a mock context with the request body
-    const context = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
+    // Create request with the necessary body
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         targets: [
           {
             platform: Platform.TWITTER,
@@ -43,11 +52,11 @@ describe('Post Creation Controller', () => {
           },
         ],
         content: [{ text: 'Test post from API' }],
-      },
+      }),
     });
 
-    // Call the controller
-    const response = await controller.handle(context);
+    // Make the request
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response
@@ -76,10 +85,18 @@ describe('Post Creation Controller', () => {
       rateLimitServices.authService,
     );
 
-    // Create a mock context
-    const rateLimitContext = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
+    // Setup a new test app with the rate-limited controller
+    const rateLimitApp = setupTestApp((hono) => {
+      hono.post('/post', ValidationMiddleware.validateBody(CreatePostRequestSchema), (c) => rateLimitController.handle(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         targets: [
           {
             platform: Platform.TWITTER,
@@ -87,21 +104,21 @@ describe('Post Creation Controller', () => {
           },
         ],
         content: [{ text: 'Test post that will hit rate limit' }],
-      },
+      }),
     });
 
-    // Call the controller
-    const rateLimitResponse = await rateLimitController.handle(rateLimitContext);
-    const rateLimitResponseBody = await rateLimitResponse.json();
+    // Make the request
+    const response = await rateLimitApp.fetch(req);
+    const responseBody = await response.json();
 
     // Verify the response indicates a rate limit error
-    assertEquals(rateLimitResponse.status, 429);
-    assertEquals(rateLimitResponseBody.data.results.length, 0);
-    assertExists(rateLimitResponseBody.data.errors);
-    assertEquals(rateLimitResponseBody.data.errors.length, 1);
-    assertEquals(rateLimitResponseBody.data.errors[0].code, ApiErrorCode.RATE_LIMITED);
-    assertEquals(rateLimitResponseBody.data.errors[0].details.platform, Platform.TWITTER);
-    assertEquals(rateLimitResponseBody.data.errors[0].details.userId, 'test-user-id');
+    assertEquals(response.status, 429);
+    assertEquals(responseBody.data.results.length, 0);
+    assertExists(responseBody.data.errors);
+    assertEquals(responseBody.data.errors.length, 1);
+    assertEquals(responseBody.data.errors[0].code, ApiErrorCode.RATE_LIMITED);
+    assertEquals(responseBody.data.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.data.errors[0].details.userId, 'test-user-id');
   });
 
   it('should handle authentication errors from AuthService', async () => {
@@ -116,10 +133,18 @@ describe('Post Creation Controller', () => {
       authErrorServices.authService,
     );
 
-    // Create a mock context
-    const authErrorContext = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
+    // Setup a new test app with the auth error controller
+    const authErrorApp = setupTestApp((hono) => {
+      hono.post('/post', ValidationMiddleware.validateBody(CreatePostRequestSchema), (c) => authErrorController.handle(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         targets: [
           {
             platform: Platform.TWITTER,
@@ -127,21 +152,22 @@ describe('Post Creation Controller', () => {
           },
         ],
         content: [{ text: 'Test post with auth error' }],
-      },
+      }),
     });
 
-    // Call the controller
-    const authErrorResponse = await authErrorController.handle(authErrorContext);
-    const authErrorResponseBody = await authErrorResponse.json();
+    // Make the request
+    const response = await authErrorApp.fetch(req);
+
+    const responseBody = await response.json();
 
     // Verify the response indicates an authentication error
-    assertEquals(authErrorResponse.status, 401);
-    assertEquals(authErrorResponseBody.data.results.length, 0);
-    assertExists(authErrorResponseBody.data.errors);
-    assertEquals(authErrorResponseBody.data.errors.length, 1);
-    assertEquals(authErrorResponseBody.data.errors[0].code, ApiErrorCode.UNAUTHORIZED);
-    assertEquals(authErrorResponseBody.data.errors[0].details.platform, Platform.TWITTER);
-    assertEquals(authErrorResponseBody.data.errors[0].details.userId, 'test-user-id');
+    assertEquals(response.status, 401);
+    assertEquals(responseBody.data.results.length, 0);
+    assertExists(responseBody.data.errors);
+    assertEquals(responseBody.data.errors.length, 1);
+    assertEquals(responseBody.data.errors[0].code, ApiErrorCode.UNAUTHORIZED);
+    assertEquals(responseBody.data.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.data.errors[0].details.userId, 'test-user-id');
   });
 
   it('should handle platform errors from PostService', async () => {
@@ -154,7 +180,12 @@ describe('Post Creation Controller', () => {
     );
 
     // Create services with platform error
-    const platformErrorServices = createPlatformErrorServices(platformError);
+    const platformErrorServices = {
+      ...services,
+      postService: {
+        createPost: () => Promise.reject(platformError),
+      } as any,
+    };
 
     // Create a controller with the platform error services
     const platformErrorController = new CreateController(
@@ -164,10 +195,18 @@ describe('Post Creation Controller', () => {
       platformErrorServices.authService,
     );
 
-    // Create a mock context
-    const platformErrorContext = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
+    // Setup a new test app with the platform error controller
+    const platformErrorApp = setupTestApp((hono) => {
+      hono.post('/post', ValidationMiddleware.validateBody(CreatePostRequestSchema), (c) => platformErrorController.handle(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         targets: [
           {
             platform: Platform.TWITTER,
@@ -175,29 +214,32 @@ describe('Post Creation Controller', () => {
           },
         ],
         content: [{ text: 'Test post causing platform error' }],
-      },
+      }),
     });
 
-    // Call the controller
-    const platformErrorResponse = await platformErrorController.handle(platformErrorContext);
-    const platformErrorResponseBody = await platformErrorResponse.json();
+    // Make the request
+    const response = await platformErrorApp.fetch(req);
+    const responseBody = await response.json();
 
     // Verify the response indicates a platform error
-    assertEquals(platformErrorResponse.status, 502);
-    assertEquals(platformErrorResponseBody.data.results.length, 0);
-    assertExists(platformErrorResponseBody.data.errors);
-    assertEquals(platformErrorResponseBody.data.errors.length, 1);
-    assertEquals(platformErrorResponseBody.data.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
-    assertEquals(platformErrorResponseBody.data.errors[0].message, 'Platform specific error');
-    assertEquals(platformErrorResponseBody.data.errors[0].details.platform, Platform.TWITTER);
-    assertEquals(platformErrorResponseBody.data.errors[0].details.userId, 'test-user-id');
+    assertEquals(response.status, 502);
+    assertEquals(responseBody.data.results.length, 0);
+    assertExists(responseBody.data.errors);
+    assertEquals(responseBody.data.errors.length, 1);
+    assertEquals(responseBody.data.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
+    assertEquals(responseBody.data.errors[0].message, 'Platform specific error');
+    assertEquals(responseBody.data.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.data.errors[0].details.userId, 'test-user-id');
   });
 
   it('should handle multiple platform targets', async () => {
-    // Create a mock context with multiple targets
-    const context = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
+    // Create request with multiple targets
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         targets: [
           {
             platform: Platform.TWITTER,
@@ -209,11 +251,11 @@ describe('Post Creation Controller', () => {
           },
         ],
         content: [{ text: 'Test post to multiple targets' }],
-      },
+      }),
     });
 
-    // Call the controller
-    const response = await controller.handle(context);
+    // Make the request
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response
@@ -229,10 +271,13 @@ describe('Post Creation Controller', () => {
   });
 
   it('should handle content with media attachments', async () => {
-    // Create a mock context with media attachments
-    const context = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
+    // Create request with media attachments
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         targets: [
           {
             platform: Platform.TWITTER,
@@ -241,11 +286,11 @@ describe('Post Creation Controller', () => {
         ],
         content: [{ text: 'Test post with media' }],
         mediaIds: ['media-1', 'media-2'],
-      },
+      }),
     });
 
-    // Call the controller
-    const response = await controller.handle(context);
+    // Make the request
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response
@@ -269,7 +314,12 @@ describe('Post Creation Controller', () => {
     );
 
     // Create services with media error
-    const mediaErrorServices = createPlatformErrorServices(mediaError);
+    const mediaErrorServices = {
+      ...services,
+      postService: {
+        createPost: () => Promise.reject(mediaError),
+      } as any,
+    };
 
     // Create a controller with the media error services
     const mediaErrorController = new CreateController(
@@ -279,10 +329,18 @@ describe('Post Creation Controller', () => {
       mediaErrorServices.authService,
     );
 
-    // Create a mock context with media attachments
-    const context = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
+    // Setup a new test app with the media error controller
+    const mediaErrorApp = setupTestApp((hono) => {
+      hono.post('/post', ValidationMiddleware.validateBody(CreatePostRequestSchema), (c) => mediaErrorController.handle(c));
+    });
+
+    // Create request with media attachments
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         targets: [
           {
             platform: Platform.TWITTER,
@@ -291,11 +349,11 @@ describe('Post Creation Controller', () => {
         ],
         content: [{ text: 'Test post with media that will fail' }],
         mediaIds: ['media-1'],
-      },
+      }),
     });
 
-    // Call the controller
-    const response = await mediaErrorController.handle(context);
+    // Make the request
+    const response = await mediaErrorApp.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response indicates a media error
@@ -341,10 +399,18 @@ describe('Post Creation Controller', () => {
       mixedResultServices.authService,
     );
 
-    // Create a mock context with multiple targets
-    const context = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
+    // Setup a new test app with the mixed result controller
+    const mixedResultApp = setupTestApp((hono) => {
+      hono.post('/post', ValidationMiddleware.validateBody(CreatePostRequestSchema), (c) => mixedResultController.handle(c));
+    });
+
+    // Create request with multiple targets
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         targets: [
           {
             platform: Platform.TWITTER,
@@ -356,11 +422,11 @@ describe('Post Creation Controller', () => {
           },
         ],
         content: [{ text: 'Test post with mixed results' }],
-      },
+      }),
     });
 
-    // Call the controller
-    const response = await mixedResultController.handle(context);
+    // Make the request
+    const response = await mixedResultApp.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response shows partial success
@@ -410,10 +476,18 @@ describe('Post Creation Controller', () => {
       errorServices.authService,
     );
 
-    // Create a mock context with multiple targets
-    const context = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
+    // Setup a new test app with the error controller
+    const errorApp = setupTestApp((hono) => {
+      hono.post('/post', ValidationMiddleware.validateBody(CreatePostRequestSchema), (c) => errorController.handle(c));
+    });
+
+    // Create request with multiple targets
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         targets: [
           {
             platform: Platform.TWITTER,
@@ -429,11 +503,11 @@ describe('Post Creation Controller', () => {
           },
         ],
         content: [{ text: 'Test post with multiple rate limit errors' }],
-      },
+      }),
     });
 
-    // Call the controller
-    const response = await errorController.handle(context);
+    // Make the request
+    const response = await errorApp.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response
@@ -473,7 +547,12 @@ describe('Post Creation Controller', () => {
     );
 
     // Create services with recoverable error
-    const recoverableErrorServices = createPlatformErrorServices(recoverableError);
+    const recoverableErrorServices = {
+      ...services,
+      postService: {
+        createPost: () => Promise.reject(recoverableError),
+      } as any,
+    };
 
     // Create a controller with the recoverable error services
     const recoverableErrorController = new CreateController(
@@ -483,10 +562,18 @@ describe('Post Creation Controller', () => {
       recoverableErrorServices.authService,
     );
 
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
+    // Setup a new test app with the recoverable error controller
+    const recoverableErrorApp = setupTestApp((hono) => {
+      hono.post('/post', ValidationMiddleware.validateBody(CreatePostRequestSchema), (c) => recoverableErrorController.handle(c));
+    });
+
+    // Create request
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         targets: [
           {
             platform: Platform.TWITTER,
@@ -494,11 +581,11 @@ describe('Post Creation Controller', () => {
           },
         ],
         content: [{ text: 'Test post with recoverable error' }],
-      },
+      }),
     });
 
-    // Call the controller
-    const response = await recoverableErrorController.handle(context);
+    // Make the request
+    const response = await recoverableErrorApp.fetch(req);
     const responseBody = await response.json();
 
     assertEquals(response.status, 502);
@@ -515,21 +602,6 @@ describe('Post Creation Controller', () => {
   });
 
   it('should validate content length and reject if too long', async () => {
-    // Create a mock context with content that's too long
-    const longContent = 'a'.repeat(1000); // Assuming Twitter has a limit less than 1000 chars
-    const context = createMockContext({
-      signerId: 'test.near',
-      validatedBody: {
-        targets: [
-          {
-            platform: Platform.TWITTER,
-            userId: 'test-user-id',
-          },
-        ],
-        content: [{ text: longContent }],
-      },
-    });
-
     // Create a validation error with the correct error code
     const validationError = createPlatformError(
       ApiErrorCode.VALIDATION_ERROR,
@@ -539,7 +611,12 @@ describe('Post Creation Controller', () => {
     );
 
     // Create services with validation error
-    const validationErrorServices = createPlatformErrorServices(validationError);
+    const validationErrorServices = {
+      ...services,
+      postService: {
+        createPost: () => Promise.reject(validationError),
+      } as any,
+    };
 
     // Create a controller with validation error services
     const validationErrorController = new CreateController(
@@ -549,8 +626,31 @@ describe('Post Creation Controller', () => {
       validationErrorServices.authService,
     );
 
-    // Call the controller
-    const response = await validationErrorController.handle(context);
+    // Setup a new test app with the validation error controller
+    const validationErrorApp = setupTestApp((hono) => {
+      hono.post('/post', ValidationMiddleware.validateBody(CreatePostRequestSchema), (c) => validationErrorController.handle(c));
+    });
+
+    // Create request with long content
+    const longContent = 'a'.repeat(1000); // Assuming Twitter has a limit less than 1000 chars
+    const req = new Request('https://example.com/post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        targets: [
+          {
+            platform: Platform.TWITTER,
+            userId: 'test-user-id',
+          },
+        ],
+        content: [{ text: longContent }],
+      }),
+    });
+
+    // Make the request
+    const response = await validationErrorApp.fetch(req);
     const responseBody = await response.json();
 
     // Verify the response indicates a validation error

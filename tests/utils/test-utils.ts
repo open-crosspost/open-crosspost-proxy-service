@@ -1,9 +1,11 @@
-import { PlatformName, PostResult } from '@crosspost/types';
-import { Context } from '../../deps.ts';
+import { PlatformName, PostResult, type ResponseMeta } from '@crosspost/types';
+import { Context, Hono } from '../../deps.ts';
 import { ActivityTrackingService } from '../../src/domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../src/domain/services/auth.service.ts';
 import { PostService } from '../../src/domain/services/post.service.ts';
 import { RateLimitService } from '../../src/domain/services/rate-limit.service.ts';
+import { errorMiddleware } from '../../src/middleware/error.middleware.ts';
+import { RequestContextMiddleware } from '../../src/middleware/request-context.middleware.ts';
 import { nearAuthServiceMock } from '../mocks/near-auth-service-mock.ts';
 
 /**
@@ -67,7 +69,7 @@ export function createMockContext(options: {
       if (key === 'platform' && options.params?.platform) return options.params.platform;
       return undefined;
     },
-    set: (key: string, value: unknown) => {},
+    set: (key: string, value: unknown) => { },
     status: (code: number) => {
       // Store the status code on the context
       (c as any)._status = code;
@@ -173,17 +175,46 @@ export function createAuthErrorServices() {
   };
 }
 
-/**
- * Create mock services for platform error testing
- * @param error The platform error to throw
- * @returns Mock services with platform error
- */
-export function createPlatformErrorServices(error: Error) {
-  const services = createMockServices();
-  return {
-    ...services,
-    postService: {
-      createPost: () => Promise.reject(error),
-    } as unknown as PostService,
+// --- Test App Setup Helper ---
+
+// Define the shape of our application's context variables
+export type TestAppEnv = {
+  Variables: {
+    requestId: string;
+    startTime: number;
+    signerId?: string;
+    platform?: PlatformName;
+    userId?: string;
+    validatedBody?: unknown;
+    validatedQuery?: Record<string, string>;
+    validatedParams?: Record<string, string>;
+    responseMeta?: Partial<ResponseMeta>;
   };
+};
+
+/**
+ * Sets up a Hono test application instance with common middleware.
+ * @param configureRoutes A function to add specific routes for the test.
+ * @returns A configured Hono application instance for testing.
+ */
+export function setupTestApp(
+  configureRoutes: (app: Hono<TestAppEnv>) => void,
+): Hono<TestAppEnv> {
+  const app = new Hono<TestAppEnv>();
+
+  // Apply essential middleware in the correct order
+  app.use('*', RequestContextMiddleware.initializeContext); // Sets requestId, startTime
+  // app.use('*', errorMiddleware()); // Global error handler
+
+  // Add a mock auth middleware to set signerId for tests if needed
+  // This can be overridden or extended in specific test setups
+  app.use('*', (c, next) => {
+    c.set('signerId', 'test.near');
+    return next();
+  });
+
+  // Allow the specific test setup to add its routes
+  configureRoutes(app);
+
+  return app;
 }

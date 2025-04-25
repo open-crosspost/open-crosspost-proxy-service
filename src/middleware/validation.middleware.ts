@@ -1,7 +1,8 @@
-import { ApiErrorCode } from '@crosspost/types';
+import { ApiErrorCode, errorCodeToStatusCode, StatusCode } from '@crosspost/types';
 import { Context, Next } from '../../deps.ts';
 import { z } from '../../deps.ts';
 import { ApiError, createApiError } from '../errors/api-error.ts';
+import { createErrorDetail, createErrorResponse } from '../utils/response.utils.ts';
 
 /**
  * Validation Middleware
@@ -20,21 +21,30 @@ export class ValidationMiddleware {
         const result = schema.safeParse(body);
 
         if (!result.success) {
-          throw createApiError(ApiErrorCode.VALIDATION_ERROR, 'Validation Error', {
-            validationErrors: result.error.errors,
-          });
+          c.status(errorCodeToStatusCode[ApiErrorCode.VALIDATION_ERROR] as StatusCode);
+          return c.json(createErrorResponse(c, [
+            createErrorDetail(
+              'Validation Error',
+              ApiErrorCode.VALIDATION_ERROR,
+              false,
+              { validationErrors: result.error.errors }
+            )
+          ]));
         }
 
         // Store validated data in context
         c.set('validatedBody', result.data);
         await next();
       } catch (error) {
-        if (error instanceof ApiError) {
-          throw error;
-        }
-        throw createApiError(ApiErrorCode.VALIDATION_ERROR, 'Invalid JSON in request body', {
-          originalError: error instanceof Error ? error.message : String(error),
-        });
+        c.status(errorCodeToStatusCode[ApiErrorCode.VALIDATION_ERROR] as StatusCode);
+        return c.json(createErrorResponse(c, [
+          createErrorDetail(
+            'Invalid JSON in request body',
+            ApiErrorCode.VALIDATION_ERROR,
+            false,
+            { originalError: error instanceof Error ? error.message : String(error) }
+          )
+        ]));
       }
     };
   }
@@ -50,12 +60,15 @@ export class ValidationMiddleware {
       const result = schema.safeParse(params);
 
       if (!result.success) {
-        throw new ApiError(
-          'Validation Error',
-          ApiErrorCode.VALIDATION_ERROR,
-          400,
-          { validationErrors: result.error.errors },
-        );
+        c.status(errorCodeToStatusCode[ApiErrorCode.VALIDATION_ERROR] as StatusCode);
+        return c.json(createErrorResponse(c, [
+          createErrorDetail(
+            'Validation Error',
+            ApiErrorCode.VALIDATION_ERROR,
+            false,
+            { validationErrors: result.error.errors }
+          )
+        ]));
       }
 
       // Store validated data in context
@@ -75,12 +88,15 @@ export class ValidationMiddleware {
       const result = schema.safeParse(query);
 
       if (!result.success) {
-        throw new ApiError(
-          'Validation Error',
-          ApiErrorCode.VALIDATION_ERROR,
-          400,
-          { validationErrors: result.error.errors },
-        );
+        c.status(errorCodeToStatusCode[ApiErrorCode.VALIDATION_ERROR] as StatusCode);
+        return c.json(createErrorResponse(c, [
+          createErrorDetail(
+            'Validation Error',
+            ApiErrorCode.VALIDATION_ERROR,
+            false,
+            { validationErrors: result.error.errors }
+          )
+        ]));
       }
 
       // Store validated data in context

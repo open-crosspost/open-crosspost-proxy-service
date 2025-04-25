@@ -1,4 +1,4 @@
-import { ApiErrorCode, type ErrorDetail } from '@crosspost/types';
+import { ApiErrorCode, errorCodeToStatusCode, type ErrorDetail, type ErrorDetails } from '@crosspost/types';
 import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.ts';
 import { ApiError } from '../errors/api-error.ts';
 import { PlatformError } from '../errors/platform-error.ts';
@@ -13,26 +13,89 @@ export const errorMiddleware = (): MiddlewareHandler => {
 
       // Handle HTTPException from Hono
       if (err instanceof HTTPException) {
-        c.status((err as HTTPException).status);
-        return c.json(
-          createErrorResponse(c, [
-            createErrorDetail(
-              (err as HTTPException).message,
-              ApiErrorCode.UNKNOWN_ERROR,
-              false,
-              { originalError: err },
-            ),
-          ]),
-        );
+        // Map HTTP status to an appropriate ApiErrorCode
+        let code = ApiErrorCode.UNKNOWN_ERROR;
+        switch (err.status) {
+          case 400:
+            code = ApiErrorCode.VALIDATION_ERROR;
+            break;
+          case 401:
+            code = ApiErrorCode.UNAUTHORIZED;
+            break;
+          case 403:
+            code = ApiErrorCode.FORBIDDEN;
+            break;
+          case 404:
+            code = ApiErrorCode.NOT_FOUND;
+            break;
+          case 429:
+            code = ApiErrorCode.RATE_LIMITED;
+            break;
+          case 500:
+            code = ApiErrorCode.INTERNAL_ERROR;
+            break;
+          default:
+            code = ApiErrorCode.UNKNOWN_ERROR;
+        }
+
+        // Set status and headers before creating response
+        c.status(err.status);
+        c.header('Content-Type', 'application/json');
+
+        // Extract context information
+        const requestPlatform = c.get('platform');
+        const requestUserId = c.get('userId');
+        const requestSignerId = c.get('signerId');
+
+        // Create details with context and error information
+        const details: ErrorDetails = {
+          ...(requestPlatform && { platform: requestPlatform }),
+          ...(requestUserId && { userId: requestUserId }),
+          ...(requestSignerId && { signerId: requestSignerId }),
+        };
+
+        const response = createErrorResponse(c, [
+          createErrorDetail(
+            err.message || 'Not Found',
+            code,
+            false,
+            details,
+          ),
+        ]);
+
+        return c.json(response);
       }
 
       if (err instanceof ApiError) {
+        // Use the status code from the error
         c.status(err.status);
+        c.header('Content-Type', 'application/json');
 
+        // Extract context information
+        const requestPlatform = c.get('platform');
+        const requestUserId = c.get('userId');
+        const requestSignerId = c.get('signerId');
+
+        // Base details from the error itself
+        let baseDetails: ErrorDetails = err.details || {};
+        
         // For PlatformError, ensure platform is in details
-        const details = err instanceof PlatformError
-          ? { platform: err.platform, ...err.details }
-          : err.details;
+        if (err instanceof PlatformError) {
+          baseDetails = { platform: err.platform, ...baseDetails };
+        }
+
+        // Merge request context into details (avoid overwriting existing details)
+        const contextDetails: ErrorDetails = {
+          ...(requestPlatform && { platform: requestPlatform }),
+          ...(requestUserId && { userId: requestUserId }),
+          ...(requestSignerId && { signerId: requestSignerId }),
+        };
+
+        // Final details with context added (original details take precedence)
+        const finalDetails = {
+          ...contextDetails,
+          ...baseDetails, // Original details take precedence
+        };
 
         return c.json(
           createErrorResponse(c, [
@@ -40,7 +103,7 @@ export const errorMiddleware = (): MiddlewareHandler => {
               err.message,
               err.code,
               err.recoverable,
-              details,
+              Object.keys(finalDetails).length > 0 ? finalDetails : undefined,
             ),
           ]),
         );
@@ -49,7 +112,9 @@ export const errorMiddleware = (): MiddlewareHandler => {
       // Handle arrays of errors (e.g., from multi-platform operations)
       if (Array.isArray(err)) {
         if (err.length === 0) {
-          c.status(500);
+          const status = errorCodeToStatusCode[ApiErrorCode.INTERNAL_ERROR];
+          c.status(status);
+          c.header('Content-Type', 'application/json');
           return c.json(createErrorResponse(c, [
             createErrorDetail(
               'Empty error array received',
@@ -87,41 +152,74 @@ export const errorMiddleware = (): MiddlewareHandler => {
         const allSameStatus = err.every((e) =>
           e instanceof ApiError && e.status === (err[0] as ApiError).status
         );
-        const status = allSameStatus && err[0] instanceof ApiError ? err[0].status : 207;
+        const status = allSameStatus && err[0] instanceof ApiError 
+          ? errorCodeToStatusCode[err[0].code] 
+          : 207;
         c.status(status);
-
+        c.header('Content-Type', 'application/json');
         return c.json(createErrorResponse(c, errorDetails));
       }
 
       // Handle standard Error objects
       if (err instanceof Error) {
-        console.error('Caught standard Error:', err.message, err.stack);
-        c.status(500);
-        return c.json(
-          createErrorResponse(c, [
-            createErrorDetail(
-              'An internal server error occurred.',
-              ApiErrorCode.INTERNAL_ERROR,
-              false,
-              { errorName: err.name },
-            ),
-          ]),
-        );
+        const status = errorCodeToStatusCode[ApiErrorCode.INTERNAL_ERROR];
+        c.status(status);
+        c.header('Content-Type', 'application/json');
+        
+        // Extract context information
+        const requestPlatform = c.get('platform');
+        const requestUserId = c.get('userId');
+        const requestSignerId = c.get('signerId');
+
+        // Create details with context and error information
+        const details: ErrorDetails = {
+          errorName: err.name,
+          errorStack: err.stack,
+          ...(requestPlatform && { platform: requestPlatform }),
+          ...(requestUserId && { userId: requestUserId }),
+          ...(requestSignerId && { signerId: requestSignerId }),
+        };
+
+        const response = createErrorResponse(c, [
+          createErrorDetail(
+            err.message || 'An internal server error occurred.',
+            ApiErrorCode.INTERNAL_ERROR,
+            false,
+            details,
+          ),
+        ]);
+        return c.json(response);
       }
+
 
       // Handle unknown errors (non-Error types thrown)
       console.error('Caught unknown error type:', err);
-      c.status(500);
-      return c.json(
-        createErrorResponse(c, [
-          createErrorDetail(
-            'An unexpected internal error occurred.',
-            ApiErrorCode.UNKNOWN_ERROR,
-            false,
-            { errorType: typeof err },
-          ),
-        ]),
-      );
+      const status = errorCodeToStatusCode[ApiErrorCode.UNKNOWN_ERROR];
+      c.status(status);
+      c.header('Content-Type', 'application/json');
+      
+      // Extract context information
+      const requestPlatform = c.get('platform');
+      const requestUserId = c.get('userId');
+      const requestSignerId = c.get('signerId');
+
+      // Create details with context and error information
+      const details: ErrorDetails = {
+        errorType: typeof err,
+        ...(requestPlatform && { platform: requestPlatform }),
+        ...(requestUserId && { userId: requestUserId }),
+        ...(requestSignerId && { signerId: requestSignerId }),
+      };
+
+      const response = createErrorResponse(c, [
+        createErrorDetail(
+          'An unexpected internal error occurred.',
+          ApiErrorCode.UNKNOWN_ERROR,
+          false,
+          details,
+        ),
+      ]);
+      return c.json(response);
     }
   };
 };

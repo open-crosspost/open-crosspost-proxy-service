@@ -19,6 +19,9 @@ export class ApiError extends Error {
     this.status = status;
     this.details = details;
     this.recoverable = recoverable;
+    
+    // Ensure proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
 

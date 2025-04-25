@@ -38,7 +38,7 @@ export class QuoteController extends BasePostController {
         async (target) => {
           // Quote the post
           const result = await this.postService.quotePost(
-            request.platform, // Platform of the post being quoted
+            target.platform,
             target.userId,
             request.postId,
             request.content,
@@ -59,6 +59,7 @@ export class QuoteController extends BasePostController {
             result,
           );
         },
+        request.platform,
       );
 
       // Create a multi-status response using the base controller method

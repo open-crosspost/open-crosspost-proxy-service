@@ -44,7 +44,7 @@ export class TwitterReplyPost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error replying to post:', error);
-      throw TwitterError.fromTwitterApiError(error);
+       this.handleError(error);
     }
   }
 
@@ -108,7 +108,7 @@ export class TwitterReplyPost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error creating reply thread:', error);
-      throw TwitterError.fromTwitterApiError(error);
+       this.handleError(error);
     }
   }
 }

@@ -43,7 +43,7 @@ export class TwitterQuotePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error quoting post:', error);
-      throw TwitterError.fromTwitterApiError(error);
+       this.handleError(error);
     }
   }
 
@@ -106,7 +106,7 @@ export class TwitterQuotePost extends TwitterPostBase {
       };
     } catch (error) {
       console.error('Error creating quote thread:', error);
-      throw TwitterError.fromTwitterApiError(error);
+       this.handleError(error);
     }
   }
 }

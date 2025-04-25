@@ -37,7 +37,7 @@ export class RepostController extends BasePostController {
         async (target) => {
           // Repost the post
           const result = await this.postService.repost(
-            request.platform, // Platform of the post being reposted
+            target.platform,
             target.userId,
             request.postId,
           );
@@ -57,6 +57,7 @@ export class RepostController extends BasePostController {
             result,
           );
         },
+        request.platform
       );
 
       return this.createMultiStatusResponse(c, successResults, errorDetails);

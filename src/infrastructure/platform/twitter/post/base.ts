@@ -3,6 +3,7 @@ import { MediaCache } from '../../../../utils/media-cache.utils.ts';
 import { TwitterClient } from '../twitter-client.ts';
 import { TwitterMedia } from '../twitter-media.ts';
 import { MediaContent } from '@crosspost/types';
+import { TwitterError } from "../twitter-error.ts";
 
 export abstract class TwitterPostBase {
   protected twitterClient: TwitterClient;
@@ -81,5 +82,18 @@ export abstract class TwitterPostBase {
         };
         break;
     }
+  }
+
+  /**
+   * Handle errors from platform operations
+   * @param error Error to handle
+   * @param c Hono context for response
+   * @param platform Platform name (for generic errors)
+   * @param userId User ID on the platform (for generic errors)
+   */
+  protected handleError(
+    error: unknown,
+  ): never {
+    throw TwitterError.fromTwitterApiError(error);
   }
 }

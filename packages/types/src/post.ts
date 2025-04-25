@@ -105,7 +105,7 @@ export const PostToDeleteSchema = z.object({
 }).describe('Post to delete');
 
 export const DeletePostRequestSchema = z.object({
-  targets: z.array(TargetSchema).describe('Array of targets to delete posts'),
+  target: TargetSchema.describe('Target to delete posts from'),
   posts: z.array(PostToDeleteSchema).describe('Array of posts to delete'),
 }).describe('Delete post request');
 
@@ -118,9 +118,7 @@ export const LikePostRequestSchema = z.object({
 }).describe('Like post request');
 
 export const UnlikePostRequestSchema = z.object({
-  targets: z.array(TargetSchema).describe(
-    'Array of targets to unlike the post (must be on the same platform as the post being unliked)',
-  ),
+  target: TargetSchema.describe('Target to unlike the post'),
   platform: PlatformSchema.describe('Platform of the post being unliked'),
   postId: z.string().describe('ID of the post to unlike'),
 }).describe('Unlike post request');

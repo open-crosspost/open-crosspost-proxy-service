@@ -116,11 +116,40 @@ export abstract class BasePostController extends BaseController {
   }
 
   /**
+   * Verify that a target's platform matches the required platform
+   * @param target Target with platform and userId
+   * @param requiredPlatform Platform that must be matched
+   * @returns Object with success flag and error details if applicable
+   */
+  protected verifyPlatformMatch<T extends { platform: PlatformName; userId: string }>(
+    target: T,
+    requiredPlatform: PlatformName,
+  ): { success: boolean; errorDetail?: ReturnType<typeof createErrorDetail> } {
+    if (target.platform !== requiredPlatform) {
+      return {
+        success: false,
+        errorDetail: createErrorDetail(
+          `Platform mismatch: Target platform ${target.platform} does not match required platform ${requiredPlatform}`,
+          ApiErrorCode.VALIDATION_ERROR,
+          false,
+          {
+            platform: target.platform,
+            userId: target.userId,
+            requiredPlatform,
+          },
+        ),
+      };
+    }
+    return { success: true };
+  }
+
+    /**
    * Process multiple targets for an operation
    * @param signerId NEAR account ID
    * @param targets Array of operation targets
    * @param action Action type for rate limiting
    * @param processor Function to process each target
+   * @param requiredPlatform Optional platform that all targets must match
    * @returns Object with success results and error details
    */
   protected async processMultipleTargets<T extends { platform: PlatformName; userId: string }>(
@@ -128,6 +157,7 @@ export abstract class BasePostController extends BaseController {
     targets: T[],
     action: string,
     processor: (target: T, index: number) => Promise<any>,
+    requiredPlatform?: PlatformName, // Optional parameter for operations that require platform matching
   ): Promise<{
     successResults: ReturnType<typeof createSuccessDetail>[];
     errorDetails: ReturnType<typeof createErrorDetail>[];
@@ -141,6 +171,15 @@ export abstract class BasePostController extends BaseController {
     for (let i = 0; i < targets.length; i++) {
       const target = targets[i];
       try {
+        // If requiredPlatform is provided, verify platform match
+        if (requiredPlatform) {
+          const platformMatchResult = this.verifyPlatformMatch(target, requiredPlatform);
+          if (!platformMatchResult.success && platformMatchResult.errorDetail) {
+            errorDetails.push(platformMatchResult.errorDetail);
+            continue;
+          }
+        }
+
         // Verify platform access
         const accessResult = await this.verifyAccess(signerId, target.platform, target.userId);
         if (!accessResult.success && accessResult.errorDetail) {
@@ -188,6 +227,75 @@ export abstract class BasePostController extends BaseController {
   }
 
   /**
+   * Process a single target for an operation
+   * @param signerId NEAR account ID
+   * @param target Target with platform and userId
+   * @param action Action type for rate limiting
+   * @param processor Function to process the target
+   * @param requiredPlatform Optional platform that the target must match
+   * @returns Object with success result or error detail
+   */
+  protected async processSingleTarget<T extends { platform: PlatformName; userId: string }, R>(
+    signerId: string,
+    target: T,
+    action: string,
+    processor: (target: T) => Promise<R>,
+    requiredPlatform?: PlatformName,
+  ): Promise<{
+    successResult?: ReturnType<typeof createSuccessDetail<R>>;
+    errorDetail?: ReturnType<typeof createErrorDetail>;
+  }> {
+    try {
+      // If requiredPlatform is provided, verify platform match
+      if (requiredPlatform) {
+        const platformMatchResult = this.verifyPlatformMatch(target, requiredPlatform);
+        if (!platformMatchResult.success && platformMatchResult.errorDetail) {
+          return { errorDetail: platformMatchResult.errorDetail };
+        }
+      }
+
+      // Verify platform access
+      const accessResult = await this.verifyAccess(signerId, target.platform, target.userId);
+      if (!accessResult.success && accessResult.errorDetail) {
+        return { errorDetail: accessResult.errorDetail };
+      }
+
+      // Check rate limits
+      const rateLimitResult = await this.checkRateLimits(target.platform, target.userId, action);
+      if (!rateLimitResult.success && rateLimitResult.errorDetail) {
+        return { errorDetail: rateLimitResult.errorDetail };
+      }
+
+      // Process the target
+      const result = await processor(target);
+      
+      // Return success detail
+      return {
+        successResult: createSuccessDetail<R>(
+          target.platform,
+          target.userId,
+          result,
+        ),
+      };
+    } catch (error) {
+      return {
+        errorDetail: createErrorDetail(
+          error instanceof Error ? error.message : 'Unknown error',
+          error instanceof PlatformError ? error.code : ApiErrorCode.PLATFORM_ERROR,
+          error instanceof PlatformError ? error.recoverable : false,
+          {
+            platform: target.platform,
+            userId: target.userId,
+            ...((error instanceof PlatformError)
+              ? (error as PlatformError).details
+              : (error instanceof Error ? { errorStack: error.stack } : undefined)),
+          },
+        ),
+      };
+    }
+  }
+
+    /**
    * Create appropriate response based on operation results
    * @param c Hono context
    * @param successResults Array of successful operations
@@ -204,10 +312,9 @@ export abstract class BasePostController extends BaseController {
     // Determine appropriate status code
     let statusCode = 200;
     if (successResults.length === 0 && errorDetails.length > 0) {
-      // Complete failure - use appropriate status code based on error type
       const firstError = errorDetails[0];
       // Cast the errorCode to ApiErrorCode since it's stored as a string in the error detail
-      statusCode = errorCodeToStatusCode[firstError.code as ApiErrorCode];
+      statusCode = errorCodeToStatusCode[firstError.code as ApiErrorCode] || 500;
     } else if (successResults.length > 0 && errorDetails.length > 0) {
       // Partial success - use 207 Multi-Status
       statusCode = 207;

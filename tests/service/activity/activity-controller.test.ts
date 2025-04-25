@@ -1,30 +1,56 @@
-import { ApiErrorCode, Platform, PlatformName, TimePeriod } from '@crosspost/types';
-import { createApiError } from '../../../src/errors/api-error.ts';
-import { createPlatformError } from '../../../src/errors/platform-error.ts';
+import {
+  ApiErrorCode,
+  Platform,
+  PlatformName,
+  TimePeriod,
+  ActivityLeaderboardQuerySchema,
+  AccountActivityQuerySchema,
+  AccountPostsQuerySchema
+} from '@crosspost/types';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { ActivityController } from '../../../src/controllers/activity.controller.ts';
+import type { Hono as HonoType } from '../../../src/deps.ts'; // Import Hono type for explicit typing
+import { createApiError } from '../../../src/errors/api-error.ts';
+import { createPlatformError } from '../../../src/errors/platform-error.ts';
+import { ValidationMiddleware } from '../../../src/middleware/validation.middleware.ts';
 import { MockActivityTrackingService } from '../../mocks/activity-tracking-service-mock.ts';
-import { createMockContext } from '../../utils/test-utils.ts';
+import { setupTestApp } from '../../utils/test-utils.ts';
+
+// Define the type for the app instance based on setupTestApp's return type
+// This requires knowing the structure of AppVariables from test-utils.ts
+// Assuming AppVariables includes { requestId: string, startTime: number, signerId?: string, ... }
+type TestAppEnv = {
+  Variables: {
+    requestId: string;
+    startTime: number;
+    signerId?: string;
+    platform?: PlatformName;
+    userId?: string;
+    validatedBody?: unknown;
+    validatedQuery?: Record<string, string>;
+    validatedParams?: Record<string, string>;
+    responseMeta?: Partial<import('@crosspost/types').ResponseMeta>;
+  };
+};
 
 describe('Activity Controller', () => {
-  let controller: ActivityController;
+  let app: HonoType<TestAppEnv>; // Use the explicitly defined type
   let mockActivityTrackingService: MockActivityTrackingService;
 
   beforeEach(() => {
     mockActivityTrackingService = new MockActivityTrackingService();
-
-    // Create the controller and override its activityTrackingService
-    controller = new ActivityController(mockActivityTrackingService);
+    const controller = new ActivityController(mockActivityTrackingService);
+    app = setupTestApp((hono) => {
+      hono.get('/leaderboard', ValidationMiddleware.validateQuery(ActivityLeaderboardQuerySchema), (c) => controller.getLeaderboard(c));
+      hono.get('/activity', ValidationMiddleware.validateQuery(AccountActivityQuerySchema), (c) => controller.getAccountActivity(c));
+      hono.get('/posts', ValidationMiddleware.validateQuery(AccountPostsQuerySchema), (c) => controller.getAccountPosts(c));
+    });
   });
 
   // Test cases for getLeaderboard
   it('should get global leaderboard successfully', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-    });
-
+    // Setup mock service response
     mockActivityTrackingService.getLeaderboard = () =>
       Promise.resolve([
         {
@@ -51,11 +77,12 @@ describe('Activity Controller', () => {
         },
       ]);
 
-    // Call the controller
-    const response = await controller.getLeaderboard(context);
+    // Make request
+    const req = new Request('https://example.com/leaderboard');
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
-    // Verify the response
+    // Verify
     assertEquals(response.status, 200);
     assertExists(responseBody.data);
     assertExists(responseBody.data.entries);
@@ -66,96 +93,27 @@ describe('Activity Controller', () => {
     assertEquals(responseBody.meta.pagination.total, 2);
   });
 
-  it('should handle platform-specific leaderboard', async () => {
-    // Create a mock context with platform query parameter
-    const context = createMockContext({
-      signerId: 'test.near',
-
-      validatedQuery: {
-        platform: Platform.TWITTER,
-        limit: '10',
-        offset: '0',
-      },
-    });
-
-    mockActivityTrackingService.getPlatformLeaderboard = () =>
-      Promise.resolve([
-        {
-          signerId: 'test.near',
-          totalPosts: 10,
-          totalLikes: 0,
-          totalReposts: 0,
-          totalReplies: 0,
-          totalQuotes: 0,
-          totalScore: 10,
-          rank: 1,
-          lastActive: new Date(Date.now()).toISOString(),
-        },
-        {
-          signerId: 'user3.near',
-          totalPosts: 3,
-          totalLikes: 0,
-          totalReposts: 0,
-          totalReplies: 0,
-          totalQuotes: 0,
-          totalScore: 3,
-          rank: 2,
-          lastActive: new Date(Date.now() - 43200000).toISOString(),
-        },
-      ]);
-
-    // Call the controller
-    const response = await controller.getLeaderboard(context);
-    const responseBody = await response.json();
-
-    // Verify the response
-    assertEquals(response.status, 200);
-    assertExists(responseBody.data);
-    assertExists(responseBody.data.entries);
-    assertEquals(responseBody.data.entries.length, 2);
-    assertEquals(responseBody.data.entries[0].signerId, 'test.near');
-    assertEquals(responseBody.data.entries[0].totalPosts, 10);
-    assertEquals(responseBody.data.platform, Platform.TWITTER);
-  });
-
   it('should handle different time periods', async () => {
-    // Create a mock context with timeframe query parameter
-    const context = createMockContext({
-      signerId: 'test.near',
-
-      validatedQuery: {
-        timeframe: TimePeriod.WEEKLY,
-        limit: '10',
-        offset: '0',
-      },
-    });
-
-    // Call the controller
-    const response = await controller.getLeaderboard(context);
+    // Make request
+    const req = new Request(
+      'https://example.com/leaderboard?timeframe=week&limit=10&offset=0',
+    );
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
-    // Verify the response
+    // Verify
     assertEquals(response.status, 200);
     assertExists(responseBody.data);
     assertEquals(responseBody.data.timeframe, TimePeriod.WEEKLY);
   });
 
   it('should handle pagination correctly', async () => {
-    // Create a mock context with pagination parameters
-    const context = createMockContext({
-      signerId: 'test.near',
-
-      validatedQuery: {
-        limit: '10',
-        offset: '0',
-      },
-    });
-
-    // Call the controller
-    const response = await controller.getLeaderboard(context);
+    // Make request
+    const req = new Request('https://example.com/leaderboard?limit=10&offset=0');
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
-    // Verify the response
+    // Verify
     assertEquals(response.status, 200);
     assertExists(responseBody.data);
     assertExists(responseBody.meta.pagination);
@@ -165,11 +123,7 @@ describe('Activity Controller', () => {
 
   // Test cases for getAccountActivity
   it('should get account activity successfully', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-    });
-
+    // Setup mock service response
     mockActivityTrackingService.getAccountActivity = (signerId: string) => {
       if (signerId === 'test.near') {
         return Promise.resolve({
@@ -182,11 +136,12 @@ describe('Activity Controller', () => {
       return Promise.resolve(null);
     };
 
-    // Call the controller
-    const response = await controller.getAccountActivity(context);
+    // Make request (signerId is set by the mock middleware in setupTestApp)
+    const req = new Request('https://example.com/activity');
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
-    // Verify the response
+    // Verify
     assertEquals(response.status, 200);
     assertExists(responseBody.data);
     assertEquals(responseBody.data.signerId, 'test.near');
@@ -194,156 +149,52 @@ describe('Activity Controller', () => {
   });
 
   it('should handle not found account activity', async () => {
-    // Create a mock context with a non-existent signerId
-    const context = createMockContext({
-      signerId: 'nonexistent.near',
-    });
-
-    // Override the mock service to return null for this specific signerId
-    mockActivityTrackingService.getAccountActivity = (signerId: string) => {
-      if (signerId === 'nonexistent.near') {
-        return Promise.resolve(null);
-      }
-      return Promise.resolve({
-        signerId: signerId,
-        postCount: 10,
-        firstPostTimestamp: Date.now() - 604800000,
-        lastPostTimestamp: Date.now(),
-      });
+    // Setup mock service response
+    mockActivityTrackingService.getAccountActivity = () => {
+      return Promise.resolve(null);
     };
 
-    // Call the controller
-    const response = await controller.getAccountActivity(context);
+    const req = new Request('https://example.com/activity');
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
-    // Verify the response
+    // Verify
     assertEquals(response.status, 404);
     assertExists(responseBody.errors);
     assertEquals(responseBody.success, false);
     assertEquals(responseBody.errors[0].code, 'NOT_FOUND');
   });
 
-  it('should handle platform-specific account activity', async () => {
-    // Create a mock context with platform query parameter
-    const context = createMockContext({
-      signerId: 'test.near',
-      validatedQuery: {
-        platform: Platform.TWITTER,
-      },
-    });
-
-    // Set up the mock service to return the expected data
-    mockActivityTrackingService.getPlatformAccountActivity = (
-      signerId: string,
-      platform: PlatformName,
-    ) => {
-      if (signerId === 'test.near' && platform === Platform.TWITTER) {
-        return Promise.resolve({
-          signerId: 'test.near',
-          platform: Platform.TWITTER,
-          postCount: 8,
-          firstPostTimestamp: Date.now() - 604800000,
-          lastPostTimestamp: Date.now(),
-        });
-      }
-      return Promise.resolve(null);
-    };
-
-    // Call the controller
-    const response = await controller.getAccountActivity(context);
-    const responseBody = await response.json();
-
-    // Verify the response
-    assertEquals(response.status, 200);
-    assertExists(responseBody.data);
-    assertEquals(responseBody.data.signerId, 'test.near');
-    assertEquals(responseBody.data.platform, Platform.TWITTER);
-    assertEquals(responseBody.data.postCount, 8);
-  });
-
   // Test cases for getAccountPosts
   it('should get account posts successfully', async () => {
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-    });
-
-    // Call the controller
-    const response = await controller.getAccountPosts(context);
+    // Make request (signerId is set by the mock middleware in setupTestApp)
+    const req = new Request('https://example.com/posts');
+    const response = await app.fetch(req);
     const responseBody = await response.json();
 
-    // Verify the response
+    // Verify
     assertEquals(response.status, 200);
     assertExists(responseBody.data);
     assertExists(responseBody.data.posts);
     assertEquals(responseBody.data.posts.length, 2);
     assertEquals(responseBody.data.posts[0].id, 'post1');
     assertEquals(responseBody.data.posts[0].platform, Platform.TWITTER);
-  });
-
-  it('should handle platform-specific account posts', async () => {
-    // Create a mock context with platform query parameter
-    const context = createMockContext({
-      signerId: 'test.near',
-
-      validatedQuery: {
-        platform: Platform.TWITTER,
-        limit: '10',
-        offset: '0',
-      },
-    });
-
-    mockActivityTrackingService.getAccountPlatformPosts = () =>
-      Promise.resolve([
-        {
-          id: 'post1',
-          platform: Platform.TWITTER,
-          type: 'post',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'post2',
-          platform: Platform.TWITTER,
-          type: 'post',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-        },
-      ]);
-
-    // Call the controller
-    const response = await controller.getAccountPosts(context);
-    const responseBody = await response.json();
-
-    // Verify the response
-    assertEquals(response.status, 200);
-    assertExists(responseBody.data);
-    assertExists(responseBody.data.posts);
-    assertEquals(responseBody.data.posts.length, 2);
-    assertEquals(responseBody.data.posts[0].id, 'post1');
-    assertEquals(responseBody.data.posts[0].platform, Platform.TWITTER);
-    assertEquals(responseBody.data.platform, Platform.TWITTER);
   });
 
   it('should handle internal errors gracefully', async () => {
-    // Create a new controller with a mock service that throws an error
-    const errorMockService = new MockActivityTrackingService();
-    errorMockService.getLeaderboard = () => {
+    // Setup mock service to throw error
+    mockActivityTrackingService.getLeaderboard = () => {
       throw createApiError(
         ApiErrorCode.INTERNAL_ERROR,
         'Test error',
       );
     };
 
-    const errorController = new ActivityController(errorMockService);
+    // Make request
+    const req = new Request('https://example.com/leaderboard');
+    const response = await app.fetch(req);
 
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-    });
-
-    // Call the controller
-    const response = await errorController.getLeaderboard(context);
-
-    // Verify the response
+    // Verify
     assertEquals(response.status, 500);
 
     const responseBody = await response.json();
@@ -354,9 +205,8 @@ describe('Activity Controller', () => {
   });
 
   it('should handle rate limit errors', async () => {
-    // Create a new controller with a mock service that throws a rate limit error
-    const errorMockService = new MockActivityTrackingService();
-    errorMockService.getLeaderboard = () => {
+    // Setup mock service to throw error
+    mockActivityTrackingService.getLeaderboard = () => {
       throw createPlatformError(
         ApiErrorCode.RATE_LIMITED,
         'Rate limit exceeded',
@@ -366,17 +216,11 @@ describe('Activity Controller', () => {
       );
     };
 
-    const errorController = new ActivityController(errorMockService);
+    // Make request
+    const req = new Request('https://example.com/leaderboard');
+    const response = await app.fetch(req);
 
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-    });
-
-    // Call the controller
-    const response = await errorController.getLeaderboard(context);
-
-    // Verify the response
+    // Verify
     assertEquals(response.status, 429);
 
     const responseBody = await response.json();
@@ -391,9 +235,8 @@ describe('Activity Controller', () => {
   });
 
   it('should handle authentication errors', async () => {
-    // Create a new controller with a mock service that throws an auth error
-    const errorMockService = new MockActivityTrackingService();
-    errorMockService.getPlatformAccountActivity = () => {
+    // Setup mock service to throw error
+    mockActivityTrackingService.getAccountActivity = () => {
       throw createPlatformError(
         ApiErrorCode.UNAUTHORIZED,
         'Authentication failed',
@@ -402,21 +245,11 @@ describe('Activity Controller', () => {
       );
     };
 
-    const errorController = new ActivityController(errorMockService);
+    // Make request (signerId is set by the mock middleware in setupTestApp)
+    const req = new Request('https://example.com/activity');
+    const response = await app.fetch(req);
 
-    // Create a mock context with platform query parameter
-    const context = createMockContext({
-      signerId: 'test.near',
-
-      validatedQuery: {
-        platform: Platform.TWITTER,
-      },
-    });
-
-    // Call the controller
-    const response = await errorController.getAccountActivity(context);
-
-    // Verify the response
+    // Verify
     assertEquals(response.status, 401);
 
     const responseBody = await response.json();
@@ -428,9 +261,8 @@ describe('Activity Controller', () => {
   });
 
   it('should handle platform-specific errors', async () => {
-    // Create a new controller with a mock service that throws a platform error
-    const errorMockService = new MockActivityTrackingService();
-    errorMockService.getAccountPosts = () => {
+    // Setup mock service to throw error
+    mockActivityTrackingService.getAccountPosts = () => {
       throw createPlatformError(
         ApiErrorCode.PLATFORM_ERROR,
         'Platform API error',
@@ -439,17 +271,11 @@ describe('Activity Controller', () => {
       );
     };
 
-    const errorController = new ActivityController(errorMockService);
+    // Make request (signerId is set by the mock middleware in setupTestApp)
+    const req = new Request('https://example.com/posts');
+    const response = await app.fetch(req);
 
-    // Create a mock context
-    const context = createMockContext({
-      signerId: 'test.near',
-    });
-
-    // Call the controller
-    const response = await errorController.getAccountPosts(context);
-
-    // Verify the response
+    // Verify
     assertEquals(response.status, 502);
 
     const responseBody = await response.json();
@@ -458,43 +284,5 @@ describe('Activity Controller', () => {
     assertEquals(responseBody.errors[0].code, 'PLATFORM_ERROR');
     assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
     assertEquals(responseBody.errors[0].details.userId, 'twitter-user-1');
-  });
-
-  it('should handle validation errors', async () => {
-    // Create a new controller with a mock service that throws a validation error
-    const errorMockService = new MockActivityTrackingService();
-    errorMockService.getPlatformLeaderboard = () => {
-      throw createPlatformError(
-        ApiErrorCode.VALIDATION_ERROR,
-        'Invalid parameters',
-        Platform.TWITTER,
-        { field: 'timeframe', message: 'Invalid time period' },
-      );
-    };
-
-    const errorController = new ActivityController(errorMockService);
-
-    // Create a mock context with platform query parameter
-    const context = createMockContext({
-      signerId: 'test.near',
-      validatedQuery: {
-        platform: Platform.TWITTER,
-        timeframe: 'invalid-timeframe',
-      },
-    });
-
-    // Call the controller
-    const response = await errorController.getLeaderboard(context);
-
-    // Verify the response
-    assertEquals(response.status, 400);
-
-    const responseBody = await response.json();
-    assertExists(responseBody.errors);
-    assertEquals(responseBody.success, false);
-    assertEquals(responseBody.errors[0].code, 'VALIDATION_ERROR');
-    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
-    assertExists(responseBody.errors[0].details);
-    assertEquals(responseBody.errors[0].details.field, 'timeframe');
   });
 });

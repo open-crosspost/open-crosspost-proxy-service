@@ -162,23 +162,23 @@ describe('makeRequest', () => {
   });
 
   it('should handle API errors', async () => {
-    const validationError: ErrorDetail = {
-      message: 'Validation failed',
-      code: ApiErrorCode.VALIDATION_ERROR,
+    const apiError: ErrorDetail = {
+      message: 'Something went wrong',
+      code: ApiErrorCode.INTERNAL_ERROR,
       recoverable: false,
-      details: { field: 'email' },
+      details: { operation: 'test' }
     };
     const fetchStub = stub(
       globalThis,
       'fetch',
-      () => Promise.resolve(mockErrorResponse([validationError], 400)),
+      () => Promise.resolve(mockErrorResponse([apiError], 500)),
     );
 
     try {
       await assertRejects(
         () => makeRequest('POST', '/submit', MOCK_REQUEST_OPTIONS, { email: 'invalid' }),
         CrosspostError,
-        validationError.message,
+        apiError.message,
       );
 
       expect(fetchStub.calls.length).toBe(1);

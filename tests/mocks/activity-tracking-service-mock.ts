@@ -29,7 +29,7 @@ export class MockActivityTrackingService extends ActivityTrackingService {
   override async getLeaderboard(): Promise<AccountActivityEntry[]> {
     return [
       {
-        signerId: 'user1.near',
+        signerId: 'test.near',
         totalPosts: 10,
         totalLikes: 0,
         totalReposts: 0,
@@ -56,7 +56,7 @@ export class MockActivityTrackingService extends ActivityTrackingService {
   override async getPlatformLeaderboard(): Promise<AccountActivityEntry[]> {
     return [
       {
-        signerId: 'user1.near',
+        signerId: 'test.near',
         totalPosts: 8,
         totalLikes: 0,
         totalReposts: 0,
@@ -89,9 +89,9 @@ export class MockActivityTrackingService extends ActivityTrackingService {
   }
 
   override async getAccountActivity(signerId: string): Promise<AccountActivity | null> {
-    if (signerId === 'user1.near') {
+    if (signerId === 'test.near') {
       return {
-        signerId: 'user1.near',
+        signerId: 'test.near',
         postCount: 10,
         firstPostTimestamp: Date.now() - 604800000, // 1 week ago
         lastPostTimestamp: Date.now(),
@@ -104,9 +104,9 @@ export class MockActivityTrackingService extends ActivityTrackingService {
     signerId: string,
     platform: PlatformName,
   ): Promise<PlatformAccountActivity | null> {
-    if (signerId === 'user1.near' && platform === Platform.TWITTER) {
+    if (signerId === 'test.near' && platform === Platform.TWITTER) {
       return {
-        signerId: 'user1.near',
+        signerId: 'test.near',
         platform: Platform.TWITTER,
         postCount: 8,
         firstPostTimestamp: Date.now() - 604800000, // 1 week ago
