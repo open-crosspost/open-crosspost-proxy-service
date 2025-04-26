@@ -122,7 +122,21 @@ export class AuthService {
   }> {
     try {
       const platformAuth = this.getPlatformAuth(platform);
-      return await platformAuth.handleCallback(code, state);
+
+      const result = await platformAuth.handleCallback(code, state);
+
+      // Check for and delete any existing tokens for this user
+      try {
+        if (await this.nearAuthService.hasTokens(result.userId, platform)) {
+          await this.nearAuthService.deleteTokens(result.userId, platform);
+        }
+      } catch (error) {
+        console.warn(
+          `Failed to clean up existing tokens for ${platform} user, ${result.userId}: ${error}`,
+        );
+      }
+
+      return result;
     } catch (error) {
       console.error('Error handling callback:', error);
       throw error;
