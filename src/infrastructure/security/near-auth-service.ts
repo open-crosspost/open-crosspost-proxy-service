@@ -2,10 +2,10 @@ import { ApiErrorCode, PlatformName } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { Env } from '../../config/env.ts';
 import { NearAuthData, parseAuthToken, validateSignature } from '../../deps.ts';
+import { createApiError } from '../../errors/api-error.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { AuthToken, TokenStorage } from '../storage/auth-token-storage.ts';
 import { TokenAccessLogger } from './token-access-logger.ts';
-import { createApiError } from '../../errors/api-error.ts';
 
 /**
  * NearAuthService
@@ -54,7 +54,7 @@ export class NearAuthService {
     const result = await validateSignature(token);
 
     if (!result.valid) {
-      throw createApiError(ApiErrorCode.UNAUTHORIZED, `NEAR auth failed: ${result.error}`);
+      throw createApiError(ApiErrorCode.UNAUTHORIZED, result.error);
     }
 
     // Return the signerId from the validated token

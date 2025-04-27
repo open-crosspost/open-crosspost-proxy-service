@@ -1,12 +1,7 @@
-import { ApiErrorCode } from '@crosspost/types';
-import { Context, Next } from '../../deps.ts';
-import { z } from '../../deps.ts';
-import { ApiError, createApiError } from '../errors/api-error.ts';
+import { ApiErrorCode, errorCodeToStatusCode } from '@crosspost/types';
+import { Context, Next, z } from '../../deps.ts';
+import { createErrorDetail, createErrorResponse } from '../utils/response.utils.ts';
 
-/**
- * Validation Middleware
- * Provides request validation using Zod schemas
- */
 export class ValidationMiddleware {
   /**
    * Validate request body against a Zod schema
@@ -15,27 +10,26 @@ export class ValidationMiddleware {
    */
   static validateBody(schema: z.ZodType) {
     return async (c: Context, next: Next) => {
-      try {
-        const body = await c.req.json();
-        const result = schema.safeParse(body);
+      const body = await c.req.json();
+      const result = schema.safeParse(body);
 
-        if (!result.success) {
-          throw createApiError(ApiErrorCode.VALIDATION_ERROR, 'Validation Error', {
-            validationErrors: result.error.errors,
-          });
-        }
-
-        // Store validated data in context
-        c.set('validatedBody', result.data);
-        await next();
-      } catch (error) {
-        if (error instanceof ApiError) {
-          throw error;
-        }
-        throw createApiError(ApiErrorCode.VALIDATION_ERROR, 'Invalid JSON in request body', {
-          originalError: error instanceof Error ? error.message : String(error),
-        });
+      if (!result.success) {
+        c.status(errorCodeToStatusCode[ApiErrorCode.VALIDATION_ERROR]);
+        return c.json(
+          createErrorResponse(c, [
+            createErrorDetail(
+              'Validation Error: Invalid request body.',
+              ApiErrorCode.VALIDATION_ERROR,
+              false,
+              { validationErrors: result.error.errors },
+            ),
+          ]),
+        );
       }
+
+      // Store validated data in context
+      c.set('validatedBody', result.data);
+      await next();
     };
   }
 
@@ -50,11 +44,16 @@ export class ValidationMiddleware {
       const result = schema.safeParse(params);
 
       if (!result.success) {
-        throw new ApiError(
-          'Validation Error',
-          ApiErrorCode.VALIDATION_ERROR,
-          400,
-          { validationErrors: result.error.errors },
+        c.status(errorCodeToStatusCode[ApiErrorCode.VALIDATION_ERROR]);
+        return c.json(
+          createErrorResponse(c, [
+            createErrorDetail(
+              'Validation Error: Invalid request parameters.',
+              ApiErrorCode.VALIDATION_ERROR,
+              false,
+              { validationErrors: result.error.errors },
+            ),
+          ]),
         );
       }
 
@@ -75,11 +74,16 @@ export class ValidationMiddleware {
       const result = schema.safeParse(query);
 
       if (!result.success) {
-        throw new ApiError(
-          'Validation Error',
-          ApiErrorCode.VALIDATION_ERROR,
-          400,
-          { validationErrors: result.error.errors },
+        c.status(errorCodeToStatusCode[ApiErrorCode.VALIDATION_ERROR]);
+        return c.json(
+          createErrorResponse(c, [
+            createErrorDetail(
+              'Validation Error: Invalid request query.',
+              ApiErrorCode.VALIDATION_ERROR,
+              false,
+              { validationErrors: result.error.errors },
+            ),
+          ]),
         );
       }
 

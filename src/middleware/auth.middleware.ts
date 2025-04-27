@@ -1,7 +1,8 @@
-import { ApiErrorCode } from '@crosspost/types';
+import { ApiErrorCode, errorCodeToStatusCode } from '@crosspost/types';
 import { Context, MiddlewareHandler, Next } from '../../deps.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth-service.ts';
 import { ApiError, createApiError } from '../errors/api-error.ts';
+import { createErrorDetail, createErrorResponse } from '../utils/response.utils.ts';
 
 export class AuthMiddleware {
   private static nearAuthService: NearAuthService;
@@ -43,14 +44,32 @@ export class AuthMiddleware {
 
         await next();
       } catch (error) {
-        // If it's already an ApiError, rethrow it
         if (error instanceof ApiError) {
-          throw error;
+          c.status(error.status);
+          return c.json(
+            createErrorResponse(c, [
+              createErrorDetail(
+                error.message,
+                error.code,
+                error.recoverable,
+                error.details,
+              ),
+            ]),
+          );
         }
-        // Otherwise wrap it in an ApiError
-        throw createApiError(ApiErrorCode.UNAUTHORIZED, 'NEAR authentication failed', {
-          originalError: error instanceof Error ? error.message : String(error),
-        });
+        c.status(errorCodeToStatusCode[ApiErrorCode.UNAUTHORIZED]);
+        return c.json(
+          createErrorResponse(c, [
+            createErrorDetail(
+              'NEAR authentication failed',
+              ApiErrorCode.UNAUTHORIZED,
+              false,
+              {
+                originalError: error instanceof Error ? error.message : String(error),
+              },
+            ),
+          ]),
+        );
       }
     };
   }
