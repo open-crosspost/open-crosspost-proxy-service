@@ -1,4 +1,4 @@
-# Open Crosspost Proxy Service
+<img width="572" alt="Screenshot 2025-04-27 at 6 21 27 PM" src="https://github.com/user-attachments/assets/1875d7c8-79f1-41ec-9cd7-fb00b8c43f65" />
 
 Easily and securely connect your app to social media platforms using NEAR wallet authentication. No
 more handling OAuth tokens!
