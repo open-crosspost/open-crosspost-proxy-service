@@ -59,7 +59,7 @@ export function initializeApp() {
     tokenAccessLogger,
   );
 
-  const userProfileStorage = new UserProfileStorage(env, profileKvStore);
+  const userProfileStorage = new UserProfileStorage(profileKvStore);
 
   // Initialize platform-specific implementations
   const twitterClient = new TwitterClient(env, nearAuthService);
@@ -94,7 +94,6 @@ export function initializeApp() {
 
   // Initialize domain services
   const authService = new AuthService(
-    env,
     nearAuthService,
     authStateKvStore,
     platformAuthMap,
@@ -105,12 +104,12 @@ export function initializeApp() {
   const activityKvStore = new PrefixedKvStore(['activity']);
 
   // Pass the platform maps to the services
-  const postService = new PostService(env, platformPostMap);
-  const rateLimitService = new RateLimitService(env, platformRateLimitMap);
-  const activityTrackingService = new ActivityTrackingService(env, activityKvStore);
+  const postService = new PostService(platformPostMap);
+  const rateLimitService = new RateLimitService(platformRateLimitMap);
+  const activityTrackingService = new ActivityTrackingService(activityKvStore);
 
   // Initialize controllers
-  const authController = new AuthController(authService, nearAuthService, env);
+  const authController = new AuthController(authService, nearAuthService);
   const activityController = new ActivityController(activityTrackingService);
   const rateLimitController = new RateLimitController(rateLimitService, usageRateLimitKvStore);
 

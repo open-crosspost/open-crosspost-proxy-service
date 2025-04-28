@@ -7,7 +7,6 @@ import {
   ProfileRefreshResponse,
 } from '@crosspost/types';
 import { Context } from '../../deps.ts';
-import { Env } from '../config/env.ts';
 import { AuthService } from '../domain/services/auth.service.ts';
 import { ApiError, createApiError } from '../errors/api-error.ts';
 import { createPlatformError, PlatformError } from '../errors/platform-error.ts';
@@ -23,16 +22,10 @@ import {
 } from '../utils/auth-callback.utils.ts';
 import { BaseController } from './base.controller.ts';
 
-/**
- * Auth Controller
- * Handles HTTP requests for authentication-related operations
- */
 export class AuthController extends BaseController {
-  // Dependencies will be injected
   constructor(
     private authService: AuthService,
     private nearAuthService: NearAuthService,
-    private env: Env,
   ) {
     super();
   }

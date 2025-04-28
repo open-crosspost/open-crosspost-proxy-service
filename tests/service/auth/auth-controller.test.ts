@@ -1,7 +1,6 @@
 import { ApiErrorCode, Platform } from '@crosspost/types';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
-import { Env } from '../../../src/config/env.ts';
 import { AuthController } from '../../../src/controllers/auth.controller.ts';
 import { createPlatformError } from '../../../src/errors/platform-error.ts';
 import { createMockContext } from '../../utils/test-utils.ts';
@@ -10,7 +9,6 @@ describe('Auth Controller', () => {
   let authController: AuthController;
   let mockAuthService: any;
   let mockNearAuthService: any;
-  let mockEnv: Env;
 
   beforeEach(() => {
     // Create mock auth service
@@ -90,11 +88,8 @@ describe('Auth Controller', () => {
         }),
     };
 
-    // Create mock env
-    mockEnv = {} as Env;
-
     // Create the controller instance with mock dependencies
-    authController = new AuthController(mockAuthService, mockNearAuthService, mockEnv);
+    authController = new AuthController(mockAuthService, mockNearAuthService);
   });
 
   describe('NEAR Authorization', () => {

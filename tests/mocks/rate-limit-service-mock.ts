@@ -1,5 +1,4 @@
 import { ApiErrorCode, Platform, PlatformName, RateLimitStatus } from '@crosspost/types';
-import { Env } from '../../src/config/env.ts';
 import { RateLimitService } from '../../src/domain/services/rate-limit.service.ts';
 import { createPlatformError } from '../../src/errors/platform-error.ts';
 import { MockKvStore } from './kv-store-mock.ts';
@@ -9,9 +8,8 @@ import { MockKvStore } from './kv-store-mock.ts';
  */
 export class MockRateLimitService extends RateLimitService {
   constructor() {
-    // Create a mock KV store for rate limits
     const kvStore = new MockKvStore(['usage_rate_limit']);
-    super({} as Env, new Map());
+    super(new Map());
   }
 
   // Override methods with mock implementations

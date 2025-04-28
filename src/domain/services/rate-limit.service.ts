@@ -1,15 +1,11 @@
 import { ApiErrorCode, PlatformName, RateLimitStatus } from '@crosspost/types';
-import { Env } from '../../config/env.ts';
 import { createPlatformError, PlatformError } from '../../errors/platform-error.ts';
 import { PlatformRateLimit } from '../../infrastructure/platform/abstract/platform-rate-limit.interface.ts';
 
 export class RateLimitService {
-  private env: Env;
   private platformRateLimits: Map<PlatformName, PlatformRateLimit>;
 
-  constructor(env: Env, platformRateLimits: Map<PlatformName, PlatformRateLimit>) {
-    this.env = env;
-
+  constructor(platformRateLimits: Map<PlatformName, PlatformRateLimit>) {
     this.platformRateLimits = platformRateLimits;
   }
 

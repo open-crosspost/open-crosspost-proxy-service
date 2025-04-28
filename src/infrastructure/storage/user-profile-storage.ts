@@ -1,16 +1,10 @@
-import { Env } from '../../config/env.ts';
 import { PlatformName, UserProfile } from '@crosspost/types';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 
-/**
- * User Profile Storage using Deno KV
- * Handles storage and retrieval of user profiles
- */
 export class UserProfileStorage {
   private readonly CACHE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
   constructor(
-    private env: Env,
     private profileStore: PrefixedKvStore,
   ) {}
 

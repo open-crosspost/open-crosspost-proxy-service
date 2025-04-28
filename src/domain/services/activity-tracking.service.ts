@@ -9,7 +9,6 @@ import {
   PostRecord,
   TimePeriod,
 } from '@crosspost/types';
-import { Env } from '../../config/env.ts';
 import { createApiError } from '../../errors/api-error.ts';
 import { createPlatformError } from '../../errors/platform-error.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
@@ -24,10 +23,9 @@ export class ActivityTrackingService {
 
   /**
    * Creates an instance of ActivityTrackingService with dependency injection
-   * @param env Environment configuration
    * @param kvStore KV store for activity data
    */
-  constructor(private env: Env, private kvStore: PrefixedKvStore) {}
+  constructor(private kvStore: PrefixedKvStore) {}
 
   /**
    * Track a post for a NEAR account

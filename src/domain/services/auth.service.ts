@@ -1,5 +1,4 @@
 import { PlatformName, UserProfile } from '@crosspost/types';
-import { Env } from '../../config/env.ts';
 import {
   AuthState,
   PlatformAuth,
@@ -9,13 +8,8 @@ import { NearAuthService } from '../../infrastructure/security/near-auth-service
 import { AuthToken } from '../../infrastructure/storage/auth-token-storage.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 
-/**
- * Auth Service
- * Domain service for authentication-related operations
- */
 export class AuthService {
   constructor(
-    private env: Env,
     private nearAuthService: NearAuthService,
     private authStateStore: PrefixedKvStore,
     private platformAuthMap: Map<PlatformName, PlatformAuth>,

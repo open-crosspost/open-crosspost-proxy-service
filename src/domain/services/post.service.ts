@@ -1,17 +1,10 @@
 import { DeleteResult, LikeResult, PlatformName, PostContent, PostResult } from '@crosspost/types';
-import { Env } from '../../config/env.ts';
 import { PlatformPost } from '../../infrastructure/platform/abstract/platform-post.interface.ts';
 
-/**
- * Post Service
- * Domain service for post-related operations
- */
 export class PostService {
-  private env: Env;
   private platformPosts: Map<string, PlatformPost>;
 
-  constructor(env: Env, platformPosts: Map<string, PlatformPost>) {
-    this.env = env;
+  constructor(platformPosts: Map<string, PlatformPost>) {
     this.platformPosts = platformPosts;
   }
 
