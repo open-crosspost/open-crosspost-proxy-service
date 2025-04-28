@@ -178,17 +178,6 @@ export abstract class BasePlatformAuth implements PlatformAuth {
     token: AuthToken,
   ): Promise<void> {
     try {
-      // Clean up any existing tokens before saving new ones
-      try {
-        if (await this.nearAuthService.hasTokens(userId, this.platform)) {
-          await this.nearAuthService.deleteTokens(userId, this.platform);
-        }
-      } catch (error) {
-        console.warn(
-          `Failed to clean up existing tokens for ${this.platform} user, ${userId}: ${error}`,
-        );
-      }
-
       // Save tokens to token storage
       await this.nearAuthService.saveTokens(userId, this.platform, token);
 

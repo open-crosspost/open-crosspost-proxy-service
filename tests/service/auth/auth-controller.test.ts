@@ -1,7 +1,6 @@
 import { ApiErrorCode, Platform } from '@crosspost/types';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
-import { Env } from '../../../src/config/env.ts';
 import { AuthController } from '../../../src/controllers/auth.controller.ts';
 import { createPlatformError } from '../../../src/errors/platform-error.ts';
 import { createMockContext } from '../../utils/test-utils.ts';
@@ -10,7 +9,6 @@ describe('Auth Controller', () => {
   let authController: AuthController;
   let mockAuthService: any;
   let mockNearAuthService: any;
-  let mockEnv: Env;
 
   beforeEach(() => {
     // Create mock auth service
@@ -36,6 +34,7 @@ describe('Auth Controller', () => {
           refreshToken: 'new-refresh-token',
         }),
       revokeToken: () => Promise.resolve(true),
+      unlinkAccount: () => Promise.resolve(),
       hasValidTokens: () => Promise.resolve(true),
       getUserProfile: () =>
         Promise.resolve({
@@ -89,11 +88,8 @@ describe('Auth Controller', () => {
         }),
     };
 
-    // Create mock env
-    mockEnv = {} as Env;
-
     // Create the controller instance with mock dependencies
-    authController = new AuthController(mockAuthService, mockNearAuthService, mockEnv);
+    authController = new AuthController(mockAuthService, mockNearAuthService);
   });
 
   describe('NEAR Authorization', () => {
@@ -294,6 +290,58 @@ describe('Auth Controller', () => {
       // Verify the response
       assertEquals(response.status, 200);
       assertEquals(responseBody.success, true);
+      assertEquals(responseBody.data.tokenRevoked, true);
+    });
+
+    it('should handle token revocation failure gracefully', async () => {
+      // Override the mock to simulate token revocation failure
+      mockAuthService.revokeToken = () => {
+        throw new Error('Failed to revoke token');
+      };
+
+      // Create a mock context with validated body
+      const context = createMockContext({
+        signerId: 'test.near',
+        params: {
+          platform: Platform.TWITTER,
+        },
+        validatedBody: { userId: 'twitter-user-id' },
+      });
+
+      // Call the controller
+      const response = await authController.revokeToken(context, Platform.TWITTER);
+      const responseBody = await response.json();
+
+      // Verify the response - should still be 200 since unlinking succeeded
+      assertEquals(response.status, 200);
+      assertEquals(responseBody.success, true);
+      assertEquals(responseBody.data.tokenRevoked, false);
+    });
+
+    it('should fail if unlinking fails', async () => {
+      // Override the mock to simulate unlinking failure
+      mockAuthService.unlinkAccount = () => {
+        throw new Error('Failed to unlink account');
+      };
+
+      // Create a mock context with validated body
+      const context = createMockContext({
+        signerId: 'test.near',
+        params: {
+          platform: Platform.TWITTER,
+        },
+        validatedBody: { userId: 'twitter-user-id' },
+      });
+
+      // Call the controller
+      const response = await authController.revokeToken(context, Platform.TWITTER);
+      const responseBody = await response.json();
+
+      // Verify the response - should be 500 since unlinking failed
+      assertEquals(response.status, 500);
+      assertEquals(responseBody.success, false);
+      assertExists(responseBody.errors);
+      assertEquals(responseBody.errors[0].message, 'Failed to unlink account');
     });
 
     it('should check if a user has valid tokens', async () => {

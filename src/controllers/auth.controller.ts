@@ -7,12 +7,10 @@ import {
   ProfileRefreshResponse,
 } from '@crosspost/types';
 import { Context } from '../../deps.ts';
-import { Env } from '../config/env.ts';
 import { AuthService } from '../domain/services/auth.service.ts';
 import { ApiError, createApiError } from '../errors/api-error.ts';
 import { createPlatformError, PlatformError } from '../errors/platform-error.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth-service.ts';
-import { unlinkAccountFromNear } from '../utils/account-linking.utils.ts';
 import {
   createErrorDetail,
   createErrorResponse,
@@ -24,16 +22,10 @@ import {
 } from '../utils/auth-callback.utils.ts';
 import { BaseController } from './base.controller.ts';
 
-/**
- * Auth Controller
- * Handles HTTP requests for authentication-related operations
- */
 export class AuthController extends BaseController {
-  // Dependencies will be injected
   constructor(
     private authService: AuthService,
     private nearAuthService: NearAuthService,
-    private env: Env,
   ) {
     super();
   }
@@ -284,25 +276,30 @@ export class AuthController extends BaseController {
         throw createApiError(ApiErrorCode.VALIDATION_ERROR, 'userId is required');
       }
 
-      let success = false;
-      let error: string | undefined;
+      let tokenRevoked = false;
+      let revokeError: string | undefined;
 
+      // First try to revoke the token, but don't let failure stop us
       try {
-        // Attempt to revoke token (but don't let failure stop us from unlinking)
-        success = await this.authService.revokeToken(platform, userId);
+        tokenRevoked = await this.authService.revokeToken(platform, userId);
       } catch (e) {
-        error = e instanceof Error ? e.message : 'Unknown error revoking token';
         console.error('Error revoking token:', e);
+        revokeError = e instanceof Error ? e.message : 'Unknown error revoking token';
       }
 
-      // Always unlink the account from NEAR, even if token revocation failed
-      await unlinkAccountFromNear(signerId, platform, userId, this.nearAuthService);
+      // Then unlink the account - this is critical and must succeed
+      try {
+        await this.authService.unlinkAccount(signerId, platform, userId);
+      } catch (unlinkError) {
+        console.error('Error unlinking account:', unlinkError);
+        throw unlinkError;
+      }
 
-      // Return status with any error details
+      // Return success since unlinking succeeded (if we got here)
       return c.json(createSuccessResponse(c, {
-        success: true, // Account was unlinked successfully
-        tokenRevoked: success,
-        error,
+        success: true,
+        tokenRevoked,
+        error: revokeError,
       }));
     } catch (error) {
       console.error('Error revoking token:', error);
@@ -425,11 +422,10 @@ export class AuthController extends BaseController {
           await this.authService.revokeToken(account.platform, account.userId);
 
           // Unlink the account from the NEAR wallet
-          await unlinkAccountFromNear(
+          await this.authService.unlinkAccount(
             signerId,
             account.platform,
             account.userId,
-            this.nearAuthService,
           );
 
           console.log(

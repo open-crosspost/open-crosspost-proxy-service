@@ -94,64 +94,6 @@ export class MockNearAuthService extends NearAuthService {
   }
 
   /**
-   * Check if tokens exist for a user
-   * @param userId The user ID to check
-   * @param platform The platform name (e.g., 'twitter')
-   * @returns True if tokens exist
-   */
-  override async hasTokens(userId: string, platform: PlatformName): Promise<boolean> {
-    return true;
-  }
-
-  /**
-   * Store a token for a NEAR account
-   * @param signerId NEAR account ID
-   * @param platform Platform name (e.g., Platform.TWITTER)
-   * @param userId User ID on the platform
-   * @param token Token to store
-   */
-  override async storeToken(
-    signerId: string,
-    platform: PlatformName,
-    userId: string,
-    token: any,
-  ): Promise<void> {
-    const key = ['token', signerId, platform, userId];
-    await mockKvStore.set(key, token);
-  }
-
-  /**
-   * Get a token for a NEAR account
-   * @param signerId NEAR account ID
-   * @param platform Platform name (e.g., Platform.TWITTER)
-   * @param userId User ID on the platform
-   * @returns Token or null if not found
-   */
-  override async getToken(
-    signerId: string,
-    platform: PlatformName,
-    userId: string,
-  ): Promise<any | null> {
-    // Always return the mock token for testing
-    return mockToken;
-  }
-
-  /**
-   * Delete a token for a NEAR account
-   * @param signerId NEAR account ID
-   * @param platform Platform name (e.g., Platform.TWITTER)
-   * @param userId User ID on the platform
-   */
-  override async deleteToken(
-    signerId: string,
-    platform: PlatformName,
-    userId: string,
-  ): Promise<void> {
-    const key = ['token', signerId, platform, userId];
-    await mockKvStore.delete(key);
-  }
-
-  /**
    * List all connected accounts for a NEAR wallet
    * @param signerId NEAR account ID
    * @returns Array of platform and userId pairs
@@ -219,11 +161,7 @@ export class MockNearAuthService extends NearAuthService {
     platform: PlatformName,
     userId: string,
   ): Promise<void> {
-    await this.storeToken(signerId, platform, userId, {
-      userId,
-      platform,
-      linkedAt: '2025-04-21T10:00:00.000Z', // Fixed timestamp for testing
-    });
+    // Mock implementation - do nothing
   }
 
   /**
@@ -237,7 +175,7 @@ export class MockNearAuthService extends NearAuthService {
     platform: PlatformName,
     userId: string,
   ): Promise<void> {
-    await this.deleteToken(signerId, platform, userId);
+    // Mock implementation - do nothing
   }
 
   /**

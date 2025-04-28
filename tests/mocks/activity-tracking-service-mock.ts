@@ -6,7 +6,6 @@ import {
   PlatformAccountActivity,
   PlatformName,
 } from '@crosspost/types';
-import { Env } from '../../src/config/env.ts';
 
 import { PrefixedKvStore } from '../../src/utils/kv-store.utils.ts';
 import { ActivityTrackingService } from '../../src/domain/services/activity-tracking.service.ts';
@@ -18,7 +17,7 @@ export class MockActivityTrackingService extends ActivityTrackingService {
   constructor() {
     // Create a mock KV store
     const mockKvStore = new PrefixedKvStore(['test']);
-    super({} as Env, mockKvStore);
+    super(mockKvStore);
   }
 
   // Override methods with mock implementations
