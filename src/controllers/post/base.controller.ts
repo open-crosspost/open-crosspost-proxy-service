@@ -164,6 +164,23 @@ export abstract class BasePostController extends BaseController {
           await new Promise((resolve) => setTimeout(resolve, getPostDelay(target.platform)));
         }
       } catch (error) {
+        // Check if this is an unauthorized error (e.g., from token refresh failure)
+        if (error instanceof PlatformError && error.code === ApiErrorCode.UNAUTHORIZED) {
+          try {
+            // Unlink the account since the tokens are no longer valid
+            await this.authService.unlinkAccount(signerId, target.platform, target.userId);
+            console.log(
+              `Automatically unlinked ${target.platform}:${target.userId} from ${signerId} due to auth error.`,
+            );
+          } catch (unlinkError) {
+            console.error(
+              `Failed to automatically unlink ${target.platform}:${target.userId} from ${signerId}:`,
+              unlinkError,
+            );
+            // Continue with error handling even if unlinking fails
+          }
+        }
+
         errorDetails.push(
           createErrorDetail(
             error instanceof Error ? error.message : 'Unknown error',

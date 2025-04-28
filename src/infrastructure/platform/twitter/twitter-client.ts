@@ -83,8 +83,6 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
         },
         onTokenRefreshError: async (error) => {
           console.error(`Token refresh error for user ${userId}:`, error);
-
-          await this.nearAuthService.deleteTokens(userId, Platform.TWITTER);
           throw TwitterError.fromTwitterApiError(error);
         },
       });

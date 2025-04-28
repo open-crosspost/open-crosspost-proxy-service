@@ -151,27 +151,7 @@ export class NearAuthService {
    */
   async saveTokens(userId: string, platform: PlatformName, token: AuthToken): Promise<void> {
     try {
-      // Save tokens to TokenStorage
       await this.tokenStorage.saveTokens(userId, token, platform);
-
-      // Update tokens in NearAuthService for all linked NEAR accounts
-      try {
-        const linkedAccounts = await this.listConnectedAccounts(userId);
-        for (const account of linkedAccounts) {
-          if (account.platform === platform && account.userId === userId) {
-            // Store reference to tokens in NearAuthService
-            // We only store the userId and platform, not the actual tokens
-            // This maintains the link between NEAR accounts and platform accounts
-            await this.storeToken(account.userId, platform, userId, {
-              userId,
-              platform,
-            });
-          }
-        }
-      } catch (error) {
-        console.error(`Error updating token references for ${userId}:`, error);
-        // Continue even if update fails - TokenStorage is updated
-      }
     } catch (error) {
       console.error(`Error saving tokens for ${userId} on ${platform}:`, error);
       throw error;
@@ -185,109 +165,14 @@ export class NearAuthService {
    */
   async deleteTokens(userId: string, platform: PlatformName): Promise<void> {
     try {
-      // Delete tokens from TokenStorage
       await this.tokenStorage.deleteTokens(userId, platform);
-
-      // Update for all linked NEAR accounts
-      try {
-        const linkedAccounts = await this.listConnectedAccounts(userId);
-        for (const account of linkedAccounts) {
-          if (account.platform === platform && account.userId === userId) {
-            // Remove token reference
-            await this.deleteToken(account.userId, platform, userId);
-          }
-        }
-      } catch (error) {
-        console.error(`Error removing token references for ${userId}:`, error);
-        // Continue even if update fails - TokenStorage is updated
-      }
     } catch (error) {
       console.error(`Error deleting tokens for ${userId} on ${platform}:`, error);
       // Don't throw - deletion errors should not block the application
     }
   }
 
-  /**
-   * Check if tokens exist for a user
-   * @param userId The user ID to check
-   * @param platform The platform name (e.g., 'twitter')
-   * @returns True if tokens exist
-   */
-  async hasTokens(userId: string, platform: PlatformName): Promise<boolean> {
-    try {
-      return await this.tokenStorage.hasTokens(userId, platform);
-    } catch (error) {
-      console.error(`Error checking tokens for ${userId} on ${platform}:`, error);
-      return false;
-    }
-  }
-
   // ===== NEAR Account Management Methods =====
-
-  /**
-   * Store a token for a NEAR account
-   * @param signerId NEAR account ID
-   * @param platform Platform name (e.g., Platform.TWITTER)
-   * @param userId User ID on the platform
-   * @param token Token to store
-   */
-  async storeToken(
-    signerId: string,
-    platform: PlatformName,
-    userId: string,
-    token: any,
-  ): Promise<void> {
-    try {
-      const key = ['token', signerId, platform, userId];
-      await this.nearAuthKvStore.set(key, token);
-
-      // Update the connected accounts index
-      await this.addToConnectedAccountsIndex(signerId, platform, userId);
-    } catch (error) {
-      console.error('Error storing token:', error);
-      throw new Error('Failed to store token');
-    }
-  }
-
-  /**
-   * Get a token for a NEAR account
-   * @param signerId NEAR account ID
-   * @param platform Platform name (e.g., Platform.TWITTER)
-   * @param userId User ID on the platform
-   * @returns Token or null if not found
-   */
-  async getToken(
-    signerId: string,
-    platform: PlatformName,
-    userId: string,
-  ): Promise<AuthToken | null> {
-    try {
-      const key = ['token', signerId, platform, userId];
-      return await this.nearAuthKvStore.get(key);
-    } catch (error) {
-      console.error('Error getting token:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Delete a token for a NEAR account
-   * @param signerId NEAR account ID
-   * @param platform Platform name (e.g., Platform.TWITTER)
-   * @param userId User ID on the platform
-   */
-  async deleteToken(signerId: string, platform: PlatformName, userId: string): Promise<void> {
-    try {
-      const key = ['token', signerId, platform, userId];
-      await this.nearAuthKvStore.delete(key);
-
-      // Update the connected accounts index
-      await this.removeFromConnectedAccountsIndex(signerId, platform, userId);
-    } catch (error) {
-      console.error('Error deleting token:', error);
-      throw new Error('Failed to delete token');
-    }
-  }
 
   /**
    * List all connected accounts for a NEAR wallet
@@ -391,11 +276,9 @@ export class NearAuthService {
    */
   async linkAccount(signerId: string, platform: PlatformName, userId: string): Promise<void> {
     try {
-      // Store reference to tokens
-      await this.storeToken(signerId, platform, userId, {
-        userId,
-        platform,
-      });
+      // Add the link to the index
+      await this.addToConnectedAccountsIndex(signerId, platform, userId);
+      console.log(`Linked ${platform}:${userId} to NEAR account ${signerId}`);
     } catch (error) {
       console.error(
         `Error linking NEAR account ${signerId} to ${platform} account ${userId}:`,
@@ -413,8 +296,15 @@ export class NearAuthService {
    */
   async unlinkAccount(signerId: string, platform: PlatformName, userId: string): Promise<void> {
     try {
-      // Remove token reference
-      await this.deleteToken(signerId, platform, userId);
+      // Remove the link reference from the index in KV store
+      await this.removeFromConnectedAccountsIndex(signerId, platform, userId);
+
+      // Delete the actual tokens from TokenStorage
+      await this.deleteTokens(userId, platform);
+
+      console.log(
+        `Unlinked ${platform}:${userId} from ${signerId} and deleted associated tokens.`,
+      );
     } catch (error) {
       console.error(
         `Error unlinking NEAR account ${signerId} from ${platform} account ${userId}:`,
@@ -433,8 +323,8 @@ export class NearAuthService {
    */
   async hasAccess(signerId: string, platform: PlatformName, userId: string): Promise<boolean> {
     try {
-      const token = await this.getToken(signerId, platform, userId);
-      return token !== null;
+      const accounts = await this.listConnectedAccounts(signerId);
+      return accounts.some((acc) => acc.platform === platform && acc.userId === userId);
     } catch (error) {
       console.error(
         `Error checking access for NEAR account ${signerId} to ${platform} account ${userId}:`,

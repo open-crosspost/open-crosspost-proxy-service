@@ -36,6 +36,7 @@ describe('Auth Controller', () => {
           refreshToken: 'new-refresh-token',
         }),
       revokeToken: () => Promise.resolve(true),
+      unlinkAccount: () => Promise.resolve(),
       hasValidTokens: () => Promise.resolve(true),
       getUserProfile: () =>
         Promise.resolve({
@@ -294,6 +295,58 @@ describe('Auth Controller', () => {
       // Verify the response
       assertEquals(response.status, 200);
       assertEquals(responseBody.success, true);
+      assertEquals(responseBody.data.tokenRevoked, true);
+    });
+
+    it('should handle token revocation failure gracefully', async () => {
+      // Override the mock to simulate token revocation failure
+      mockAuthService.revokeToken = () => {
+        throw new Error('Failed to revoke token');
+      };
+
+      // Create a mock context with validated body
+      const context = createMockContext({
+        signerId: 'test.near',
+        params: {
+          platform: Platform.TWITTER,
+        },
+        validatedBody: { userId: 'twitter-user-id' },
+      });
+
+      // Call the controller
+      const response = await authController.revokeToken(context, Platform.TWITTER);
+      const responseBody = await response.json();
+
+      // Verify the response - should still be 200 since unlinking succeeded
+      assertEquals(response.status, 200);
+      assertEquals(responseBody.success, true);
+      assertEquals(responseBody.data.tokenRevoked, false);
+    });
+
+    it('should fail if unlinking fails', async () => {
+      // Override the mock to simulate unlinking failure
+      mockAuthService.unlinkAccount = () => {
+        throw new Error('Failed to unlink account');
+      };
+
+      // Create a mock context with validated body
+      const context = createMockContext({
+        signerId: 'test.near',
+        params: {
+          platform: Platform.TWITTER,
+        },
+        validatedBody: { userId: 'twitter-user-id' },
+      });
+
+      // Call the controller
+      const response = await authController.revokeToken(context, Platform.TWITTER);
+      const responseBody = await response.json();
+
+      // Verify the response - should be 500 since unlinking failed
+      assertEquals(response.status, 500);
+      assertEquals(responseBody.success, false);
+      assertExists(responseBody.errors);
+      assertEquals(responseBody.errors[0].message, 'Failed to unlink account');
     });
 
     it('should check if a user has valid tokens', async () => {

@@ -7,7 +7,6 @@ import {
 import { PlatformProfile } from '../../infrastructure/platform/abstract/platform-profile.interface.ts';
 import { NearAuthService } from '../../infrastructure/security/near-auth-service.ts';
 import { AuthToken } from '../../infrastructure/storage/auth-token-storage.ts';
-import { linkAccountToNear } from '../../utils/account-linking.utils.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 
 /**
@@ -169,7 +168,30 @@ export class AuthService {
    */
   async hasValidTokens(platform: PlatformName, userId: string): Promise<boolean> {
     try {
-      return await this.nearAuthService.hasTokens(userId, platform);
+      // First try to get existing tokens
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // If tokens aren't expired, they're valid
+      if (tokens.expiresAt && tokens.expiresAt > Date.now()) {
+        return true;
+      }
+
+      // If tokens are expired but we have a refresh token, try refreshing
+      if (tokens.refreshToken) {
+        try {
+          const platformAuth = this.getPlatformAuth(platform);
+          const refreshedTokens = await platformAuth.refreshToken(userId);
+          // Save the refreshed tokens
+          await this.nearAuthService.saveTokens(userId, platform, refreshedTokens);
+          return true;
+        } catch (refreshError) {
+          // If refresh fails, return false
+          console.error('Token refresh failed:', refreshError);
+          return false;
+        }
+      }
+
+      return false;
     } catch (error) {
       console.error('Error checking tokens:', error);
       return false;
@@ -193,13 +215,33 @@ export class AuthService {
       const platformAuth = this.getPlatformAuth(platform);
       const tokens = await platformAuth.refreshToken(userId);
 
-      // Link the account using the utility function
-      await linkAccountToNear(signerId, platform, userId, tokens, this.nearAuthService);
+      // Save tokens and link the account
+      await this.nearAuthService.saveTokens(userId, platform, tokens);
+      await this.nearAuthService.linkAccount(signerId, platform, userId);
 
       return true;
     } catch (error) {
       console.error(`Error linking ${platform} account to NEAR wallet:`, error);
       throw new Error(`Failed to link ${platform} account to NEAR wallet`);
+    }
+  }
+
+  /**
+   * Unlink a social media account from a NEAR wallet
+   * @param signerId NEAR account ID
+   * @param platform Platform name (e.g., Platform.TWITTER)
+   * @param userId User ID on the platform
+   */
+  async unlinkAccount(
+    signerId: string,
+    platform: PlatformName,
+    userId: string,
+  ): Promise<void> {
+    try {
+      await this.nearAuthService.unlinkAccount(signerId, platform, userId);
+    } catch (error) {
+      console.error(`Error unlinking ${platform} account from NEAR wallet:`, error);
+      throw error;
     }
   }
 
