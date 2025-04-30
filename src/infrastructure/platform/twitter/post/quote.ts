@@ -22,7 +22,8 @@ export class TwitterQuotePost extends TwitterPostBase {
 
       // Prepare tweet data with the quoted tweet URL
       const tweetData: SendTweetV2Params = {
-        text: `${content.text || ''} https://twitter.com/i/web/status/${postId}`,
+        text: content.text,
+        quote_tweet_id: postId,
       };
 
       // Handle media if present
@@ -68,7 +69,8 @@ export class TwitterQuotePost extends TwitterPostBase {
       // First tweet quotes the original
       const firstContent = contentArray[0];
       const firstTweetData: SendTweetV2Params = {
-        text: `${firstContent.text || ''} https://twitter.com/i/web/status/${postId}`,
+        text: firstContent.text,
+        quote_tweet_id: postId,
       };
 
       // Handle media if present
