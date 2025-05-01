@@ -1,4 +1,5 @@
-import type { CreatePostRequest, CreatePostResponse, PostResult } from '@crosspost/types';
+import type { CreatePostRequest, PostResult } from '@crosspost/types';
+import { ActivityType } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
@@ -52,6 +53,7 @@ export class CreateController extends BasePostController {
             target.platform,
             target.userId,
             result.id, // The post ID from the platform
+            ActivityType.POST,
           );
 
           // Return success detail

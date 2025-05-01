@@ -1,11 +1,14 @@
 import {
   type AccountActivityEntry,
+  AccountActivityQuery,
   AccountActivityResponse,
-  type AccountPost,
+  AccountPost,
+  AccountPostsQuery,
   AccountPostsResponse,
+  ActivityLeaderboardQuery,
   ActivityLeaderboardResponse,
   ApiErrorCode,
-  PlatformName,
+  Platform,
   TimePeriod,
 } from '@crosspost/types';
 import { Context } from '../../deps.ts';
@@ -37,48 +40,24 @@ export class ActivityController extends BaseController {
    */
   async getLeaderboard(c: Context): Promise<Response> {
     try {
-      // Parse query parameters
-      const validatedQuery = c.get('validatedQuery') || {};
-      const limit = parseInt(validatedQuery.limit || '10');
-      const offset = parseInt(validatedQuery.offset || '0');
-      const timePeriodParam = validatedQuery.timeframe || TimePeriod.ALL;
-      const platform = validatedQuery.platform as PlatformName | undefined;
+      const { limit, offset, filter } = c.get('validatedQuery') as ActivityLeaderboardQuery || {};
 
-      // Validate time period
-      let timePeriod: TimePeriod;
-      if (Object.values(TimePeriod).includes(timePeriodParam as TimePeriod)) {
-        timePeriod = timePeriodParam as TimePeriod;
-      } else {
-        timePeriod = TimePeriod.ALL;
-      }
+      const leaderboard: AccountActivityEntry[] = await this.activityTrackingService.getLeaderboard(
+        limit,
+        offset,
+        filter,
+      );
 
-      // Get leaderboard data
-      let leaderboard: AccountActivityEntry[];
-      let total: number;
-
-      if (platform) {
-        // Get platform-specific leaderboard
-        leaderboard = await this.activityTrackingService.getPlatformLeaderboard(
-          platform,
-          limit,
-          offset,
-          timePeriod,
-        );
-        total = await this.activityTrackingService.getTotalPlatformAccounts(platform, timePeriod);
-      } else {
-        // Get global leaderboard
-        leaderboard = await this.activityTrackingService.getLeaderboard(limit, offset, timePeriod);
-        total = await this.activityTrackingService.getTotalAccounts(timePeriod);
-      }
+      const total: number = await this.activityTrackingService.getTotalAccounts(filter);
 
       // Return the result
       return c.json(createSuccessResponse<ActivityLeaderboardResponse>(
         c,
         {
-          timeframe: timePeriod,
+          timeframe: filter?.timeframe || TimePeriod.ALL,
           entries: leaderboard,
           generatedAt: new Date().toISOString(),
-          platform: platform,
+          platforms: filter?.platforms,
         },
         {
           pagination: {
@@ -100,23 +79,11 @@ export class ActivityController extends BaseController {
    */
   async getAccountActivity(c: Context): Promise<Response> {
     try {
-      // Extract NEAR account ID from the validated signature
       const signerId = c.get('signerId') as string;
 
-      const validatedQuery = c.get('validatedQuery') || {};
-      const platform = validatedQuery.platform as PlatformName | undefined;
+      const { filter } = c.get('validatedQuery') as AccountActivityQuery || {};
 
-      let activity;
-      if (platform) {
-        // Get platform-specific account activity
-        activity = await this.activityTrackingService.getPlatformAccountActivity(
-          signerId,
-          platform,
-        );
-      } else {
-        // Get global account activity
-        activity = await this.activityTrackingService.getAccountActivity(signerId);
-      }
+      const activity = await this.activityTrackingService.getAccountActivity(signerId, filter);
 
       if (!activity) {
         throw createApiError(ApiErrorCode.NOT_FOUND, 'Account activity not found');
@@ -139,38 +106,27 @@ export class ActivityController extends BaseController {
       // Extract NEAR account ID from the validated signature
       const signerId = c.get('signerId') as string;
 
-      const validatedQuery = c.get('validatedQuery') || {};
-      const platform = validatedQuery.platform as PlatformName | undefined;
-      const limit = parseInt(validatedQuery.limit || '10');
-      const offset = parseInt(validatedQuery.offset || '0');
-      const type = validatedQuery.type as AccountPost['type'] | 'all' | undefined;
+      const { limit, offset, filter } = c.get('validatedQuery') as AccountPostsQuery || {};
 
-      // Get posts based on platform filter
-      const posts = platform
-        ? await this.activityTrackingService.getAccountPlatformPosts(
-          signerId,
-          platform,
-          limit,
-          offset,
-        )
-        : await this.activityTrackingService.getAccountPosts(
-          signerId,
-          limit,
-          offset,
-        );
+      // Get posts with pagination
+      const posts: AccountPost[] = await this.activityTrackingService.getAccountPosts(
+        signerId,
+        limit,
+        offset,
+        filter,
+      );
 
-      // Get total count
-      const totalPosts = posts.length;
+      const totalPosts = await this.activityTrackingService.getTotalPostCount(signerId, filter);
 
       return c.json(createSuccessResponse<AccountPostsResponse>(
         c,
-        { // Data
+        {
           signerId,
           posts,
-          platform,
-          type,
+          platforms: filter?.platforms,
+          types: filter?.types,
         },
-        { // Meta
+        {
           pagination: {
             total: totalPosts,
             limit,

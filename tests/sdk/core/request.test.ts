@@ -59,7 +59,7 @@ function mockSuccessResponse<T>(data: T): Response {
   const body: ApiResponse<T> = {
     success: true,
     data,
-    meta: { requestId: 'req-123', timestamp: new Date().toISOString() },
+    meta: { requestId: 'req-123', timestamp: '2025-01-01T00:00:00.000Z' },
   };
   return createMockResponse(body as any, 200, true);
 }
@@ -68,7 +68,7 @@ function mockErrorResponse(errors: ErrorDetail[], status: number): Response {
   const body: ApiResponse<never> = {
     success: false,
     errors,
-    meta: { requestId: 'req-123', timestamp: new Date().toISOString() },
+    meta: { requestId: 'req-123', timestamp: '2025-01-01T00:00:00.000Z' },
   };
   return createMockResponse(body as any, status, false);
 }
@@ -117,7 +117,11 @@ describe('makeRequest', () => {
         '/test',
         MOCK_GET_OPTIONS,
       );
-      expect(result).toEqual(mockData);
+      expect(result).toEqual({
+        success: true,
+        data: mockData,
+        meta: { requestId: 'req-123', timestamp: '2025-01-01T00:00:00.000Z' },
+      });
       expect(fetchStub.calls.length).toBe(1);
       const urlArg = fetchStub.calls[0].args[0];
       const optionsArg = fetchStub.calls[0].args[1];
@@ -147,7 +151,11 @@ describe('makeRequest', () => {
         requestBody,
       );
 
-      expect(result).toEqual(mockData);
+      expect(result).toEqual({
+        success: true,
+        data: mockData,
+        meta: { requestId: 'req-123', timestamp: '2025-01-01T00:00:00.000Z' },
+      });
       expect(fetchStub.calls.length).toBe(1);
       const urlArg = fetchStub.calls[0].args[0];
       const optionsArg = fetchStub.calls[0].args[1];

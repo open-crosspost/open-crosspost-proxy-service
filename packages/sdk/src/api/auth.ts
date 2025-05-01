@@ -1,4 +1,5 @@
 import type {
+  ApiResponse,
   AuthCallbackResponse,
   AuthInitRequest,
   AuthRevokeResponse,
@@ -34,7 +35,7 @@ export class AuthApi {
    * Authorizes the NEAR account associated with the provided nearAuthData with the Crosspost service.
    * @returns A promise resolving with the authorization response.
    */
-  async authorizeNearAccount(): Promise<NearAuthorizationResponse> {
+  async authorizeNearAccount(): Promise<ApiResponse<NearAuthorizationResponse>> {
     return makeRequest<NearAuthorizationResponse, NearAuthorizationRequest>(
       'POST',
       '/auth/authorize/near',
@@ -47,7 +48,7 @@ export class AuthApi {
    * Checks the authorization status of the NEAR account with the Crosspost service.
    * @returns A promise resolving with the authorization status response.
    */
-  async getNearAuthorizationStatus(): Promise<NearAuthorizationResponse> {
+  async getNearAuthorizationStatus(): Promise<ApiResponse<NearAuthorizationResponse>> {
     return makeRequest<NearAuthorizationResponse, never>(
       'GET',
       '/auth/authorize/near/status',
@@ -65,17 +66,30 @@ export class AuthApi {
   async loginToPlatform(
     platform: Platform,
     options?: AuthInitRequest,
-  ): Promise<AuthCallbackResponse> {
+  ): Promise<AuthCallbackResponse | ApiResponse<AuthUrlResponse>> {
+    // Use provided options or default to redirect: false
+    const requestOptions = options || { redirect: false };
+
     // Make POST request to get auth URL
-    const { url } = await makeRequest<AuthUrlResponse, AuthInitRequest>(
+    const response = await makeRequest<AuthUrlResponse, AuthInitRequest>(
       'POST',
       `/auth/${platform}/login`,
       this.options,
-      options || { redirect: false },
+      requestOptions,
     );
 
-    // Open the popup with the auth URL
-    const result = await openAuthPopup(url);
+    // If redirect is true, return the auth URL response directly
+    if (requestOptions.redirect) {
+      return response; // Return the full ApiResponse<AuthUrlResponse>
+    }
+
+    // Check if response.data exists and has the url property
+    if (!response.data || !('url' in response.data)) {
+      throw new Error('Invalid authentication URL response');
+    }
+
+    // Otherwise, continue with popup flow
+    const result = await openAuthPopup(response.data.url);
 
     if (!result.success || !result.userId) {
       throw new Error(result.error || 'Authentication failed');
@@ -94,7 +108,10 @@ export class AuthApi {
    * @param platform The target platform.
    * @returns A promise resolving with the refresh response containing updated auth details.
    */
-  async refreshToken(platform: Platform, userId: string): Promise<AuthCallbackResponse> {
+  async refreshToken(
+    platform: Platform,
+    userId: string,
+  ): Promise<ApiResponse<AuthCallbackResponse>> {
     return makeRequest<AuthCallbackResponse, AuthTokenRequest>(
       'POST',
       `/auth/${platform}/refresh`,
@@ -109,7 +126,7 @@ export class AuthApi {
    * @param userId The user ID on the platform
    * @returns A promise resolving with the updated account profile information.
    */
-  async refreshProfile(platform: Platform, userId: string): Promise<ConnectedAccount> {
+  async refreshProfile(platform: Platform, userId: string): Promise<ApiResponse<ConnectedAccount>> {
     return makeRequest<ConnectedAccount, AuthTokenRequest>(
       'POST',
       `/auth/${platform}/refresh-profile`,
@@ -123,7 +140,10 @@ export class AuthApi {
    * @param platform The target platform.
    * @returns A promise resolving with the authentication status response.
    */
-  async getAuthStatus(platform: Platform, userId: string): Promise<AuthStatusResponse> {
+  async getAuthStatus(
+    platform: Platform,
+    userId: string,
+  ): Promise<ApiResponse<AuthStatusResponse>> {
     return makeRequest<AuthStatusResponse, never, AuthStatusParams>(
       'GET',
       `/auth/${platform}/status/${userId}`,
@@ -137,7 +157,7 @@ export class AuthApi {
    * Unauthorizes a NEAR account from using the service
    * @returns A promise resolving with the unauthorized response
    */
-  async unauthorizeNear(): Promise<NearUnauthorizationResponse> {
+  async unauthorizeNear(): Promise<ApiResponse<NearUnauthorizationResponse>> {
     return makeRequest<NearUnauthorizationResponse, NearAuthorizationRequest>(
       'DELETE',
       '/auth/unauthorize/near',
@@ -151,7 +171,7 @@ export class AuthApi {
    * @param platform The target platform.
    * @returns A promise resolving with the revocation response.
    */
-  async revokeAuth(platform: Platform, userId: string): Promise<AuthRevokeResponse> {
+  async revokeAuth(platform: Platform, userId: string): Promise<ApiResponse<AuthRevokeResponse>> {
     return makeRequest<AuthRevokeResponse, AuthTokenRequest>(
       'DELETE',
       `/auth/${platform}/revoke`,
@@ -165,7 +185,7 @@ export class AuthApi {
    * @returns A promise resolving with the connected accounts response containing an array of accounts.
    * @throws {CrosspostError} If the request fails or returns invalid data.
    */
-  async getConnectedAccounts(): Promise<ConnectedAccountsResponse> {
+  async getConnectedAccounts(): Promise<ApiResponse<ConnectedAccountsResponse>> {
     return makeRequest<ConnectedAccountsResponse, never>(
       'GET',
       '/auth/accounts',

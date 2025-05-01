@@ -1,5 +1,6 @@
 import { Context } from '../../../deps.ts';
 import type { PostResult, RepostRequest } from '@crosspost/types';
+import { ActivityType } from '@crosspost/types';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
@@ -40,14 +41,6 @@ export class RepostController extends BasePostController {
             request.platform, // Platform of the post being reposted
             target.userId,
             request.postId,
-          );
-
-          // Track the post for activity tracking
-          await this.activityTrackingService.trackPost(
-            signerId,
-            target.platform,
-            target.userId,
-            result.id,
           );
 
           // Return success detail

@@ -14,7 +14,7 @@ import { nearAuthServiceMock } from '../mocks/near-auth-service-mock.ts';
 export function createMockContext(options: {
   signerId?: string;
   validatedBody?: unknown;
-  validatedQuery?: Record<string, string>;
+  validatedQuery?: Record<string, any>;
   params?: Record<string, string>;
   headers?: Record<string, string>;
 } = {}): Context {

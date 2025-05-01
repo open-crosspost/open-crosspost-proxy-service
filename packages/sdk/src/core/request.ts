@@ -1,4 +1,4 @@
-import { ApiErrorCode, type StatusCode } from '@crosspost/types';
+import { ApiErrorCode, type ApiResponse, type StatusCode } from '@crosspost/types';
 import { createAuthToken, type NearAuthData } from 'near-sign-verify';
 import {
   createNetworkError,
@@ -39,7 +39,7 @@ export interface RequestOptions {
  * @param options The request options
  * @param data Optional request data
  * @param query Optional query parameters
- * @returns A promise resolving with the data field from the API response
+ * @returns A promise resolving with the API response object
  * @throws {CrosspostError}
  *  - If the request fails (network error, timeout)
  *  - If the response is not valid JSON
@@ -57,7 +57,7 @@ export async function makeRequest<
   options: RequestOptions,
   data?: TRequest,
   query?: TQuery,
-): Promise<TResponse> {
+): Promise<ApiResponse<TResponse>> {
   let url = `${options.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 
   // Add query parameters if provided
@@ -151,9 +151,12 @@ export async function makeRequest<
     }
 
     // Validate success response structure
-    if (!responseData || typeof responseData !== 'object' || !('success' in responseData)) {
+    if (
+      !responseData || typeof responseData !== 'object' || !('success' in responseData) ||
+      !('meta' in responseData)
+    ) {
       throw new CrosspostError(
-        'Invalid success response format from API',
+        'Invalid response format from API',
         ApiErrorCode.INVALID_RESPONSE,
         response.status as StatusCode,
         { responseData },
@@ -161,15 +164,7 @@ export async function makeRequest<
     }
 
     if (responseData.success) {
-      if (!responseData.data) {
-        throw new CrosspostError(
-          'API returned success but no data',
-          ApiErrorCode.INVALID_RESPONSE,
-          response.status as StatusCode,
-          { responseData },
-        );
-      }
-      return responseData.data as TResponse;
+      return responseData as ApiResponse<TResponse>;
     }
 
     // If we get here, we have response.ok but success: false
