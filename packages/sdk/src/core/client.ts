@@ -28,7 +28,7 @@ export class CrosspostClient {
     const nearAuthData = config.nearAuthData;
 
     this.options = {
-      baseUrl,
+      baseUrl: baseUrl instanceof URL ? baseUrl : new URL(baseUrl),
       timeout,
       nearAuthData,
     };

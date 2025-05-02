@@ -1,5 +1,15 @@
 import { z } from 'zod';
-import { PlatformSchema } from './common.ts';
+import { Platform, PlatformSchema } from './common.ts';
+
+export enum ActivityType {
+  POST = 'post',
+  REPOST = 'repost',
+  REPLY = 'reply',
+  QUOTE = 'quote',
+  LIKE = 'like',
+  UNLIKE = 'unlike',
+  DELETE = 'delete',
+}
 
 export enum TimePeriod {
   ALL = 'all',
@@ -9,10 +19,57 @@ export enum TimePeriod {
   DAILY = 'day',
 }
 
-export const ActivityLeaderboardQuerySchema = z.object({
-  timeframe: z.nativeEnum(TimePeriod).optional().describe(
-    'Timeframe for the leaderboard',
+/**
+ * Schema for filtering by platform, activity type, and timeframe
+ * Handles comma-separated lists for platforms and types
+ */
+export const FilterSchema = z.object({
+  platforms: z.string().optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      return val.split(',')
+        .map((p) => p.trim())
+        .map((p) => {
+          try {
+            return Platform[p.toUpperCase() as keyof typeof Platform];
+          } catch (_e) {
+            return p;
+          }
+        });
+    })
+    .pipe(
+      z.array(z.nativeEnum(Platform)).optional(),
+    )
+    .describe('Filter by platforms (comma-separated list, optional)'),
+  types: z.string().optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      return val.split(',')
+        .map((t) => t.trim())
+        .map((t) => {
+          try {
+            return ActivityType[t.toUpperCase() as keyof typeof ActivityType];
+          } catch (_e) {
+            return t;
+          }
+        });
+    })
+    .pipe(
+      z.array(z.nativeEnum(ActivityType)).optional(),
+    )
+    .describe('Filter by activity types (comma-separated list, optional)'),
+  timeframe: z.nativeEnum(TimePeriod).optional().transform((val) => {
+    if (!val) return TimePeriod.ALL;
+    return val;
+  }).describe(
+    'Timeframe for filtering (optional)',
   ),
+}).describe('Filter parameters');
+
+/**
+ * Common pagination schema used across queries
+ */
+export const PaginationSchema = z.object({
   limit: z.string().optional()
     .transform((val) => val ? parseInt(val, 10) : undefined)
     .pipe(z.number().min(1).max(100).optional())
@@ -21,7 +78,14 @@ export const ActivityLeaderboardQuerySchema = z.object({
     .transform((val) => val ? parseInt(val, 10) : undefined)
     .pipe(z.number().min(0).optional())
     .describe('Offset for pagination'),
-}).describe('Activity leaderboard query');
+}).describe('Pagination parameters');
+
+/**
+ * Query schema for leaderboard endpoints
+ */
+export const ActivityLeaderboardQuerySchema = z.object({
+  filter: FilterSchema.optional(),
+}).describe('Account leaderboard query').merge(PaginationSchema);
 
 export const AccountActivityEntrySchema = z.object({
   signerId: z.string().describe('NEAR account ID'),
@@ -33,24 +97,26 @@ export const AccountActivityEntrySchema = z.object({
   totalScore: z.number().describe('Total activity score'),
   rank: z.number().describe('Rank on the leaderboard'),
   lastActive: z.string().datetime().describe('Timestamp of last activity'),
+  firstPostTimestamp: z.string().datetime().describe('Timestamp of the first post'),
 }).describe('Account activity entry');
 
 const ActivityLeaderboardResponseSchema = z.object({
   timeframe: z.nativeEnum(TimePeriod).describe('Timeframe for the leaderboard'),
   entries: z.array(AccountActivityEntrySchema).describe('Leaderboard entries'),
   generatedAt: z.string().datetime().describe('Timestamp when the leaderboard was generated'),
-  platform: PlatformSchema.optional().describe('Platform filter (if applied)'),
+  platforms: z.array(PlatformSchema).optional().describe('Platform filters (if applied)'),
 });
 
 export const AccountActivityParamsSchema = z.object({
   signerId: z.string().describe('NEAR account ID'),
 }).describe('Account activity params');
 
+/**
+ * Query schema for account activity endpoints
+ */
 export const AccountActivityQuerySchema = z.object({
-  timeframe: z.nativeEnum(TimePeriod).optional().describe(
-    'Timeframe for the activity',
-  ),
-}).describe('Account activity query');
+  filter: FilterSchema.optional(),
+}).describe('Account activity query').merge(PaginationSchema);
 
 export const PlatformActivitySchema = z.object({
   platform: PlatformSchema,
@@ -81,25 +147,18 @@ export const AccountPostsParamsSchema = z.object({
   signerId: z.string().describe('NEAR account ID'),
 }).describe('Account posts params');
 
+/**
+ * Query schema for account posts endpoints
+ */
 export const AccountPostsQuerySchema = z.object({
-  platform: z.string().optional().describe('Filter by platform (optional)'),
-  limit: z.string().optional()
-    .transform((val) => val ? parseInt(val, 10) : undefined)
-    .pipe(z.number().min(1).max(100).optional())
-    .describe('Maximum number of results to return (1-100)'),
-  offset: z.string().optional()
-    .transform((val) => val ? parseInt(val, 10) : undefined)
-    .pipe(z.number().min(0).optional())
-    .describe('Offset for pagination'),
-  type: z.enum(['post', 'repost', 'reply', 'quote', 'like', 'all']).optional().describe(
-    'Filter by post type (optional)',
-  ),
-}).describe('Account posts query');
+  filter: FilterSchema.optional(),
+}).describe('Account posts query').merge(PaginationSchema);
 
 export const AccountPostSchema = z.object({
   id: z.string().describe('Post ID'),
   platform: PlatformSchema,
-  type: z.enum(['post', 'repost', 'reply', 'quote', 'like']).describe('Type of post'),
+  userId: z.string().describe('User ID on the platform'),
+  type: z.nativeEnum(ActivityType).describe('Type of post'),
   content: z.string().optional().describe('Post content (if available)'),
   url: z.string().url().optional().describe('URL to the post on the platform (if available)'),
   createdAt: z.string().datetime().describe('Timestamp when the post was created'),
@@ -116,10 +175,8 @@ export const AccountPostSchema = z.object({
 const AccountPostsResponseSchema = z.object({
   signerId: z.string().describe('NEAR account ID'),
   posts: z.array(AccountPostSchema).describe('List of posts'),
-  platform: z.string().optional().describe('Platform filter (if applied)'),
-  type: z.enum(['post', 'repost', 'reply', 'quote', 'like', 'all']).optional().describe(
-    'Post type filter (if applied)',
-  ),
+  platforms: z.array(z.string()).optional().describe('Platform filters (if applied)'),
+  types: z.array(z.string()).optional().describe('Post type filters (if applied)'),
 });
 
 /**
@@ -147,6 +204,7 @@ export interface PostRecord {
   p: string; // platform
   t: number; // timestamp
   u: string; // userId
+  ty: string; // activity type ('post', 'like', 'repost', etc.)
 }
 
 export type ActivityLeaderboardQuery = z.infer<typeof ActivityLeaderboardQuerySchema>;
@@ -160,3 +218,4 @@ export type AccountPostsParams = z.infer<typeof AccountPostsParamsSchema>;
 export type AccountPostsQuery = z.infer<typeof AccountPostsQuerySchema>;
 export type AccountPost = z.infer<typeof AccountPostSchema>;
 export type AccountPostsResponse = z.infer<typeof AccountPostsResponseSchema>;
+export type Filter = z.infer<typeof FilterSchema>;

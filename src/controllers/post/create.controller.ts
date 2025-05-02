@@ -1,12 +1,13 @@
-import type { CreatePostRequest, CreatePostResponse, PostResult } from '@crosspost/types';
+import type { CreatePostRequest, PostResult } from '@crosspost/types';
+import { ActivityType } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
+import { createSuccessDetail } from '../../utils/response.utils.ts';
 import { addContentVariation } from '../../utils/spam-detection.utils.ts';
 import { BasePostController } from './base.controller.ts';
-import { createSuccessDetail } from '../../utils/response.utils.ts';
 
 export class CreateController extends BasePostController {
   constructor(
@@ -52,6 +53,7 @@ export class CreateController extends BasePostController {
             target.platform,
             target.userId,
             result.id, // The post ID from the platform
+            ActivityType.POST,
           );
 
           // Return success detail

@@ -1,5 +1,6 @@
 import { Context } from '../../../deps.ts';
 import type { PostResult, ReplyToPostRequest } from '@crosspost/types';
+import { ActivityType } from '@crosspost/types';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
@@ -50,6 +51,7 @@ export class ReplyController extends BasePostController {
             target.platform,
             target.userId,
             result.id,
+            ActivityType.REPLY,
           );
 
           // Return success detail

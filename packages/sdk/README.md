@@ -147,6 +147,103 @@ async function createPost() {
 
 ## API Reference
 
+### Pagination
+
+The SDK supports offset-based pagination for endpoints that return large collections:
+
+```typescript
+// Get paginated results with specific limit and offset
+const response = await client.activity.getLeaderboard({
+  limit: 10, // Number of items per page
+  offset: 20, // Skip the first 20 items
+});
+
+// Access pagination metadata
+console.log(`Total items: ${response.meta.pagination?.total}`);
+console.log(`Current page size: ${response.meta.pagination?.limit}`);
+console.log(`Current offset: ${response.meta.pagination?.offset}`);
+```
+
+### Multi-Status Responses
+
+Some operations that target multiple platforms may result in partial success. The SDK handles these
+cases with multi-status responses:
+
+```typescript
+// Operation targeting multiple platforms
+const response = await client.post.createPost({
+  targets: [
+    { platform: 'twitter', userId: 'user1' },
+    { platform: 'facebook', userId: 'user2' },
+  ],
+  content: [{ text: 'Hello world!' }],
+});
+
+// Check multi-status summary
+console.log(`Total operations: ${response.data.summary.total}`);
+console.log(`Successful: ${response.data.summary.succeeded}`);
+console.log(`Failed: ${response.data.summary.failed}`);
+
+// Access successful results
+response.data.results.forEach((result) => {
+  console.log(`Success on ${result.platform}: ${result.details.id}`);
+});
+
+// Access errors (if any)
+if (response.data.errors && response.data.errors.length > 0) {
+  // Error structure is identical to error.details.errors when all operations fail
+  response.data.errors.forEach((error) => {
+    console.log(`Error on ${error.details.platform}: ${error.message}`);
+    console.log(`Error code: ${error.code}`);
+    console.log(`Recoverable: ${error.recoverable}`);
+  });
+}
+```
+
+If all operations fail, the SDK throws a `CrosspostError` with the same error structure in
+`details.errors`:
+
+```typescript
+try {
+  await client.post.createPost({...});
+} catch (error) {
+  if (error instanceof CrosspostError && error.details?.errors) {
+    // Error structure is identical to response.data.errors in partial success case
+    error.details.errors.forEach(err => {
+      console.log(`Error on ${err.details.platform}: ${err.message}`);
+      console.log(`Error code: ${err.code}`);
+      console.log(`Recoverable: ${err.recoverable}`);
+    });
+  }
+}
+```
+
+This consistent error structure allows you to use the same error handling logic regardless of
+whether you're dealing with partial failures in a multi-status response or complete failure.
+
+### Validation Error Handling
+
+The SDK provides detailed validation error information:
+
+```typescript
+try {
+  await client.post.createPost({
+    // Invalid or missing required fields
+  });
+} catch (error) {
+  if (isValidationError(error)) {
+    console.error('Validation failed:');
+
+    // Access validation error details
+    if (error.details?.validationErrors) {
+      Object.entries(error.details.validationErrors).forEach(([field, issues]) => {
+        console.error(`Field '${field}': ${issues.join(', ')}`);
+      });
+    }
+  }
+}
+```
+
 ### CrosspostClient
 
 ```typescript

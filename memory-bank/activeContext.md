@@ -38,10 +38,11 @@ headers: {
 ### Next Steps
 
 1. **Testing Updates**
-   - Add tests for X-Near-Account header validation
-   - Add tests for GET request authentication flow
-   - Update existing auth tests to cover both paths
-   - Add integration tests for the new authentication pattern
+   - ✅ Add tests for X-Near-Account header validation
+   - ✅ Add tests for GET request authentication flow
+   - ✅ Update existing auth tests to cover both paths
+   - ✅ Add integration tests for the new authentication pattern
+   - ✅ Add SDK integration tests for validation, multi-status responses, and pagination
 
 2. **SDK Client Updates**
    - Update SDK to handle both authentication methods

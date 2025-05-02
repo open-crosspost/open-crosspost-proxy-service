@@ -2,8 +2,8 @@ import {
   ApiErrorCode,
   errorCodeToStatusCode,
   ErrorDetail,
+  MultiStatusData,
   PlatformName,
-  StatusCode,
 } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
@@ -14,6 +14,7 @@ import { PlatformError } from '../../errors/platform-error.ts';
 import { MediaCache } from '../../utils/media-cache.utils.ts';
 import {
   createErrorDetail,
+  createErrorResponse,
   createMultiStatusData,
   createSuccessDetail,
   createSuccessResponse,
@@ -216,21 +217,22 @@ export abstract class BasePostController extends BaseController {
     successResults: ReturnType<typeof createSuccessDetail>[],
     errorDetails: ReturnType<typeof createErrorDetail>[],
   ): Response {
-    const multiStatusData = createMultiStatusData(successResults, errorDetails);
+    if (successResults.length === 0 && errorDetails.length > 0) { // total failure
+      c.status(errorCodeToStatusCode[ApiErrorCode.INVALID_REQUEST]);
+      return c.json(createErrorResponse(c, errorDetails));
+    } else {
+      // Success or partial success
+      const multiStatusData = createMultiStatusData(successResults, errorDetails);
 
-    // Determine appropriate status code
-    let statusCode = 200;
-    if (successResults.length === 0 && errorDetails.length > 0) {
-      // Complete failure - use appropriate status code based on error type
-      const firstError = errorDetails[0];
-      // Cast the errorCode to ApiErrorCode since it's stored as a string in the error detail
-      statusCode = errorCodeToStatusCode[firstError.code as ApiErrorCode];
-    } else if (successResults.length > 0 && errorDetails.length > 0) {
-      // Partial success - use 207 Multi-Status
-      statusCode = 207;
+      if (successResults.length > 0 && errorDetails.length > 0) {
+        // Partial success
+        c.status(errorCodeToStatusCode[ApiErrorCode.MULTI_STATUS]);
+      } else {
+        // Complete success
+        c.status(200);
+      }
+
+      return c.json(createSuccessResponse<MultiStatusData>(c, multiStatusData));
     }
-
-    c.status(statusCode as StatusCode);
-    return c.json(createSuccessResponse(c, multiStatusData));
   }
 }

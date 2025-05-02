@@ -1,4 +1,5 @@
 import type {
+  ApiResponse,
   CreatePostRequest,
   CreatePostResponse,
   DeletePostRequest,
@@ -35,7 +36,7 @@ export class PostApi {
    * @param request The post creation request details.
    * @returns A promise resolving with the post creation response.
    */
-  async createPost(request: CreatePostRequest): Promise<CreatePostResponse> {
+  async createPost(request: CreatePostRequest): Promise<ApiResponse<CreatePostResponse>> {
     return makeRequest<CreatePostResponse, CreatePostRequest>(
       'POST',
       '/api/post',
@@ -49,7 +50,7 @@ export class PostApi {
    * @param request The repost request details.
    * @returns A promise resolving with the repost response.
    */
-  async repost(request: RepostRequest): Promise<RepostResponse> {
+  async repost(request: RepostRequest): Promise<ApiResponse<RepostResponse>> {
     return makeRequest<RepostResponse, RepostRequest>(
       'POST',
       '/api/post/repost',
@@ -63,7 +64,7 @@ export class PostApi {
    * @param request The quote post request details.
    * @returns A promise resolving with the quote post response.
    */
-  async quotePost(request: QuotePostRequest): Promise<QuotePostResponse> {
+  async quotePost(request: QuotePostRequest): Promise<ApiResponse<QuotePostResponse>> {
     return makeRequest<QuotePostResponse, QuotePostRequest>(
       'POST',
       '/api/post/quote',
@@ -77,7 +78,7 @@ export class PostApi {
    * @param request The reply request details.
    * @returns A promise resolving with the reply response.
    */
-  async replyToPost(request: ReplyToPostRequest): Promise<ReplyToPostResponse> {
+  async replyToPost(request: ReplyToPostRequest): Promise<ApiResponse<ReplyToPostResponse>> {
     return makeRequest<ReplyToPostResponse, ReplyToPostRequest>(
       'POST',
       '/api/post/reply',
@@ -91,7 +92,7 @@ export class PostApi {
    * @param request The like request details.
    * @returns A promise resolving with the like response.
    */
-  async likePost(request: LikePostRequest): Promise<LikePostResponse> {
+  async likePost(request: LikePostRequest): Promise<ApiResponse<LikePostResponse>> {
     return makeRequest<LikePostResponse, LikePostRequest>(
       'POST',
       `/api/post/like`,
@@ -105,7 +106,7 @@ export class PostApi {
    * @param request The unlike request details.
    * @returns A promise resolving with the unlike response.
    */
-  async unlikePost(request: UnlikePostRequest): Promise<UnlikePostResponse> {
+  async unlikePost(request: UnlikePostRequest): Promise<ApiResponse<UnlikePostResponse>> {
     return makeRequest<UnlikePostResponse, UnlikePostRequest>(
       'DELETE',
       `/api/post/like`,
@@ -119,7 +120,7 @@ export class PostApi {
    * @param request The delete request details.
    * @returns A promise resolving with the delete response.
    */
-  async deletePost(request: DeletePostRequest): Promise<DeletePostResponse> {
+  async deletePost(request: DeletePostRequest): Promise<ApiResponse<DeletePostResponse>> {
     return makeRequest<DeletePostResponse, DeletePostRequest>(
       'DELETE',
       `/api/post`,

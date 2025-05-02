@@ -1,10 +1,27 @@
 import { PlatformName, PostResult } from '@crosspost/types';
 import { Context } from '../../deps.ts';
+import type { NearAuthData } from 'near-sign-verify';
 import { ActivityTrackingService } from '../../src/domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../src/domain/services/auth.service.ts';
 import { PostService } from '../../src/domain/services/post.service.ts';
 import { RateLimitService } from '../../src/domain/services/rate-limit.service.ts';
 import { nearAuthServiceMock } from '../mocks/near-auth-service-mock.ts';
+
+/**
+ * Generate mock NEAR authentication data for testing
+ * @param accountId Optional account ID (defaults to 'test.near')
+ * @returns Mock NEAR authentication data
+ */
+export function createMockNearAuthData(accountId: string = 'test.near'): NearAuthData {
+  return {
+    account_id: accountId,
+    public_key: 'ed25519:mock-public-key',
+    signature: 'mock-signature',
+    message: 'mock-message',
+    nonce: new Uint8Array(32), // 32-byte nonce
+    recipient: 'crosspost.near',
+  };
+}
 
 /**
  * Create a mock context for testing
@@ -14,7 +31,7 @@ import { nearAuthServiceMock } from '../mocks/near-auth-service-mock.ts';
 export function createMockContext(options: {
   signerId?: string;
   validatedBody?: unknown;
-  validatedQuery?: Record<string, string>;
+  validatedQuery?: Record<string, any>;
   params?: Record<string, string>;
   headers?: Record<string, string>;
 } = {}): Context {

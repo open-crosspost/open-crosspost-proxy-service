@@ -10,7 +10,7 @@ interface ApiResponse<T> {
   success: boolean;
 
   /** The primary data payload. Present when success is true */
-  data?: T | MultiStatusData | null;
+  data?: T | null;
 
   /** Array of error details. Present when success is false */
   errors?: ErrorDetail[] | null;
@@ -41,15 +41,46 @@ interface ResponseMeta {
 
   /** Pagination information if applicable */
   pagination?: {
-    page: number;
-    perPage: number;
-    total: number;
-    totalPages: number;
-    nextCursor?: string;
-    prevCursor?: string;
+    limit: number; // Number of items per page
+    offset: number; // Number of items to skip
+    total: number; // Total number of items
   };
 }
 ```
+
+#### Pagination Implementation
+
+The API supports offset-based pagination for endpoints that return large collections:
+
+1. **Request Parameters**:
+   - `limit`: Maximum number of items to return (default varies by endpoint)
+   - `offset`: Number of items to skip (default: 0)
+
+2. **Response Metadata**:
+   - `meta.pagination.limit`: Number of items requested per page
+   - `meta.pagination.offset`: Current offset
+   - `meta.pagination.total`: Total number of items available
+
+3. **Usage Example**:
+   ```typescript
+   // Request with pagination parameters
+   GET /api/activity?limit=10&offset=20
+
+   // Response includes pagination metadata
+   {
+     "success": true,
+     "data": [...],
+     "meta": {
+       "requestId": "uuid-here",
+       "timestamp": "2025-04-18T12:00:00Z",
+       "pagination": {
+         "limit": 10,
+         "offset": 20,
+         "total": 100
+       }
+     }
+   }
+   ```
 
 ### Error Details
 
@@ -99,9 +130,67 @@ interface SuccessDetail {
   platform: string;
   userId: string;
   status: 'success';
-  [key: string]: any;
+  details: {
+    id: string;
+    [key: string]: any;
+  };
 }
 ```
+
+#### Multi-Status Implementation
+
+The API uses multi-status responses for operations that target multiple platforms or resources:
+
+1. **Response Structure**:
+   - `summary`: Contains counts of total operations, successes, and failures
+   - `results`: Array of successful operations with platform-specific details
+   - `errors`: Array of failed operations with error details
+
+2. **Error Handling**:
+   - Partial success: Returns HTTP 207 with both results and errors
+   - Complete success: Returns HTTP 200 with only results
+   - Complete failure: Returns HTTP 400 with error details
+
+3. **SDK Behavior**:
+   - For partial success: Returns a success response with multi-status data
+   - For complete failure: Throws a `CrosspostError` with all errors in `details.errors`
+   - Error structure is consistent between `response.data.errors` and `error.details.errors`
+
+4. **Usage Example**:
+   ```typescript
+   // Request targeting multiple platforms
+   POST /api/post
+   {
+     "targets": [
+       { "platform": "twitter", "userId": "user1" },
+       { "platform": "facebook", "userId": "user2" }
+     ],
+     "content": [{ "text": "Hello world!" }]
+   }
+
+   // Partial success response (HTTP 207)
+   {
+     "success": true,
+     "data": {
+       "summary": { "total": 2, "succeeded": 1, "failed": 1 },
+       "results": [{
+         "platform": "twitter",
+         "userId": "user1",
+         "status": "success",
+         "details": { "id": "post-123", "createdAt": "2025-04-18T12:00:00Z" }
+       }],
+       "errors": [{
+         "platform": "facebook",
+         "userId": "user2",
+         "status": "error",
+         "error": "Rate limited",
+         "errorCode": "RATE_LIMITED",
+         "recoverable": true
+       }]
+     },
+     "meta": { "requestId": "uuid-here", "timestamp": "2025-04-18T12:00:00Z" }
+   }
+   ```
 
 ## Response Status Codes
 

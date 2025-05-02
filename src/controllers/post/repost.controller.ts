@@ -1,11 +1,11 @@
-import { Context } from '../../../deps.ts';
 import type { PostResult, RepostRequest } from '@crosspost/types';
+import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
-import { BasePostController } from './base.controller.ts';
 import { createSuccessDetail } from '../../utils/response.utils.ts';
+import { BasePostController } from './base.controller.ts';
 export class RepostController extends BasePostController {
   constructor(
     postService: PostService,
@@ -40,14 +40,6 @@ export class RepostController extends BasePostController {
             request.platform, // Platform of the post being reposted
             target.userId,
             request.postId,
-          );
-
-          // Track the post for activity tracking
-          await this.activityTrackingService.trackPost(
-            signerId,
-            target.platform,
-            target.userId,
-            result.id,
           );
 
           // Return success detail
