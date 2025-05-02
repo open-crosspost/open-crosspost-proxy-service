@@ -10,6 +10,44 @@ import type {
 import { makeRequest, type RequestOptions } from '../core/request.ts';
 
 /**
+ * Creates a modified query object with filter properties flattened
+ * @param query The original query object
+ * @returns A new query object with filter properties flattened
+ */
+function createFilterQuery<T>(query?: T): Record<string, unknown> {
+  if (!query) return {};
+
+  const queryObj = query as Record<string, any>;
+  const result: Record<string, unknown> = {};
+
+  // Copy non-filter properties
+  Object.keys(queryObj).forEach((key) => {
+    if (key !== 'filter') {
+      result[key] = queryObj[key];
+    }
+  });
+
+  // Extract and flatten filter properties if they exist
+  if (queryObj.filter) {
+    const filter = queryObj.filter;
+
+    if (filter.platforms && Array.isArray(filter.platforms)) {
+      result.platforms = filter.platforms.join(',');
+    }
+
+    if (filter.types && Array.isArray(filter.types)) {
+      result.types = filter.types.join(',');
+    }
+
+    if (filter.timeframe) {
+      result.timeframe = filter.timeframe;
+    }
+  }
+
+  return result;
+}
+
+/**
  * Activity-related API operations
  */
 export class ActivityApi {
@@ -31,12 +69,12 @@ export class ActivityApi {
   async getLeaderboard(
     query?: ActivityLeaderboardQuery,
   ): Promise<ApiResponse<ActivityLeaderboardResponse>> {
-    return makeRequest<ActivityLeaderboardResponse, never, ActivityLeaderboardQuery>(
+    return makeRequest<ActivityLeaderboardResponse, never, Record<string, unknown>>(
       'GET',
       '/api/activity',
       this.options,
       undefined,
-      query,
+      createFilterQuery(query),
     );
   }
 
@@ -50,12 +88,12 @@ export class ActivityApi {
     signerId: string,
     query?: AccountActivityQuery,
   ): Promise<ApiResponse<AccountActivityResponse>> {
-    return makeRequest<AccountActivityResponse, never, AccountActivityQuery>(
+    return makeRequest<AccountActivityResponse, never, Record<string, unknown>>(
       'GET',
       `/api/activity/${signerId}`,
       this.options,
       undefined,
-      query,
+      createFilterQuery(query),
     );
   }
 
@@ -69,12 +107,12 @@ export class ActivityApi {
     signerId: string,
     query?: AccountPostsQuery,
   ): Promise<ApiResponse<AccountPostsResponse>> {
-    return makeRequest<AccountPostsResponse, never, AccountPostsQuery>(
+    return makeRequest<AccountPostsResponse, never, Record<string, unknown>>(
       'GET',
       `/api/activity/${signerId}/posts`,
       this.options,
       undefined,
-      query,
+      createFilterQuery(query),
     );
   }
 }
