@@ -14,7 +14,7 @@ export interface RequestOptions {
   /**
    * Base URL for the API
    */
-  baseUrl: string;
+  baseUrl: URL;
   /**
    * NEAR authentication data for generating auth tokens
    * Required for non-GET requests, optional for GET requests
@@ -58,19 +58,14 @@ export async function makeRequest<
   data?: TRequest,
   query?: TQuery,
 ): Promise<ApiResponse<TResponse>> {
-  let url = `${options.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  const url = new URL(path, options.baseUrl);
 
   // Add query parameters if provided
   if (query && typeof query === 'object' && Object.keys(query).length > 0) {
-    const queryParams = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined && value !== null) {
-        queryParams.append(key, String(value));
+        url.searchParams.append(key, String(value));
       }
-    }
-    const queryString = queryParams.toString();
-    if (queryString) {
-      url += `?${queryString}`;
     }
   }
 
@@ -123,7 +118,7 @@ export async function makeRequest<
     const response = await fetch(url, requestOptions);
     clearTimeout(timeoutId);
 
-    let responseData: any;
+    let responseData: ApiResponse<TResponse>;
     try {
       responseData = await response.json();
     } catch (jsonError) {
@@ -182,7 +177,7 @@ export async function makeRequest<
     if (
       error instanceof TypeError || (error instanceof DOMException && error.name === 'AbortError')
     ) {
-      throw enrichErrorWithContext(createNetworkError(error, url, options.timeout), context);
+      throw enrichErrorWithContext(createNetworkError(error, url.toString(), options.timeout), context);
     }
 
     // For any other errors, wrap them with context

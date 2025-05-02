@@ -1,5 +1,4 @@
 import type { LikePostRequest, LikeResult } from '@crosspost/types';
-import { ActivityType } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../domain/services/auth.service.ts';

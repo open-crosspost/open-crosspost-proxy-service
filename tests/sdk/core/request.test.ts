@@ -30,13 +30,13 @@ const MOCK_NEAR_AUTH_DATA: NearAuthData = {
 };
 
 const MOCK_REQUEST_OPTIONS: RequestOptions = {
-  baseUrl: MOCK_BASE_URL,
+  baseUrl: new URL(MOCK_BASE_URL),
   nearAuthData: MOCK_NEAR_AUTH_DATA,
   timeout: 1000,
 };
 
 const MOCK_GET_OPTIONS: RequestOptions = {
-  baseUrl: MOCK_BASE_URL,
+  baseUrl: new URL(MOCK_BASE_URL),
   nearAccount: 'test.near',
   timeout: 1000,
 };
@@ -128,7 +128,7 @@ describe('makeRequest', () => {
       expect(optionsArg?.method).toBe('GET');
       const headers = new Headers(optionsArg?.headers);
       expect(headers.get('X-Near-Account')).toBe('test.near');
-      expect(urlArg).toBe(`${MOCK_BASE_URL}/test`);
+      expect((urlArg as URL).href).toBe(`${MOCK_BASE_URL}/test`);
     } finally {
       fetchStub.restore();
     }
@@ -162,7 +162,7 @@ describe('makeRequest', () => {
       expect(optionsArg?.method).toBe('POST');
       const headers = new Headers(optionsArg?.headers);
       expect(headers.get('Authorization')).toMatch(/^Bearer .+$/);
-      expect(urlArg).toBe(`${MOCK_BASE_URL}/posts`);
+      expect((urlArg as URL).href).toBe(`${MOCK_BASE_URL}/posts`);
       expect(optionsArg?.body).toBe(JSON.stringify(requestBody));
     } finally {
       fetchStub.restore();
