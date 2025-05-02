@@ -1,4 +1,4 @@
-import { ApiErrorCode, Platform, PlatformName, TimePeriod } from '@crosspost/types';
+import { ActivityType, ApiErrorCode, Platform, PlatformName, TimePeriod } from '@crosspost/types';
 import { createApiError } from '../../../src/errors/api-error.ts';
 import { createPlatformError } from '../../../src/errors/platform-error.ts';
 import { assertEquals, assertExists } from 'jsr:@std/assert';
@@ -37,6 +37,7 @@ describe('Activity Controller', () => {
           totalScore: 10,
           rank: 1,
           lastActive: new Date(Date.now()).toISOString(),
+          firstPostTimestamp: new Date(Date.now()).toISOString(),
         },
         {
           signerId: 'user2.near',
@@ -48,6 +49,7 @@ describe('Activity Controller', () => {
           totalScore: 5,
           rank: 2,
           lastActive: new Date(Date.now() - 86400000).toISOString(),
+          firstPostTimestamp: new Date(Date.now() - 86400000).toISOString(),
         },
       ]);
 
@@ -67,18 +69,21 @@ describe('Activity Controller', () => {
   });
 
   it('should handle platform-specific leaderboard', async () => {
-    // Create a mock context with platform query parameter
+    // Create a mock context with platforms query parameter
     const context = createMockContext({
       signerId: 'test.near',
 
       validatedQuery: {
-        platform: Platform.TWITTER,
-        limit: '10',
-        offset: '0',
+        filter: {
+          platforms: [Platform.TWITTER],
+          timeframe: TimePeriod.ALL,
+        },
+        limit: 10,
+        offset: 0,
       },
     });
 
-    mockActivityTrackingService.getPlatformLeaderboard = () =>
+    mockActivityTrackingService.getLeaderboard = () =>
       Promise.resolve([
         {
           signerId: 'test.near',
@@ -90,6 +95,7 @@ describe('Activity Controller', () => {
           totalScore: 10,
           rank: 1,
           lastActive: new Date(Date.now()).toISOString(),
+          firstPostTimestamp: new Date(Date.now()).toISOString(),
         },
         {
           signerId: 'user3.near',
@@ -101,6 +107,7 @@ describe('Activity Controller', () => {
           totalScore: 3,
           rank: 2,
           lastActive: new Date(Date.now() - 43200000).toISOString(),
+          firstPostTimestamp: new Date(Date.now() - 43200000).toISOString(),
         },
       ]);
 
@@ -115,7 +122,7 @@ describe('Activity Controller', () => {
     assertEquals(responseBody.data.entries.length, 2);
     assertEquals(responseBody.data.entries[0].signerId, 'test.near');
     assertEquals(responseBody.data.entries[0].totalPosts, 10);
-    assertEquals(responseBody.data.platform, Platform.TWITTER);
+    assertEquals(responseBody.data.platforms[0], Platform.TWITTER);
   });
 
   it('should handle different time periods', async () => {
@@ -124,7 +131,9 @@ describe('Activity Controller', () => {
       signerId: 'test.near',
 
       validatedQuery: {
-        timeframe: TimePeriod.WEEKLY,
+        filter: {
+          timeframe: TimePeriod.WEEKLY,
+        },
         limit: '10',
         offset: '0',
       },
@@ -146,8 +155,8 @@ describe('Activity Controller', () => {
       signerId: 'test.near',
 
       validatedQuery: {
-        limit: '10',
-        offset: '0',
+        limit: 10,
+        offset: 0,
       },
     });
 
@@ -170,13 +179,44 @@ describe('Activity Controller', () => {
       signerId: 'test.near',
     });
 
-    mockActivityTrackingService.getAccountActivity = (signerId: string) => {
+    mockActivityTrackingService.getAccountActivity = (
+      signerId: string,
+      filter?: { platforms?: PlatformName[] },
+    ) => {
       if (signerId === 'test.near') {
         return Promise.resolve({
           signerId: 'test.near',
-          postCount: 10,
-          firstPostTimestamp: Date.now() - 604800000,
-          lastPostTimestamp: Date.now(),
+          timeframe: TimePeriod.ALL,
+          totalPosts: 10,
+          totalLikes: 0,
+          totalReposts: 0,
+          totalReplies: 0,
+          totalQuotes: 0,
+          totalScore: 10,
+          rank: 0,
+          lastActive: new Date(Date.now()).toISOString(),
+          platforms: [
+            {
+              platform: Platform.TWITTER,
+              posts: 8,
+              likes: 0,
+              reposts: 0,
+              replies: 0,
+              quotes: 0,
+              score: 8,
+              lastActive: new Date(Date.now()).toISOString(),
+            },
+            {
+              platform: Platform.TWITTER,
+              posts: 2,
+              likes: 0,
+              reposts: 0,
+              replies: 0,
+              quotes: 0,
+              score: 2,
+              lastActive: new Date(Date.now() - 86400000).toISOString(),
+            },
+          ],
         });
       }
       return Promise.resolve(null);
@@ -190,7 +230,7 @@ describe('Activity Controller', () => {
     assertEquals(response.status, 200);
     assertExists(responseBody.data);
     assertEquals(responseBody.data.signerId, 'test.near');
-    assertEquals(responseBody.data.postCount, 10);
+    assertEquals(responseBody.data.totalPosts, 10);
   });
 
   it('should handle not found account activity', async () => {
@@ -200,15 +240,36 @@ describe('Activity Controller', () => {
     });
 
     // Override the mock service to return null for this specific signerId
-    mockActivityTrackingService.getAccountActivity = (signerId: string) => {
+    mockActivityTrackingService.getAccountActivity = (
+      signerId: string,
+      filter?: { platforms?: PlatformName[] },
+    ) => {
       if (signerId === 'nonexistent.near') {
         return Promise.resolve(null);
       }
       return Promise.resolve({
         signerId: signerId,
-        postCount: 10,
-        firstPostTimestamp: Date.now() - 604800000,
-        lastPostTimestamp: Date.now(),
+        timeframe: TimePeriod.ALL,
+        totalPosts: 10,
+        totalLikes: 0,
+        totalReposts: 0,
+        totalReplies: 0,
+        totalQuotes: 0,
+        totalScore: 10,
+        rank: 0,
+        lastActive: new Date(Date.now()).toISOString(),
+        platforms: [
+          {
+            platform: Platform.TWITTER,
+            posts: 10,
+            likes: 0,
+            reposts: 0,
+            replies: 0,
+            quotes: 0,
+            score: 10,
+            lastActive: new Date(Date.now()).toISOString(),
+          },
+        ],
       });
     };
 
@@ -224,26 +285,46 @@ describe('Activity Controller', () => {
   });
 
   it('should handle platform-specific account activity', async () => {
-    // Create a mock context with platform query parameter
+    // Create a mock context with platforms filter
     const context = createMockContext({
       signerId: 'test.near',
       validatedQuery: {
-        platform: Platform.TWITTER,
+        filter: {
+          platforms: [Platform.TWITTER],
+          timeframe: TimePeriod.ALL,
+        },
       },
     });
 
     // Set up the mock service to return the expected data
-    mockActivityTrackingService.getPlatformAccountActivity = (
+    mockActivityTrackingService.getAccountActivity = (
       signerId: string,
-      platform: PlatformName,
+      filter?: { platforms?: PlatformName[] },
     ) => {
-      if (signerId === 'test.near' && platform === Platform.TWITTER) {
+      if (signerId === 'test.near' && filter?.platforms?.[0] === Platform.TWITTER) {
         return Promise.resolve({
           signerId: 'test.near',
-          platform: Platform.TWITTER,
-          postCount: 8,
-          firstPostTimestamp: Date.now() - 604800000,
-          lastPostTimestamp: Date.now(),
+          timeframe: TimePeriod.ALL,
+          totalPosts: 8,
+          totalLikes: 0,
+          totalReposts: 0,
+          totalReplies: 0,
+          totalQuotes: 0,
+          totalScore: 8,
+          rank: 0,
+          lastActive: new Date(Date.now()).toISOString(),
+          platforms: [
+            {
+              platform: Platform.TWITTER,
+              posts: 8,
+              likes: 0,
+              reposts: 0,
+              replies: 0,
+              quotes: 0,
+              score: 8,
+              lastActive: new Date(Date.now()).toISOString(),
+            },
+          ],
         });
       }
       return Promise.resolve(null);
@@ -257,8 +338,9 @@ describe('Activity Controller', () => {
     assertEquals(response.status, 200);
     assertExists(responseBody.data);
     assertEquals(responseBody.data.signerId, 'test.near');
-    assertEquals(responseBody.data.platform, Platform.TWITTER);
-    assertEquals(responseBody.data.postCount, 8);
+    assertEquals(responseBody.data.totalPosts, 8);
+    assertEquals(responseBody.data.platforms[0].platform, Platform.TWITTER);
+    assertEquals(responseBody.data.platforms[0].posts, 8);
   });
 
   // Test cases for getAccountPosts
@@ -282,30 +364,37 @@ describe('Activity Controller', () => {
   });
 
   it('should handle platform-specific account posts', async () => {
-    // Create a mock context with platform query parameter
+    // Create a mock context with platforms filter
     const context = createMockContext({
       signerId: 'test.near',
 
       validatedQuery: {
-        platform: Platform.TWITTER,
-        limit: '10',
-        offset: '0',
+        filter: {
+          platforms: [Platform.TWITTER],
+          timeframe: TimePeriod.ALL,
+        },
+        limit: 10,
+        offset: 0,
       },
     });
 
-    mockActivityTrackingService.getAccountPlatformPosts = () =>
+    mockActivityTrackingService.getAccountPosts = () =>
       Promise.resolve([
         {
           id: 'post1',
           platform: Platform.TWITTER,
-          type: 'post',
+          userId: 'twitterUser1',
+          type: ActivityType.POST,
           createdAt: new Date().toISOString(),
+          url: 'https://twitter.com/user/status/post1',
         },
         {
           id: 'post2',
           platform: Platform.TWITTER,
-          type: 'post',
+          userId: 'twitterUser1',
+          type: ActivityType.POST,
           createdAt: new Date(Date.now() - 86400000).toISOString(),
+          url: 'https://twitter.com/user/status/post2',
         },
       ]);
 
@@ -320,7 +409,7 @@ describe('Activity Controller', () => {
     assertEquals(responseBody.data.posts.length, 2);
     assertEquals(responseBody.data.posts[0].id, 'post1');
     assertEquals(responseBody.data.posts[0].platform, Platform.TWITTER);
-    assertEquals(responseBody.data.platform, Platform.TWITTER);
+    assertEquals(responseBody.data.platforms[0], Platform.TWITTER);
   });
 
   it('should handle internal errors gracefully', async () => {
@@ -393,7 +482,7 @@ describe('Activity Controller', () => {
   it('should handle authentication errors', async () => {
     // Create a new controller with a mock service that throws an auth error
     const errorMockService = new MockActivityTrackingService();
-    errorMockService.getPlatformAccountActivity = () => {
+    errorMockService.getAccountActivity = () => {
       throw createPlatformError(
         ApiErrorCode.UNAUTHORIZED,
         'Authentication failed',
@@ -409,7 +498,10 @@ describe('Activity Controller', () => {
       signerId: 'test.near',
 
       validatedQuery: {
-        platform: Platform.TWITTER,
+        filter: {
+          platforms: [Platform.TWITTER],
+          timeframe: TimePeriod.ALL,
+        },
       },
     });
 
@@ -463,7 +555,7 @@ describe('Activity Controller', () => {
   it('should handle validation errors', async () => {
     // Create a new controller with a mock service that throws a validation error
     const errorMockService = new MockActivityTrackingService();
-    errorMockService.getPlatformLeaderboard = () => {
+    errorMockService.getLeaderboard = () => {
       throw createPlatformError(
         ApiErrorCode.VALIDATION_ERROR,
         'Invalid parameters',

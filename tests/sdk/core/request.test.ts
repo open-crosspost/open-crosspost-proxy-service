@@ -30,13 +30,13 @@ const MOCK_NEAR_AUTH_DATA: NearAuthData = {
 };
 
 const MOCK_REQUEST_OPTIONS: RequestOptions = {
-  baseUrl: MOCK_BASE_URL,
+  baseUrl: new URL(MOCK_BASE_URL),
   nearAuthData: MOCK_NEAR_AUTH_DATA,
   timeout: 1000,
 };
 
 const MOCK_GET_OPTIONS: RequestOptions = {
-  baseUrl: MOCK_BASE_URL,
+  baseUrl: new URL(MOCK_BASE_URL),
   nearAccount: 'test.near',
   timeout: 1000,
 };
@@ -59,7 +59,7 @@ function mockSuccessResponse<T>(data: T): Response {
   const body: ApiResponse<T> = {
     success: true,
     data,
-    meta: { requestId: 'req-123', timestamp: new Date().toISOString() },
+    meta: { requestId: 'req-123', timestamp: '2025-01-01T00:00:00.000Z' },
   };
   return createMockResponse(body as any, 200, true);
 }
@@ -68,7 +68,7 @@ function mockErrorResponse(errors: ErrorDetail[], status: number): Response {
   const body: ApiResponse<never> = {
     success: false,
     errors,
-    meta: { requestId: 'req-123', timestamp: new Date().toISOString() },
+    meta: { requestId: 'req-123', timestamp: '2025-01-01T00:00:00.000Z' },
   };
   return createMockResponse(body as any, status, false);
 }
@@ -117,14 +117,18 @@ describe('makeRequest', () => {
         '/test',
         MOCK_GET_OPTIONS,
       );
-      expect(result).toEqual(mockData);
+      expect(result).toEqual({
+        success: true,
+        data: mockData,
+        meta: { requestId: 'req-123', timestamp: '2025-01-01T00:00:00.000Z' },
+      });
       expect(fetchStub.calls.length).toBe(1);
       const urlArg = fetchStub.calls[0].args[0];
       const optionsArg = fetchStub.calls[0].args[1];
       expect(optionsArg?.method).toBe('GET');
       const headers = new Headers(optionsArg?.headers);
       expect(headers.get('X-Near-Account')).toBe('test.near');
-      expect(urlArg).toBe(`${MOCK_BASE_URL}/test`);
+      expect((urlArg as URL).href).toBe(`${MOCK_BASE_URL}/test`);
     } finally {
       fetchStub.restore();
     }
@@ -147,14 +151,18 @@ describe('makeRequest', () => {
         requestBody,
       );
 
-      expect(result).toEqual(mockData);
+      expect(result).toEqual({
+        success: true,
+        data: mockData,
+        meta: { requestId: 'req-123', timestamp: '2025-01-01T00:00:00.000Z' },
+      });
       expect(fetchStub.calls.length).toBe(1);
       const urlArg = fetchStub.calls[0].args[0];
       const optionsArg = fetchStub.calls[0].args[1];
       expect(optionsArg?.method).toBe('POST');
       const headers = new Headers(optionsArg?.headers);
       expect(headers.get('Authorization')).toMatch(/^Bearer .+$/);
-      expect(urlArg).toBe(`${MOCK_BASE_URL}/posts`);
+      expect((urlArg as URL).href).toBe(`${MOCK_BASE_URL}/posts`);
       expect(optionsArg?.body).toBe(JSON.stringify(requestBody));
     } finally {
       fetchStub.restore();

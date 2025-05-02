@@ -1,4 +1,5 @@
 import type {
+  ApiResponse,
   EndpointRateLimitResponse,
   HealthStatus,
   RateLimitEndpointParam,
@@ -25,7 +26,7 @@ export class SystemApi {
    * Gets the current rate limit status
    * @returns A promise resolving with the rate limit response
    */
-  async getRateLimits(): Promise<RateLimitResponse> {
+  async getRateLimits(): Promise<ApiResponse<RateLimitResponse>> {
     return makeRequest<RateLimitResponse, never>(
       'GET',
       '/api/rate-limit',
@@ -38,7 +39,7 @@ export class SystemApi {
    * @param endpoint The endpoint to get rate limit for
    * @returns A promise resolving with the endpoint rate limit response
    */
-  async getEndpointRateLimit(endpoint: string): Promise<EndpointRateLimitResponse> {
+  async getEndpointRateLimit(endpoint: string): Promise<ApiResponse<EndpointRateLimitResponse>> {
     return makeRequest<EndpointRateLimitResponse, never, RateLimitEndpointParam>(
       'GET',
       `/api/rate-limit/${endpoint}`,
@@ -52,7 +53,7 @@ export class SystemApi {
    * Gets the health status of the API
    * @returns A promise resolving with the health status
    */
-  async getHealthStatus(): Promise<HealthStatus> {
+  async getHealthStatus(): Promise<ApiResponse<HealthStatus>> {
     return makeRequest<HealthStatus, never>(
       'GET',
       '/health',

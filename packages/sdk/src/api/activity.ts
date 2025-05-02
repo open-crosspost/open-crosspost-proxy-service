@@ -5,6 +5,7 @@ import type {
   AccountPostsResponse,
   ActivityLeaderboardQuery,
   ActivityLeaderboardResponse,
+  ApiResponse,
 } from '@crosspost/types';
 import { makeRequest, type RequestOptions } from '../core/request.ts';
 
@@ -27,7 +28,9 @@ export class ActivityApi {
    * @param query Optional query parameters
    * @returns A promise resolving with the leaderboard response
    */
-  async getLeaderboard(query?: ActivityLeaderboardQuery): Promise<ActivityLeaderboardResponse> {
+  async getLeaderboard(
+    query?: ActivityLeaderboardQuery,
+  ): Promise<ApiResponse<ActivityLeaderboardResponse>> {
     return makeRequest<ActivityLeaderboardResponse, never, ActivityLeaderboardQuery>(
       'GET',
       '/api/activity',
@@ -46,7 +49,7 @@ export class ActivityApi {
   async getAccountActivity(
     signerId: string,
     query?: AccountActivityQuery,
-  ): Promise<AccountActivityResponse> {
+  ): Promise<ApiResponse<AccountActivityResponse>> {
     return makeRequest<AccountActivityResponse, never, AccountActivityQuery>(
       'GET',
       `/api/activity/${signerId}`,
@@ -65,7 +68,7 @@ export class ActivityApi {
   async getAccountPosts(
     signerId: string,
     query?: AccountPostsQuery,
-  ): Promise<AccountPostsResponse> {
+  ): Promise<ApiResponse<AccountPostsResponse>> {
     return makeRequest<AccountPostsResponse, never, AccountPostsQuery>(
       'GET',
       `/api/activity/${signerId}/posts`,

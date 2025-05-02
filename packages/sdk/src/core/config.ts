@@ -8,7 +8,7 @@ export interface CrosspostClientConfig {
    * Base URL for the Crosspost API
    * @default 'https://open-crosspost-proxy.deno.dev'
    */
-  baseUrl?: string;
+  baseUrl?: string | URL;
   /**
    * NEAR authentication data obtained from near-sign-verify
    */
@@ -24,6 +24,6 @@ export interface CrosspostClientConfig {
  * Default configuration values for the CrosspostClient
  */
 export const DEFAULT_CONFIG: Required<Omit<CrosspostClientConfig, 'nearAuthData'>> = {
-  baseUrl: 'https://open-crosspost-proxy.deno.dev/',
+  baseUrl: new URL('https://open-crosspost-proxy.deno.dev/'),
   timeout: 30000,
 };
