@@ -10,7 +10,7 @@ interface ApiResponse<T> {
   success: boolean;
 
   /** The primary data payload. Present when success is true */
-  data?: T | MultiStatusData | null;
+  data?: T | null;
 
   /** Array of error details. Present when success is false */
   errors?: ErrorDetail[] | null;

@@ -84,13 +84,13 @@ export const NearAuthorizationRequestSchema = z.object({
 }).describe('NEAR authorization request');
 
 export const NearAuthorizationResponseSchema = z.object({
-  nearAccount: z.string().describe('NEAR account ID'),
-  authorized: z.boolean().describe('Whether the account is authorized'),
+  signerId: z.string().describe('NEAR account ID'),
+  isAuthorized: z.boolean().describe('Whether the account is authorized'),
 }).describe('NEAR authorization response');
 
 export const NearAuthorizationStatusResponseSchema = z.object({
-  nearAccount: z.string().describe('NEAR account ID'),
-  authorized: z.boolean().describe('Whether the account is authorized'),
+  signerId: z.string().describe('NEAR account ID'),
+  isAuthorized: z.boolean().describe('Whether the account is authorized'),
   authorizedAt: z.string().optional().describe('When the account was authorized'),
 }).describe('NEAR authorization status response');
 

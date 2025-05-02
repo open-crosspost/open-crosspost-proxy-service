@@ -43,7 +43,7 @@ export const MultiStatusDataSchema = z.object({
 
 export interface ApiResponse<T> {
   success: boolean;
-  data?: T | MultiStatusData | null; // Allow null for success without data, updated type name
+  data?: T | null; // Allow null for success without data, updated type name
   errors?: ErrorDetail[] | null; // Allow null for success
   meta: ResponseMeta; // Mandatory, holds request id
 }
