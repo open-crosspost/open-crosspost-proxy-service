@@ -1,10 +1,9 @@
-import { ApiErrorCode, ApiResponse, Platform } from '@crosspost/types';
-import { assertRejects } from 'jsr:@std/assert';
+import { ApiErrorCode, ApiResponse } from '@crosspost/types';
 import { expect } from 'jsr:@std/expect';
 import { afterEach, beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { CrosspostClient } from '../../../packages/sdk/src/core/client.ts';
 import { makeRequest, type RequestOptions } from '../../../packages/sdk/src/core/request.ts';
-import { CrosspostError } from '../../../packages/sdk/src/utils/error.ts';
+import { CrosspostError, isValidationError } from '../../../packages/sdk/src/utils/error.ts';
 import { createMockNearAuthData } from '../../utils/test-utils.ts';
 import { createTestServer, startTestServer } from '../utils/test-server.ts';
 
@@ -210,5 +209,34 @@ describe('SDK Validation Error Handling', () => {
     expect(response).toBeDefined();
     expect((response as any).success).toBe(true);
     expect((response as any).data).toBeDefined();
+  });
+
+  it('should correctly identify validation errors using isValidationError helper', async () => {
+    // Missing required field
+    const promise = validationApi.testBodyValidation({
+      // Missing requiredField
+      numericField: 10,
+      arrayField: ['item1'],
+    });
+
+    try {
+      await promise;
+    } catch (error) {
+      // Test isValidationError helper function
+      expect(isValidationError(error)).toBe(true);
+
+      // Test with other error types for comparison
+      expect(isValidationError(new Error('Generic error'))).toBe(false);
+      expect(isValidationError(null)).toBe(false);
+      expect(isValidationError(undefined)).toBe(false);
+
+      // Create a non-validation CrosspostError for comparison
+      const nonValidationError = new CrosspostError(
+        'Not a validation error',
+        ApiErrorCode.NETWORK_ERROR,
+        500,
+      );
+      expect(isValidationError(nonValidationError)).toBe(false);
+    }
   });
 });

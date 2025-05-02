@@ -5,9 +5,9 @@ import { ActivityTrackingService } from '../../domain/services/activity-tracking
 import { AuthService } from '../../domain/services/auth.service.ts';
 import { PostService } from '../../domain/services/post.service.ts';
 import { RateLimitService } from '../../domain/services/rate-limit.service.ts';
+import { createSuccessDetail } from '../../utils/response.utils.ts';
 import { addContentVariation } from '../../utils/spam-detection.utils.ts';
 import { BasePostController } from './base.controller.ts';
-import { createSuccessDetail } from '../../utils/response.utils.ts';
 
 export class CreateController extends BasePostController {
   constructor(

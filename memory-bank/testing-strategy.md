@@ -112,6 +112,30 @@ describe('TwitterClient', () => {
 
 **Location:** `tests/integration/` **Purpose:** Test complete workflows across components
 
+#### SDK Integration Tests
+
+The SDK integration tests verify the SDK's interaction with the API:
+
+1. **Validation Tests** (`tests/integration/sdk/validation.test.ts`):
+   - Verify proper handling of validation errors for request body, query parameters, and URL
+     parameters
+   - Test error propagation and typing with `CrosspostError`
+   - Confirm error details contain appropriate validation context
+
+2. **Multi-Status Tests** (`tests/integration/sdk/multi-status.test.ts`):
+   - Test handling of partial success/failure scenarios in bulk operations
+   - Cover different multi-status scenarios (partial success, complete success, complete failure)
+   - Verify proper error aggregation for multiple failures
+   - Test specific error code handling
+
+3. **Pagination Tests** (`tests/integration/sdk/pagination.test.ts`):
+   - Validate the SDK's ability to handle paginated responses with proper metadata
+   - Test offset-based pagination with various configurations
+   - Verify correct handling of pagination metadata
+
+These tests use a mock server that simulates the API's behavior, allowing for comprehensive testing
+without external dependencies.
+
 ## Mocking Strategies
 
 ### 1. Function Mocking

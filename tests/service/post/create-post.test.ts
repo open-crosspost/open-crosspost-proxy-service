@@ -1,8 +1,8 @@
 import { ApiErrorCode, Platform, PostContent } from '@crosspost/types';
-import { createPlatformError } from '../../../src/errors/platform-error.ts';
 import { assertArrayIncludes, assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { CreateController } from '../../../src/controllers/post/create.controller.ts';
+import { createPlatformError } from '../../../src/errors/platform-error.ts';
 import {
   createAuthErrorServices,
   createMockContext,
@@ -10,8 +10,6 @@ import {
   createPlatformErrorServices,
   createRateLimitErrorServices,
 } from '../../utils/test-utils.ts';
-import { ApiResponseError } from 'twitter-api-v2';
-import { createMockTwitterError } from '../../utils/twitter-utils.ts';
 
 describe('Post Creation Controller', () => {
   let controller: CreateController;

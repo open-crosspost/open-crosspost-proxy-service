@@ -66,6 +66,10 @@ complete, tested, and documented.
 - ✅ Method-based authentication support
   - ✅ Simplified header-based auth for GET requests
   - ✅ Full NEAR auth for write operations
+- ✅ SDK Integration Tests
+  - ✅ Validation error handling tests
+  - ✅ Multi-status response handling tests
+  - ✅ Pagination handling tests
 
 ### Types and Schemas
 
