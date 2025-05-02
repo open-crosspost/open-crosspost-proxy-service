@@ -37,7 +37,7 @@ function createResponseMeta(
  */
 export function createSuccessResponse<T>(
   c: Context,
-  data: T | MultiStatusData,
+  data: T,
   meta: Partial<ResponseMeta> = {},
 ): ApiResponse<T> {
   return {

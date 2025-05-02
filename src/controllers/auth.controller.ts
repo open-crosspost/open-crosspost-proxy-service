@@ -3,6 +3,8 @@ import {
   AuthUrlResponse,
   ConnectedAccountsResponse,
   errorCodeToStatusCode,
+  NearAuthorizationResponse,
+  NearAuthorizationStatusResponse,
   PlatformName,
   ProfileRefreshResponse,
 } from '@crosspost/types';
@@ -385,7 +387,12 @@ export class AuthController extends BaseController {
       const result = await this.nearAuthService.authorizeNearAccount(signerId);
 
       if (result.success) {
-        return c.json(createSuccessResponse(c, { signerId: signerId }));
+        return c.json(
+          createSuccessResponse<NearAuthorizationResponse>(c, {
+            signerId: signerId,
+            isAuthorized: true,
+          }),
+        );
       } else {
         throw createApiError(
           ApiErrorCode.INTERNAL_ERROR,
@@ -479,7 +486,7 @@ export class AuthController extends BaseController {
       const authStatus = await this.nearAuthService.getNearAuthorizationStatus(signerId);
       const isAuthorized = authStatus >= 0; // -1 means not authorized, 0 or greater means authorized
 
-      return c.json(createSuccessResponse(c, {
+      return c.json(createSuccessResponse<NearAuthorizationStatusResponse>(c, {
         signerId,
         isAuthorized,
       }));

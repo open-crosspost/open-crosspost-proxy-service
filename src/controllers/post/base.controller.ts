@@ -2,8 +2,8 @@ import {
   ApiErrorCode,
   errorCodeToStatusCode,
   ErrorDetail,
+  MultiStatusData,
   PlatformName,
-  StatusCode,
 } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.ts';
@@ -232,7 +232,7 @@ export abstract class BasePostController extends BaseController {
         c.status(200);
       }
 
-      return c.json(createSuccessResponse(c, multiStatusData));
+      return c.json(createSuccessResponse<MultiStatusData>(c, multiStatusData));
     }
   }
 }
