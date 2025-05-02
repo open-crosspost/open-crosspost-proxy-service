@@ -3,12 +3,12 @@ import {
   AccountActivityQuery,
   AccountActivityResponse,
   AccountPost,
+  AccountPostsParams,
   AccountPostsQuery,
   AccountPostsResponse,
   ActivityLeaderboardQuery,
   ActivityLeaderboardResponse,
   ApiErrorCode,
-  Platform,
   TimePeriod,
 } from '@crosspost/types';
 import { Context } from '../../deps.ts';
@@ -104,8 +104,9 @@ export class ActivityController extends BaseController {
   async getAccountPosts(c: Context): Promise<Response> {
     try {
       // Extract NEAR account ID from the validated signature
-      const signerId = c.get('signerId') as string;
+      // const signerId = c.get('signerId') as string;
 
+      const { signerId } = c.get('validatedParams') as AccountPostsParams || {};
       const { limit, offset, filter } = c.get('validatedQuery') as AccountPostsQuery || {};
 
       // Get posts with pagination
