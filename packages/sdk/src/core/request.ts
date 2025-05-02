@@ -177,7 +177,10 @@ export async function makeRequest<
     if (
       error instanceof TypeError || (error instanceof DOMException && error.name === 'AbortError')
     ) {
-      throw enrichErrorWithContext(createNetworkError(error, url.toString(), options.timeout), context);
+      throw enrichErrorWithContext(
+        createNetworkError(error, url.toString(), options.timeout),
+        context,
+      );
     }
 
     // For any other errors, wrap them with context

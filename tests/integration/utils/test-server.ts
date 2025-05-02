@@ -1,53 +1,15 @@
-import { ApiErrorCode, Platform, type StatusCode } from '@crosspost/types';
+import { CreatePostRequestSchema } from '@crosspost/types';
 import type { Context } from '../../../deps.ts';
-import { Hono } from '../../../deps.ts';
-import {
-  createErrorDetail,
-  createMultiStatusData,
-  createSuccessDetail,
-  createSuccessResponse
-} from '../../../src/utils/response.utils.ts';
-import { TestCreateController } from './mock-controllers.ts';
-
-/**
- * Creates a test server for integration testing
- * @returns A Hono app configured for testing
- */
-export function createTestServer() {
-  const app = new Hono();
-
-  app.use('*', async (c, next) => {
-    const requestId = crypto.randomUUID();
-    (c as any).requestId = requestId;
-
-    // Extract signerId from headers
-    const authHeader = c.req.header('Authorization');
-    const nearAccountHeader = c.req.header('X-Near-Account');
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        const authData = JSON.parse(authHeader.substring(7));
-        (c as any).signerId = authData.account_id;
-      } catch (e) {
-        (c as any).signerId = 'test.near';
-      }
-    } else if (nearAccountHeader) {
-      (c as any).signerId = nearAccountHeader;
-    } else {
-      (c as any).signerId = 'test.near';
-    }
-
-    await next();
-  });
-
-  return app;
-}
+import { Hono, z } from '../../../deps.ts';
+import { ValidationMiddleware } from '../../../src/middleware/validation.middleware.ts';
+import { createSuccessResponse } from '../../../src/utils/response.utils.ts';
+import { MockActivityController, TestCreateController } from './mock-controllers.ts';
 
 /**
  * Creates a test server with real controller logic for testing
- * @returns A Hono app configured with the TestCreateController
+ * @returns A Hono app configured with the TestCreateController and MockActivityController
  */
-export function createRealControllerTestServer() {
+export function createTestServer() {
   const app = new Hono();
 
   // Add middleware for request context
@@ -70,22 +32,105 @@ export function createRealControllerTestServer() {
     } else {
       (c as any).signerId = 'test.near';
     }
-    
+
     await next();
   });
 
   // Create test controller
   const testController = new TestCreateController();
 
-  // Add endpoint that matches SDK's expected path
-  app.post('/api/post', async (c) => {
-    // Parse and validate request body
-    const body = await c.req.json();
-    (c as any).validatedBody = body;
-
+  // Add endpoint that matches SDK's expected path for post creation
+  app.post('/api/post', ValidationMiddleware.validateBody(CreatePostRequestSchema), async (c) => {
     // Use the test controller to handle the request
     return testController.handle(c);
   });
+
+  // Add activity endpoints
+  app.get('/api/activity', async (c) => {
+    return MockActivityController.handleGetLeaderboard(c);
+  });
+
+  app.get('/api/activity/:signerId', async (c) => {
+    return MockActivityController.handleGetAccountActivity(c);
+  });
+
+  // Add account posts endpoint
+  app.get('/api/activity/:signerId/posts', async (c) => {
+    // For simplicity, reuse the account activity handler
+    return MockActivityController.handleGetAccountActivity(c);
+  });
+
+  // Add validation test endpoints
+
+  // Body validation test endpoint
+  app.post(
+    '/api/validation-test/body',
+    ValidationMiddleware.validateBody(
+      z.object({
+        requiredField: z.string().min(1),
+        numericField: z.number().positive(),
+        arrayField: z.array(z.string()).min(1),
+      }),
+    ),
+    async (c) => {
+      // If validation passes, return success
+      // Ensure data is defined, defaulting to {} if validatedBody is undefined
+      const validatedData = (c as any).validatedBody ?? {};
+      return c.json({
+        success: true,
+        data: validatedData,
+        meta: {
+          requestId: (c as any).requestId,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    },
+  );
+
+  // Query validation test endpoint
+  app.get(
+    '/api/validation-test/query',
+    ValidationMiddleware.validateQuery(
+      z.object({
+        requiredParam: z.string().min(1),
+        numericParam: z.coerce.number().positive(),
+        optionalParam: z.string().optional(),
+      }),
+    ),
+    async (c) => {
+      // If validation passes, return success
+      return c.json({
+        success: true,
+        data: (c as any).validatedQuery,
+        meta: {
+          requestId: (c as any).requestId,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    },
+  );
+
+  // Params validation test endpoint
+  app.get(
+    '/api/validation-test/params/:id/:category',
+    ValidationMiddleware.validateParams(
+      z.object({
+        id: z.string().uuid(),
+        category: z.enum(['news', 'sports', 'tech']),
+      }),
+    ),
+    async (c) => {
+      // If validation passes, return success
+      return c.json({
+        success: true,
+        data: (c as any).validatedParams,
+        meta: {
+          requestId: (c as any).requestId,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    },
+  );
 
   return app;
 }
@@ -118,7 +163,7 @@ export async function startTestServer(app: Hono, retries = 3): Promise<{
       if (error instanceof Deno.errors.AddrInUse && attempt < retries - 1) {
         // If address is in use and we have retries left, try again
         attempt++;
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay before retry
+        await new Promise((resolve) => setTimeout(resolve, 100)); // Small delay before retry
         continue;
       }
       throw error; // Rethrow if we've exhausted retries or it's another error
@@ -129,118 +174,26 @@ export async function startTestServer(app: Hono, retries = 3): Promise<{
 }
 
 /**
- * Creates a mock multi-status response for testing
- * @param c Hono context
- * @param successCount Number of successful operations
- * @param errorCount Number of failed operations
- * @param errorCode Error code for failed operations
- * @returns Response with multi-status data
- */
-export function createMockMultiStatusResponse(
-  c: Context,
-  successCount: number,
-  errorCount: number,
-  errorCode: ApiErrorCode = ApiErrorCode.PLATFORM_ERROR
-): Response {
-  const successResults = Array.from({ length: successCount }, (_, i) =>
-    createSuccessDetail(
-      Platform.TWITTER,
-      `success-user-${i}`,
-      {
-        id: `post-${i}`,
-        text: 'Test post content',
-        createdAt: new Date().toISOString(),
-        success: true
-      }
-    )
-  );
-
-  const errorDetails = Array.from({ length: errorCount }, (_, i) =>
-    createErrorDetail(
-      `Error for user ${i}`,
-      errorCode,
-      false,
-      {
-        platform: Platform.TWITTER,
-        userId: `error-user-${i}`
-      }
-    )
-  );
-
-  const multiStatusData = createMultiStatusData(successResults, errorDetails);
-
-  // Determine appropriate status code
-  let statusCode: StatusCode = 200;
-  if (successCount === 0 && errorCount > 0) {
-    // Complete failure - use appropriate status code based on error type
-    statusCode = errorCode === ApiErrorCode.RATE_LIMITED ? 429 :
-      errorCode === ApiErrorCode.UNAUTHORIZED ? 401 :
-        errorCode === ApiErrorCode.VALIDATION_ERROR ? 400 : 502;
-  } else if (successCount > 0 && errorCount > 0) {
-    // Partial success - use 207 Multi-Status
-    statusCode = 207;
-  }
-
-  c.status(statusCode);
-  return c.json(createSuccessResponse(c, multiStatusData));
-}
-
-/**
  * Creates a mock paginated response for testing
  * @param c Hono context
  * @param data Response data
- * @param page Current page
- * @param perPage Items per page
- * @param total Total items
+ * @param limit Maximum number of items per page
+ * @param offset Number of items to skip
+ * @param total Total number of items
  * @returns Response with pagination metadata
  */
 export function createMockPaginatedResponse<T>(
   c: Context,
   data: T,
-  page: number,
-  perPage: number,
-  total: number
+  limit: number,
+  offset: number,
+  total: number,
 ): Response {
-  const totalPages = Math.ceil(total / perPage);
-
   return c.json(createSuccessResponse(c, data, {
     pagination: {
-      page,
-      perPage,
+      limit,
+      offset,
       total,
-      totalPages,
-      nextCursor: page < totalPages ? String(page + 1) : undefined,
-      prevCursor: page > 1 ? String(page - 1) : undefined
-    }
+    },
   }));
-}
-
-/**
- * Creates a mock validation error response
- * @param c Hono context
- * @param message Error message
- * @param details Validation details
- * @returns Response with validation error
- */
-export function createMockValidationErrorResponse(
-  c: Context,
-  message: string,
-  details: Record<string, unknown> = {}
-): Response {
-  const errorDetail = createErrorDetail(
-    message,
-    ApiErrorCode.VALIDATION_ERROR,
-    false,
-    details
-  );
-
-  c.status(400);
-  return c.json({
-    success: false,
-    errors: [errorDetail],
-    meta: {
-      requestId: c.get('requestId'),
-      timestamp: new Date().toISOString()
-    }
-  });
 }

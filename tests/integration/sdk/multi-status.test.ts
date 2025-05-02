@@ -3,7 +3,7 @@ import { expect } from 'jsr:@std/expect';
 import { afterEach, beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { CrosspostClient } from '../../../packages/sdk/src/core/client.ts';
 import { createMockNearAuthData } from '../../utils/test-utils.ts';
-import { createRealControllerTestServer, startTestServer } from '../utils/test-server.ts';
+import { createTestServer, startTestServer } from '../utils/test-server.ts';
 
 describe('SDK Multi-Status Response Handling', () => {
   let server: Deno.HttpServer;
@@ -13,7 +13,7 @@ describe('SDK Multi-Status Response Handling', () => {
   // Setup before each test
   beforeEach(async () => {
     // Create a test server with real controller logic
-    const app = createRealControllerTestServer();
+    const app = createTestServer();
 
     // Start the server with dynamic port assignment
     const { server: testServer, url } = await startTestServer(app);
@@ -22,7 +22,7 @@ describe('SDK Multi-Status Response Handling', () => {
 
     // Create SDK client
     client = new CrosspostClient({
-      baseUrl: serverUrl.toString()
+      baseUrl: serverUrl.toString(),
     });
 
     // Set proper authentication for both GET and POST requests
@@ -46,9 +46,9 @@ describe('SDK Multi-Status Response Handling', () => {
     const response = await client.post.createPost({
       targets: [
         { platform: Platform.TWITTER, userId: 'user1' },
-        { platform: Platform.TWITTER, userId: 'user2' }
+        { platform: Platform.TWITTER, userId: 'user2' },
       ],
-      content: [{ text: 'partial success test' }]
+      content: [{ text: 'partial success test' }],
     });
 
     // Verify response structure
@@ -80,9 +80,9 @@ describe('SDK Multi-Status Response Handling', () => {
     const response = await client.post.createPost({
       targets: [
         { platform: Platform.TWITTER, userId: 'user1' },
-        { platform: Platform.TWITTER, userId: 'user2' }
+        { platform: Platform.TWITTER, userId: 'user2' },
       ],
-      content: [{ text: 'all_success test' }]
+      content: [{ text: 'all_success test' }],
     });
 
     // Verify response structure
@@ -103,67 +103,65 @@ describe('SDK Multi-Status Response Handling', () => {
 
   it('should handle complete failure for all targets', async () => {
     // Create a post with multiple targets and all_error trigger
-    const response = await client.post.createPost({
+    const promise = client.post.createPost({
       targets: [
         { platform: Platform.TWITTER, userId: 'user1' },
-        { platform: Platform.TWITTER, userId: 'user2' }
+        { platform: Platform.TWITTER, userId: 'user2' },
       ],
-      content: [{ text: 'all_error test' }]
+      content: [{ text: 'all_error test' }],
     });
 
-    // Verify response structure
-    expect(response.success).toBe(true);
-    expect(response.data).toBeDefined();
+    // Expect the request to throw a CrosspostError
+    await expect(promise).rejects.toThrow();
 
-    // Check multi-status data
-    const multiStatusData = response.data as any;
-    expect(multiStatusData.summary).toBeDefined();
-    expect(multiStatusData.summary.total).toBe(2);
-    expect(multiStatusData.summary.succeeded).toBe(0);
-    expect(multiStatusData.summary.failed).toBe(2);
-
-    // Check error details
-    expect(multiStatusData.results).toHaveLength(0);
-    expect(multiStatusData.errors).toHaveLength(2);
-    expect(multiStatusData.errors[0].code).toBe(ApiErrorCode.PLATFORM_ERROR);
-    expect(multiStatusData.errors[1].code).toBe(ApiErrorCode.PLATFORM_ERROR);
+    try {
+      await promise;
+    } catch (error: any) {
+      // Verify error details
+      expect(error.message).toBe('Multiple errors occurred');
+      expect(error.status).toBe(400);
+      expect(error.details).toBeDefined();
+      expect(error.details.errors).toBeDefined();
+      expect(error.details.errors).toHaveLength(2);
+      expect(error.details.errors[0].code).toBe(ApiErrorCode.PLATFORM_ERROR);
+      expect(error.details.errors[1].code).toBe(ApiErrorCode.PLATFORM_ERROR);
+    }
   });
 
   it('should handle specific error codes', async () => {
     // Create a post with multiple targets and specific error code trigger
-    const response = await client.post.createPost({
+    const promise = client.post.createPost({
       targets: [
         { platform: Platform.TWITTER, userId: 'user1' },
-        { platform: Platform.TWITTER, userId: 'user2' }
+        { platform: Platform.TWITTER, userId: 'user2' },
       ],
-      content: [{ text: 'all_error:RATE_LIMITED test' }]
+      content: [{ text: 'all_error:RATE_LIMITED test' }],
     });
 
-    // Verify response structure
-    expect(response.success).toBe(true);
-    expect(response.data).toBeDefined();
+    // Expect the request to throw a CrosspostError
+    await expect(promise).rejects.toThrow();
 
-    // Check multi-status data
-    const multiStatusData = response.data as any;
-    expect(multiStatusData.summary).toBeDefined();
-    expect(multiStatusData.summary.total).toBe(2);
-    expect(multiStatusData.summary.succeeded).toBe(0);
-    expect(multiStatusData.summary.failed).toBe(2);
-
-    // Check error details with specific error code
-    expect(multiStatusData.results).toHaveLength(0);
-    expect(multiStatusData.errors).toHaveLength(2);
-    expect(multiStatusData.errors[0].code).toBe(ApiErrorCode.RATE_LIMITED);
-    expect(multiStatusData.errors[1].code).toBe(ApiErrorCode.RATE_LIMITED);
+    try {
+      await promise;
+    } catch (error: any) {
+      // Verify error details
+      expect(error.message).toBe('Multiple errors occurred');
+      expect(error.status).toBe(400);
+      expect(error.details).toBeDefined();
+      expect(error.details.errors).toBeDefined();
+      expect(error.details.errors).toHaveLength(2);
+      expect(error.details.errors[0].code).toBe(ApiErrorCode.RATE_LIMITED);
+      expect(error.details.errors[1].code).toBe(ApiErrorCode.RATE_LIMITED);
+    }
   });
 
   it('should handle thrown errors', async () => {
     // Create a post with throw_error trigger
     const promise = client.post.createPost({
       targets: [
-        { platform: Platform.TWITTER, userId: 'user1' }
+        { platform: Platform.TWITTER, userId: 'user1' },
       ],
-      content: [{ text: 'throw_error test' }]
+      content: [{ text: 'throw_error test' }],
     });
 
     // Expect the request to throw a CrosspostError

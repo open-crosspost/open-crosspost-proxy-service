@@ -95,13 +95,13 @@ describe('Post Creation Controller', () => {
     const rateLimitResponseBody = await rateLimitResponse.json();
 
     // Verify the response indicates a rate limit error
-    assertEquals(rateLimitResponse.status, 429);
-    assertEquals(rateLimitResponseBody.data.results.length, 0);
-    assertExists(rateLimitResponseBody.data.errors);
-    assertEquals(rateLimitResponseBody.data.errors.length, 1);
-    assertEquals(rateLimitResponseBody.data.errors[0].code, ApiErrorCode.RATE_LIMITED);
-    assertEquals(rateLimitResponseBody.data.errors[0].details.platform, Platform.TWITTER);
-    assertEquals(rateLimitResponseBody.data.errors[0].details.userId, 'test-user-id');
+    assertEquals(rateLimitResponse.status, 400);
+    assertEquals(rateLimitResponseBody.success, false);
+    assertExists(rateLimitResponseBody.errors);
+    assertEquals(rateLimitResponseBody.errors.length, 1);
+    assertEquals(rateLimitResponseBody.errors[0].code, ApiErrorCode.RATE_LIMITED);
+    assertEquals(rateLimitResponseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(rateLimitResponseBody.errors[0].details.userId, 'test-user-id');
   });
 
   it('should handle authentication errors from AuthService', async () => {
@@ -135,13 +135,13 @@ describe('Post Creation Controller', () => {
     const authErrorResponseBody = await authErrorResponse.json();
 
     // Verify the response indicates an authentication error
-    assertEquals(authErrorResponse.status, 401);
-    assertEquals(authErrorResponseBody.data.results.length, 0);
-    assertExists(authErrorResponseBody.data.errors);
-    assertEquals(authErrorResponseBody.data.errors.length, 1);
-    assertEquals(authErrorResponseBody.data.errors[0].code, ApiErrorCode.UNAUTHORIZED);
-    assertEquals(authErrorResponseBody.data.errors[0].details.platform, Platform.TWITTER);
-    assertEquals(authErrorResponseBody.data.errors[0].details.userId, 'test-user-id');
+    assertEquals(authErrorResponse.status, 400);
+    assertEquals(authErrorResponseBody.success, false);
+    assertExists(authErrorResponseBody.errors);
+    assertEquals(authErrorResponseBody.errors.length, 1);
+    assertEquals(authErrorResponseBody.errors[0].code, ApiErrorCode.UNAUTHORIZED);
+    assertEquals(authErrorResponseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(authErrorResponseBody.errors[0].details.userId, 'test-user-id');
   });
 
   it('should handle platform errors from PostService', async () => {
@@ -183,14 +183,14 @@ describe('Post Creation Controller', () => {
     const platformErrorResponseBody = await platformErrorResponse.json();
 
     // Verify the response indicates a platform error
-    assertEquals(platformErrorResponse.status, 502);
-    assertEquals(platformErrorResponseBody.data.results.length, 0);
-    assertExists(platformErrorResponseBody.data.errors);
-    assertEquals(platformErrorResponseBody.data.errors.length, 1);
-    assertEquals(platformErrorResponseBody.data.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
-    assertEquals(platformErrorResponseBody.data.errors[0].message, 'Platform specific error');
-    assertEquals(platformErrorResponseBody.data.errors[0].details.platform, Platform.TWITTER);
-    assertEquals(platformErrorResponseBody.data.errors[0].details.userId, 'test-user-id');
+    assertEquals(platformErrorResponse.status, 400);
+    assertEquals(platformErrorResponseBody.success, false);
+    assertExists(platformErrorResponseBody.errors);
+    assertEquals(platformErrorResponseBody.errors.length, 1);
+    assertEquals(platformErrorResponseBody.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
+    assertEquals(platformErrorResponseBody.errors[0].message, 'Platform specific error');
+    assertEquals(platformErrorResponseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(platformErrorResponseBody.errors[0].details.userId, 'test-user-id');
   });
 
   it('should handle multiple platform targets', async () => {
@@ -299,14 +299,14 @@ describe('Post Creation Controller', () => {
     const responseBody = await response.json();
 
     // Verify the response indicates a media error
-    assertEquals(response.status, 502);
-    assertEquals(responseBody.data.results.length, 0);
-    assertExists(responseBody.data.errors);
-    assertEquals(responseBody.data.errors.length, 1);
-    assertEquals(responseBody.data.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
-    assertEquals(responseBody.data.errors[0].details.platform, Platform.TWITTER);
-    assertEquals(responseBody.data.errors[0].details.userId, 'test-user-id');
-    assertEquals(responseBody.data.errors[0].details.twitterErrorCode, 324);
+    assertEquals(response.status, 400);
+    assertEquals(responseBody.success, false);
+    assertExists(responseBody.errors);
+    assertEquals(responseBody.errors.length, 1);
+    assertEquals(responseBody.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
+    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.errors[0].details.userId, 'test-user-id');
+    assertEquals(responseBody.errors[0].details.twitterErrorCode, 324);
   });
 
   it('should handle partial success with some targets failing', async () => {
@@ -437,28 +437,22 @@ describe('Post Creation Controller', () => {
     const responseBody = await response.json();
 
     // Verify the response
-    assertEquals(response.status, 429); // Rate limited
-    assertExists(responseBody.data);
-    assertExists(responseBody.data.errors);
+    assertEquals(response.status, 400); // Rate limited
+    assertEquals(responseBody.success, false);
+    assertExists(responseBody.errors);
 
     // Should have separate errors for each user
-    assertEquals(responseBody.data.results.length, 0);
-    assertEquals(responseBody.data.errors.length, 3);
+    assertEquals(responseBody.errors.length, 3);
 
     // Verify all errors have the same error code
-    for (const error of responseBody.data.errors) {
+    for (const error of responseBody.errors) {
       assertEquals(error.code, ApiErrorCode.RATE_LIMITED);
       assertEquals(error.recoverable, true);
       assertEquals(error.details.platform, Platform.TWITTER);
     }
 
-    // Verify the summary counts are correct
-    assertEquals(responseBody.data.summary.total, 3);
-    assertEquals(responseBody.data.summary.succeeded, 0);
-    assertEquals(responseBody.data.summary.failed, 3);
-
     // Verify each error has a different userId
-    const userIds = responseBody.data.errors.map((e) => e.details.userId);
+    const userIds = responseBody.errors.map((e) => e.details.userId);
     assertArrayIncludes(userIds, ['user-id-1', 'user-id-2', 'user-id-3']);
   });
 
@@ -501,17 +495,16 @@ describe('Post Creation Controller', () => {
     const response = await recoverableErrorController.handle(context);
     const responseBody = await response.json();
 
-    assertEquals(response.status, 502);
+    assertEquals(response.status, 400);
+    assertEquals(responseBody.success, false);
 
     // Verify the response indicates a recoverable error
-    assertExists(responseBody.data);
-    assertExists(responseBody.data.errors);
-    assertEquals(responseBody.data.results.length, 0);
-    assertEquals(responseBody.data.errors.length, 1);
-    assertEquals(responseBody.data.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
+    assertExists(responseBody.errors);
+    assertEquals(responseBody.errors.length, 1);
+    assertEquals(responseBody.errors[0].code, ApiErrorCode.PLATFORM_ERROR);
 
     // The key assertion - make sure the recoverable flag is preserved
-    assertEquals(responseBody.data.errors[0].recoverable, true);
+    assertEquals(responseBody.errors[0].recoverable, true);
   });
 
   it('should validate content length and reject if too long', async () => {
@@ -554,14 +547,13 @@ describe('Post Creation Controller', () => {
     const responseBody = await response.json();
 
     // Verify the response indicates a validation error
-    assertExists(responseBody.data);
-    assertExists(responseBody.data.errors);
-    assertEquals(responseBody.data.results.length, 0);
-    assertEquals(responseBody.data.errors.length, 1);
+    assertEquals(responseBody.success, false);
+    assertExists(responseBody.errors);
+    assertEquals(responseBody.errors.length, 1);
 
     // The key assertion - make sure the error code is VALIDATION_ERROR
-    assertEquals(responseBody.data.errors[0].code, ApiErrorCode.VALIDATION_ERROR);
-    assertEquals(responseBody.data.errors[0].details.platform, Platform.TWITTER);
-    assertEquals(responseBody.data.errors[0].details.userId, 'test-user-id');
+    assertEquals(responseBody.errors[0].code, ApiErrorCode.VALIDATION_ERROR);
+    assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
+    assertEquals(responseBody.errors[0].details.userId, 'test-user-id');
   });
 });
