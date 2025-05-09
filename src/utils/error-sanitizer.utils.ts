@@ -23,9 +23,11 @@ export const ErrorDetailsSchema = z.object({
   requestError: z.unknown().optional(),
   responseError: z.unknown().optional(),
   rawContent: z.unknown().optional(),
+  transactionId: z.string().optional(),
+  rawContentSample: z.string().optional(),
 }).transform((data) => {
   // Filter out potentially problematic fields
-  const { originalError, request, response, ...rest } = data;
+  const { originalError, ...rest } = data;
 
   // Extract useful information from originalError if it exists
   if (originalError instanceof Error) {
@@ -38,6 +40,19 @@ export const ErrorDetailsSchema = z.object({
 
   return rest;
 }).transform((data) => {
+  // Sanitize headers to remove sensitive information
+  if (data.headers && typeof data.headers === 'object') {
+    const sanitizedHeaders: Record<string, string> = {};
+    for (const [key, value] of Object.entries(data.headers)) {
+      if (key.toLowerCase() !== 'authorization' && 
+          key.toLowerCase() !== 'cookie' && 
+          !key.toLowerCase().includes('token')) {
+        sanitizedHeaders[key] = typeof value === 'string' ? value : String(value);
+      }
+    }
+    data.headers = sanitizedHeaders;
+  }
+  
   // Remove undefined values
   return Object.fromEntries(
     Object.entries(data).filter(([_, v]) => v !== undefined),

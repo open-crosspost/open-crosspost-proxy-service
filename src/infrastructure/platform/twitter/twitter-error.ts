@@ -72,138 +72,186 @@ export class TwitterError extends PlatformError {
     );
   }
 
-  /**
-   * Parse a Twitter API request error
-   * @param error The Twitter API request error
-   * @returns A TwitterError instance
-   */
+  private static extractTwitterErrorInfo(error: any) {
+    const errorInfo: Record<string, any> = {};
+    
+    if (error && typeof error === 'object') {
+      // Extract Twitter errors array
+      if ('errors' in error && Array.isArray(error.errors)) {
+        // Create a concise error message from Twitter errors
+        errorInfo.message = error.errors.map((e: any) => 
+          e.message || e.detail || (e.code ? `Error code ${e.code}` : '')
+        ).filter(Boolean).join('; ');
+      }
+      
+      // Extract rate limit info
+      if ('rateLimit' in error) {
+        errorInfo.rateLimit = error.rateLimit;
+      }
+      
+      // Extract transaction ID
+      if (error.headers && 'x-transaction-id' in error.headers) {
+        errorInfo.transactionId = error.headers['x-transaction-id'];
+      }
+    }
+    
+    return errorInfo;
+  }
+
   private static fromRequestError(error: ApiRequestError): TwitterError {
     const errorMessage = error.requestError instanceof Error
       ? error.requestError.message
       : String(error.requestError || error.message);
+    
+    const details = {
+      platformErrorCode: 502,
+      platformMessage: errorMessage,
+      platformErrorType: error.type,
+      originalError: error,
+      error: error.error,
+      type: error.type,
+      request: error.request,
+      requestError: error.requestError instanceof Error ? 
+        { message: error.requestError.message, name: error.requestError.name } : 
+        error.requestError,
+    };
 
     return new TwitterError(
       `Twitter API request error: ${errorMessage}`,
       ApiErrorCode.NETWORK_ERROR,
-      sanitizeErrorDetails({
-        platformErrorCode: 502,
-        platformMessage: errorMessage,
-        platformErrorType: error.type,
-        originalError: error,
-        error: error.error,
-        type: error.type,
-        request: error.request,
-        requestError: error.requestError,
-      }),
-      true, // Network errors are typically recoverable
+      sanitizeErrorDetails(details),
+      true
     );
   }
 
-  /**
-   * Parse a Twitter API partial response error
-   * @param error The Twitter API partial response error
-   * @returns A TwitterError instance
-   */
   private static fromPartialResponseError(
     error: ApiPartialResponseError,
   ): TwitterError {
     const errorMessage = error.responseError instanceof Error
       ? error.responseError.message
       : String(error.responseError || error.message);
+    
+    const details = {
+      platformErrorCode: 502,
+      platformMessage: errorMessage,
+      platformErrorType: error.type,
+      originalError: error,
+      error: error.error,
+      type: error.type,
+      request: error.request,
+      responseError: error.responseError instanceof Error ? 
+        { message: error.responseError.message, name: error.responseError.name } : 
+        error.responseError,
+      rawContentSample: error.rawContent ? 
+        (typeof error.rawContent === 'string' ? 
+          error.rawContent.substring(0, 200) : 
+          'Binary content') : 
+        undefined,
+      response: error.response,
+    };
 
     return new TwitterError(
       `Twitter API partial response error: ${errorMessage}`,
       ApiErrorCode.NETWORK_ERROR,
-      sanitizeErrorDetails({
-        platformErrorCode: 502,
-        platformMessage: errorMessage,
-        platformErrorType: error.type,
-        originalError: error,
-        error: error.error,
-        type: error.type,
-        request: error.request,
-        responseError: error.responseError,
-        rawContent: error.rawContent,
-        response: error.response,
-      }),
-      true, // Partial response errors are typically recoverable
+      sanitizeErrorDetails(details),
+      true
     );
   }
 
-  /**
-   * Parse a Twitter API response error
-   * @param error The Twitter API response error
-   * @returns A TwitterError instance
-   */
   private static fromResponseError(error: ApiResponseError): TwitterError {
     const errorMessage = error.message;
     const twitterErrors = error.errors || [];
-
+    const errorInfo = TwitterError.extractTwitterErrorInfo(error);
+    
+    // Format Twitter errors for better readability
+    const formattedTwitterErrors = twitterErrors.map(e => {
+      if (typeof e === 'object' && e !== null) {
+        return {
+          code: 'code' in e ? e.code : undefined,
+          message: 'message' in e ? e.message : ('detail' in e ? e.detail : undefined),
+          parameter: 'parameter' in e ? e.parameter : undefined,
+          type: 'type' in e ? e.type : undefined
+        };
+      }
+      return e;
+    });
+    
     // Create base error details
     const details: ErrorDetails = sanitizeErrorDetails({
       platformErrorCode: error.code || 500,
       platformMessage: errorMessage,
       platformErrorType: error.type,
-      platformErrors: twitterErrors,
+      platformErrors: formattedTwitterErrors,
+      transactionId: errorInfo.transactionId,
       originalError: error,
       error: error.error,
       type: error.type,
       request: error.request,
-      data: error.data,
+      data: error.data ? JSON.stringify(error.data).substring(0, 500) : undefined,
       headers: error.headers,
       response: error.response,
-      errors: twitterErrors,
+      errors: formattedTwitterErrors,
     });
 
     // Handle rate limit errors
     if (error.rateLimitError) {
       details.rateLimit = error.rateLimit;
       return new TwitterError(
-        `Twitter rate limit exceeded: ${errorMessage}`,
+        `Twitter rate limit exceeded: ${errorInfo.message || errorMessage}`,
         ApiErrorCode.RATE_LIMITED,
         details,
-        true, // Rate limit errors are recoverable
+        true
       );
     }
 
     // Handle auth errors
     if (error.isAuthError) {
       return new TwitterError(
-        `Twitter authentication error: ${errorMessage}`,
+        `Twitter authentication error: ${errorInfo.message || errorMessage}`,
         ApiErrorCode.UNAUTHORIZED,
         details,
-        true, // Auth errors may be recoverable with token refresh
+        true
       );
     }
 
-    // Handle specific error codes before the general status code switch
-    // Duplicate Content (often 403 in v2, but check internal errors too)
+    // Handle duplicate content errors
     if (error.errors?.some((e) => 'code' in e && e.code === 187)) {
       return new TwitterError(
-        `Duplicate content: ${errorMessage}`,
+        `Duplicate content: ${errorInfo.message || errorMessage}`,
         ApiErrorCode.DUPLICATE_CONTENT,
         details,
-        false, // Duplicate content requires user action
+        false
       );
     }
+
+    // Get a clean error message from Twitter errors if available
+    const cleanErrorMessage = errorInfo.message || 
+      (twitterErrors.length > 0 ? 
+        twitterErrors.map(e => {
+          if (typeof e === 'object' && e !== null) {
+            return 'message' in e ? e.message : ('detail' in e ? e.detail : null);
+          }
+          return null;
+        }).filter(Boolean).join('; ') : 
+        errorMessage);
 
     // Handle other errors based on status code
     switch (error.code) {
-      case 404: // Not Found
+      case 404:
         return new TwitterError(
-          `Resource not found: ${errorMessage}`,
+          `Resource not found: ${cleanErrorMessage}`,
           ApiErrorCode.NOT_FOUND,
           details,
-          false,
+          false
         );
       case 403:
         return new TwitterError(
-          `Access forbidden: ${errorMessage}`,
+          `Access forbidden: ${cleanErrorMessage}`,
           ApiErrorCode.FORBIDDEN,
           details,
-          false, // Not recoverable
+          false
         );
-      case 400: // Bad Request
+      case 400:
         if (
           error.data && typeof error.data === 'object' &&
           'error' in error.data && error.data.error === 'invalid_grant'
@@ -217,28 +265,28 @@ export class TwitterError extends PlatformError {
               message: 'Refresh token is invalid or expired. User needs to re-authenticate.',
               errorData: error.data,
             },
-            false, // Not recoverable without user re-authentication
+            false
           );
         }
         return new TwitterError(
-          `Invalid request: ${errorMessage}`,
-          ApiErrorCode.INVALID_REQUEST, // Use a generic invalid request code
+          `Invalid request: ${cleanErrorMessage}`,
+          ApiErrorCode.INVALID_REQUEST,
           details,
-          false,
+          false
         );
       case 503:
         return new TwitterError(
-          `Twitter service unavailable: ${errorMessage}`,
+          `Twitter service unavailable: ${cleanErrorMessage}`,
           ApiErrorCode.PLATFORM_UNAVAILABLE,
           details,
-          true,
+          true
         );
       default:
         return new TwitterError(
-          `Twitter API error: ${errorMessage}`,
+          `Twitter API error: ${cleanErrorMessage}`,
           ApiErrorCode.PLATFORM_ERROR,
           details,
-          false,
+          false
         );
     }
   }
