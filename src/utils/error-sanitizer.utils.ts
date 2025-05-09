@@ -44,15 +44,17 @@ export const ErrorDetailsSchema = z.object({
   if (data.headers && typeof data.headers === 'object') {
     const sanitizedHeaders: Record<string, string> = {};
     for (const [key, value] of Object.entries(data.headers)) {
-      if (key.toLowerCase() !== 'authorization' && 
-          key.toLowerCase() !== 'cookie' && 
-          !key.toLowerCase().includes('token')) {
+      if (
+        key.toLowerCase() !== 'authorization' &&
+        key.toLowerCase() !== 'cookie' &&
+        !key.toLowerCase().includes('token')
+      ) {
         sanitizedHeaders[key] = typeof value === 'string' ? value : String(value);
       }
     }
     data.headers = sanitizedHeaders;
   }
-  
+
   // Remove undefined values
   return Object.fromEntries(
     Object.entries(data).filter(([_, v]) => v !== undefined),

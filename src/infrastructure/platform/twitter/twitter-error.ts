@@ -74,27 +74,27 @@ export class TwitterError extends PlatformError {
 
   private static extractTwitterErrorInfo(error: any) {
     const errorInfo: Record<string, any> = {};
-    
+
     if (error && typeof error === 'object') {
       // Extract Twitter errors array
       if ('errors' in error && Array.isArray(error.errors)) {
         // Create a concise error message from Twitter errors
-        errorInfo.message = error.errors.map((e: any) => 
+        errorInfo.message = error.errors.map((e: any) =>
           e.message || e.detail || (e.code ? `Error code ${e.code}` : '')
         ).filter(Boolean).join('; ');
       }
-      
+
       // Extract rate limit info
       if ('rateLimit' in error) {
         errorInfo.rateLimit = error.rateLimit;
       }
-      
+
       // Extract transaction ID
       if (error.headers && 'x-transaction-id' in error.headers) {
         errorInfo.transactionId = error.headers['x-transaction-id'];
       }
     }
-    
+
     return errorInfo;
   }
 
@@ -102,7 +102,7 @@ export class TwitterError extends PlatformError {
     const errorMessage = error.requestError instanceof Error
       ? error.requestError.message
       : String(error.requestError || error.message);
-    
+
     const details = {
       platformErrorCode: 502,
       platformMessage: errorMessage,
@@ -111,16 +111,16 @@ export class TwitterError extends PlatformError {
       error: error.error,
       type: error.type,
       request: error.request,
-      requestError: error.requestError instanceof Error ? 
-        { message: error.requestError.message, name: error.requestError.name } : 
-        error.requestError,
+      requestError: error.requestError instanceof Error
+        ? { message: error.requestError.message, name: error.requestError.name }
+        : error.requestError,
     };
 
     return new TwitterError(
       `Twitter API request error: ${errorMessage}`,
       ApiErrorCode.NETWORK_ERROR,
       sanitizeErrorDetails(details),
-      true
+      true,
     );
   }
 
@@ -130,7 +130,7 @@ export class TwitterError extends PlatformError {
     const errorMessage = error.responseError instanceof Error
       ? error.responseError.message
       : String(error.responseError || error.message);
-    
+
     const details = {
       platformErrorCode: 502,
       platformMessage: errorMessage,
@@ -139,14 +139,14 @@ export class TwitterError extends PlatformError {
       error: error.error,
       type: error.type,
       request: error.request,
-      responseError: error.responseError instanceof Error ? 
-        { message: error.responseError.message, name: error.responseError.name } : 
-        error.responseError,
-      rawContentSample: error.rawContent ? 
-        (typeof error.rawContent === 'string' ? 
-          error.rawContent.substring(0, 200) : 
-          'Binary content') : 
-        undefined,
+      responseError: error.responseError instanceof Error
+        ? { message: error.responseError.message, name: error.responseError.name }
+        : error.responseError,
+      rawContentSample: error.rawContent
+        ? (typeof error.rawContent === 'string'
+          ? error.rawContent.substring(0, 200)
+          : 'Binary content')
+        : undefined,
       response: error.response,
     };
 
@@ -154,7 +154,7 @@ export class TwitterError extends PlatformError {
       `Twitter API partial response error: ${errorMessage}`,
       ApiErrorCode.NETWORK_ERROR,
       sanitizeErrorDetails(details),
-      true
+      true,
     );
   }
 
@@ -162,20 +162,20 @@ export class TwitterError extends PlatformError {
     const errorMessage = error.message;
     const twitterErrors = error.errors || [];
     const errorInfo = TwitterError.extractTwitterErrorInfo(error);
-    
+
     // Format Twitter errors for better readability
-    const formattedTwitterErrors = twitterErrors.map(e => {
+    const formattedTwitterErrors = twitterErrors.map((e) => {
       if (typeof e === 'object' && e !== null) {
         return {
           code: 'code' in e ? e.code : undefined,
           message: 'message' in e ? e.message : ('detail' in e ? e.detail : undefined),
           parameter: 'parameter' in e ? e.parameter : undefined,
-          type: 'type' in e ? e.type : undefined
+          type: 'type' in e ? e.type : undefined,
         };
       }
       return e;
     });
-    
+
     // Create base error details
     const details: ErrorDetails = sanitizeErrorDetails({
       platformErrorCode: error.code || 500,
@@ -200,7 +200,7 @@ export class TwitterError extends PlatformError {
         `Twitter rate limit exceeded: ${errorInfo.message || errorMessage}`,
         ApiErrorCode.RATE_LIMITED,
         details,
-        true
+        true,
       );
     }
 
@@ -210,7 +210,7 @@ export class TwitterError extends PlatformError {
         `Twitter authentication error: ${errorInfo.message || errorMessage}`,
         ApiErrorCode.UNAUTHORIZED,
         details,
-        true
+        true,
       );
     }
 
@@ -220,20 +220,20 @@ export class TwitterError extends PlatformError {
         `Duplicate content: ${errorInfo.message || errorMessage}`,
         ApiErrorCode.DUPLICATE_CONTENT,
         details,
-        false
+        false,
       );
     }
 
     // Get a clean error message from Twitter errors if available
-    const cleanErrorMessage = errorInfo.message || 
-      (twitterErrors.length > 0 ? 
-        twitterErrors.map(e => {
+    const cleanErrorMessage = errorInfo.message ||
+      (twitterErrors.length > 0
+        ? twitterErrors.map((e) => {
           if (typeof e === 'object' && e !== null) {
             return 'message' in e ? e.message : ('detail' in e ? e.detail : null);
           }
           return null;
-        }).filter(Boolean).join('; ') : 
-        errorMessage);
+        }).filter(Boolean).join('; ')
+        : errorMessage);
 
     // Handle other errors based on status code
     switch (error.code) {
@@ -242,14 +242,14 @@ export class TwitterError extends PlatformError {
           `Resource not found: ${cleanErrorMessage}`,
           ApiErrorCode.NOT_FOUND,
           details,
-          false
+          false,
         );
       case 403:
         return new TwitterError(
           `Access forbidden: ${cleanErrorMessage}`,
           ApiErrorCode.FORBIDDEN,
           details,
-          false
+          false,
         );
       case 400:
         if (
@@ -265,28 +265,28 @@ export class TwitterError extends PlatformError {
               message: 'Refresh token is invalid or expired. User needs to re-authenticate.',
               errorData: error.data,
             },
-            false
+            false,
           );
         }
         return new TwitterError(
           `Invalid request: ${cleanErrorMessage}`,
           ApiErrorCode.INVALID_REQUEST,
           details,
-          false
+          false,
         );
       case 503:
         return new TwitterError(
           `Twitter service unavailable: ${cleanErrorMessage}`,
           ApiErrorCode.PLATFORM_UNAVAILABLE,
           details,
-          true
+          true,
         );
       default:
         return new TwitterError(
           `Twitter API error: ${cleanErrorMessage}`,
           ApiErrorCode.PLATFORM_ERROR,
           details,
-          false
+          false,
         );
     }
   }
