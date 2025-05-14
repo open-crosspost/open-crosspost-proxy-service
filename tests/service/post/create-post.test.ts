@@ -1,7 +1,8 @@
-import { ApiErrorCode, Platform, PostContent } from '@crosspost/types';
+import { ApiErrorCode, Platform, PostContent, PostResult } from '@crosspost/types';
 import { assertArrayIncludes, assertEquals, assertExists } from 'jsr:@std/assert';
 import { beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { CreateController } from '../../../src/controllers/post/create.controller.ts';
+import { PlatformError } from '../../../src/errors/platform-error.ts'; // Import PlatformError directly
 import { createPlatformError } from '../../../src/errors/platform-error.ts';
 import {
   createAuthErrorServices,
@@ -553,5 +554,89 @@ describe('Post Creation Controller', () => {
     assertEquals(responseBody.errors[0].code, ApiErrorCode.VALIDATION_ERROR);
     assertEquals(responseBody.errors[0].details.platform, Platform.TWITTER);
     assertEquals(responseBody.errors[0].details.userId, 'test-user-id');
+  });
+
+  it('should retry post creation on initial auth error and succeed', async () => {
+    let createPostCallCount = 0;
+    const mockUserId = 'retry-user-id';
+    const mockSignerId = 'retry.near';
+
+    const mockSuccessfulPostResult: PostResult = {
+      id: `mock-post-id-${mockUserId}-success`,
+      text: 'Test post after retry',
+      createdAt: new Date().toISOString(),
+      success: true,
+    };
+
+    const customPostServiceMock = {
+      createPost: async (
+        platform: Platform,
+        userId: string,
+        _content: PostContent | PostContent[],
+      ): Promise<PostResult> => {
+        createPostCallCount++;
+        if (createPostCallCount === 1) {
+          console.log('Test: Simulating 1st createPost call - throwing UNAUTHORIZED');
+          throw new PlatformError(
+            'Simulated token error',
+            ApiErrorCode.UNAUTHORIZED,
+            platform,
+            { userId },
+            true, // Recoverable
+          );
+        }
+        console.log('Test: Simulating 2nd createPost call - succeeding');
+        return mockSuccessfulPostResult;
+      },
+    };
+
+    const servicesWithRetryMocks = createMockServices({
+      postService: customPostServiceMock,
+    });
+
+    // Reset spy for unlinkAccount
+    servicesWithRetryMocks.authService._spies.unlinkAccount.reset();
+
+    const controllerWithRetry = new CreateController(
+      servicesWithRetryMocks.postService,
+      servicesWithRetryMocks.rateLimitService,
+      servicesWithRetryMocks.activityTrackingService,
+      servicesWithRetryMocks.authService,
+    );
+
+    const context = createMockContext({
+      signerId: mockSignerId,
+      validatedBody: {
+        targets: [{ platform: Platform.TWITTER, userId: mockUserId }],
+        content: [{ text: 'Test post for retry' }],
+      },
+    });
+
+    const response = await controllerWithRetry.handle(context);
+    const responseBody = await response.json();
+
+    // Verify the overall response is successful
+    assertEquals(response.status, 200, `Response body: ${JSON.stringify(responseBody)}`);
+    assertExists(responseBody.data, 'Response data should exist');
+    assertExists(responseBody.data.results, 'Results should exist in data');
+    assertEquals(responseBody.data.results.length, 1, 'Should have one successful result');
+    assertEquals(responseBody.data.errors.length, 0, 'Should have no errors');
+
+    // Verify the successful result details
+    const resultDetail = responseBody.data.results[0];
+    assertEquals(resultDetail.platform, Platform.TWITTER);
+    assertEquals(resultDetail.userId, mockUserId);
+    assertEquals(resultDetail.details.id, mockSuccessfulPostResult.id);
+    assertEquals(resultDetail.details.text, mockSuccessfulPostResult.text);
+
+    // Verify createPost was called twice
+    assertEquals(createPostCallCount, 2, 'postService.createPost should have been called twice');
+
+    // Verify unlinkAccount was NOT called
+    assertEquals(
+      servicesWithRetryMocks.authService._spies.unlinkAccount.called,
+      0,
+      'authService.unlinkAccount should NOT have been called',
+    );
   });
 });
