@@ -10,7 +10,7 @@ export {
   generateNonce,
   type NearAuthData,
   parseAuthToken,
-  validateSignature,
+  verify,
 } from 'near-sign-verify';
 
 // Hono framework
