@@ -1,7 +1,7 @@
 import { ApiErrorCode, PlatformName } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { Env } from '../../config/env.ts';
-import { NearAuthData, parseAuthToken, validateSignature } from '../../deps.ts';
+import { NearAuthData, parseAuthToken, verify } from '../../deps.ts';
 import { createApiError } from '../../errors/api-error.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { AuthToken, TokenStorage } from '../storage/auth-token-storage.ts';
@@ -51,7 +51,7 @@ export class NearAuthService {
     const token = parseAuthToken(authHeader.substring(7));
 
     // Validate signature
-    const result = await validateSignature(token);
+    const result = await verify(token, { requireFullAccessKey: false, nonceMaxAge: 300000 }); // 5 minutes
 
     if (!result.valid) {
       throw createApiError(ApiErrorCode.UNAUTHORIZED, result.error);
