@@ -16,12 +16,17 @@ export const ResponseMetaSchema = z.object({
   }).optional().describe('Pagination information if applicable'),
 });
 
-export const SuccessDetailSchema = z.object({
-  platform: z.string(),
-  userId: z.string(),
-  details: z.any().optional(),
-  status: z.literal('success'),
-}).catchall(z.any());
+export const createSuccessDetailSchema = <T extends z.ZodTypeAny = z.ZodAny>(
+  detailsSchema: T = z.any().optional() as unknown as T,
+) =>
+  z.object({
+    platform: z.string(),
+    userId: z.string(),
+    details: detailsSchema,
+    status: z.literal('success'),
+  }).catchall(z.any());
+
+export const SuccessDetailSchema = createSuccessDetailSchema(); // Default to any
 
 export const HealthStatusSchema = z.object({
   status: z.string().describe('Health status of the API'),
@@ -35,11 +40,22 @@ export const MultiStatusSummarySchema = z.object({
   failed: z.number().int().nonnegative(),
 });
 
-export const MultiStatusDataSchema = z.object({
-  summary: MultiStatusSummarySchema,
-  results: z.array(SuccessDetailSchema),
-  errors: z.array(ErrorDetailSchema),
-});
+export const createMultiStatusDataSchema = <
+  TDetailSchema extends z.ZodTypeAny = z.ZodAny,
+>(
+  detailsSchema?: TDetailSchema, 
+) =>
+  z.object({
+    summary: MultiStatusSummarySchema,
+    results: z.array(
+      detailsSchema
+        ? createSuccessDetailSchema(detailsSchema)
+        : SuccessDetailSchema, // Uses default createSuccessDetailSchema() if no specific schema passed
+    ),
+    errors: z.array(ErrorDetailSchema),
+  });
+
+export const MultiStatusDataSchema = createMultiStatusDataSchema(); // Default to any for details
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -49,7 +65,12 @@ export interface ApiResponse<T> {
 }
 
 export type ResponseMeta = z.infer<typeof ResponseMetaSchema>;
-export type SuccessDetail = z.infer<typeof SuccessDetailSchema>;
+export type SuccessDetail<T = any> = Omit<z.infer<typeof SuccessDetailSchema>, 'details'> & { details?: T };
 export type MultiStatusSummary = z.infer<typeof MultiStatusSummarySchema>;
-export type MultiStatusData = z.infer<typeof MultiStatusDataSchema>; // Renamed type
+
+export type MultiStatusData<TDetail = any> = {
+  summary: MultiStatusSummary;
+  results: SuccessDetail<TDetail>[];
+  errors: ErrorDetail[];
+};
 export type HealthStatus = z.infer<typeof HealthStatusSchema>;
