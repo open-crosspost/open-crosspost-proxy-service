@@ -21,6 +21,3 @@ export {
   isRecoverableError,
   isValidationError,
 } from './utils/error.ts';
-
-// Re-export types from @crosspost/types for convenience
-export * from '@crosspost/types';
