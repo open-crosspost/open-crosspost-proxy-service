@@ -7,7 +7,7 @@ import type {
   QuotePostRequest,
   ReplyToPostRequest,
   RepostRequest,
-  UnlikePostRequest
+  UnlikePostRequest,
 } from '@crosspost/types';
 import { makeRequest, type RequestOptions } from '../core/request.ts';
 

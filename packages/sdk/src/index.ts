@@ -8,6 +8,7 @@ export { SystemApi } from './api/system.ts';
 
 export {
   apiWrapper,
+  CrosspostError,
   getErrorDetails,
   getErrorMessage,
   isAuthError,
@@ -19,7 +20,6 @@ export {
   isRateLimitError,
   isRecoverableError,
   isValidationError,
-  CrosspostError
 } from './utils/error.ts';
 
 // Re-export types from @crosspost/types for convenience

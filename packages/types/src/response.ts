@@ -43,14 +43,12 @@ export const MultiStatusSummarySchema = z.object({
 export const createMultiStatusDataSchema = <
   TDetailSchema extends z.ZodTypeAny = z.ZodAny,
 >(
-  detailsSchema?: TDetailSchema, 
+  detailsSchema?: TDetailSchema,
 ) =>
   z.object({
     summary: MultiStatusSummarySchema,
     results: z.array(
-      detailsSchema
-        ? createSuccessDetailSchema(detailsSchema)
-        : SuccessDetailSchema, // Uses default createSuccessDetailSchema() if no specific schema passed
+      detailsSchema ? createSuccessDetailSchema(detailsSchema) : SuccessDetailSchema, // Uses default createSuccessDetailSchema() if no specific schema passed
     ),
     errors: z.array(ErrorDetailSchema),
   });
@@ -65,7 +63,9 @@ export interface ApiResponse<T> {
 }
 
 export type ResponseMeta = z.infer<typeof ResponseMetaSchema>;
-export type SuccessDetail<T = any> = Omit<z.infer<typeof SuccessDetailSchema>, 'details'> & { details?: T };
+export type SuccessDetail<T = any> = Omit<z.infer<typeof SuccessDetailSchema>, 'details'> & {
+  details?: T;
+};
 export type MultiStatusSummary = z.infer<typeof MultiStatusSummarySchema>;
 
 export type MultiStatusData<TDetail = any> = {

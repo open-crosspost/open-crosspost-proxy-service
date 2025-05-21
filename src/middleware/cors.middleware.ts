@@ -15,7 +15,7 @@ export const corsMiddleware = (): MiddlewareHandler => {
       console.warn(
         '[Security Warning] No ALLOWED_ORIGINS specified in development. Defaulting to allow all origins. This is not secure for production.',
       );
-      corsOrigin = '*'; 
+      corsOrigin = '*';
     } else if (isProduction() || isStaging()) {
       console.error(
         '[Security Error] No ALLOWED_ORIGINS specified in production/staging environment. Denying all origins.',
