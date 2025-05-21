@@ -48,12 +48,20 @@ export function getEnv(): Env {
 
 /**
  * Get allowed origins from environment variable
- * @returns Array of allowed origins
+ * @returns Array of allowed origins, or the string "*" to allow all, or an empty array if not set.
  */
-export function getAllowedOrigins(): string[] {
+export function getAllowedOrigins(): string[] | string {
   try {
     const env = getEnv();
-    return env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim());
+    const origins = env.ALLOWED_ORIGINS.trim();
+
+    if (origins === '*') {
+      return '*';
+    }
+    if (!origins) {
+      return [];
+    }
+    return origins.split(',').map((origin) => origin.trim()).filter(Boolean);
   } catch (error) {
     console.error('Error parsing ALLOWED_ORIGINS:', error);
     return [];

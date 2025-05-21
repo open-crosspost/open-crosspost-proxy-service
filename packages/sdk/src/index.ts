@@ -8,11 +8,9 @@ export { SystemApi } from './api/system.ts';
 
 export {
   apiWrapper,
-  createNetworkError,
-  enrichErrorWithContext,
+  CrosspostError,
   getErrorDetails,
   getErrorMessage,
-  handleErrorResponse,
   isAuthError,
   isContentError,
   isMediaError,

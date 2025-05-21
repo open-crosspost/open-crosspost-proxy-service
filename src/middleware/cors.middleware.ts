@@ -1,24 +1,33 @@
 import { cors as honoCors, MiddlewareHandler } from '../../deps.ts';
-import { getAllowedOrigins } from '../config/env.ts';
+import { getAllowedOrigins, isDevelopment, isProduction, isStaging } from '../config/env.ts';
 
 export const corsMiddleware = (): MiddlewareHandler => {
-  const allowedOrigins = getAllowedOrigins();
+  const allowedOriginsConfig = getAllowedOrigins();
+
+  let corsOrigin: string | string[] | ((origin: string) => string | false | void) = '';
+
+  if (allowedOriginsConfig === '*') {
+    corsOrigin = '*';
+  } else if (Array.isArray(allowedOriginsConfig) && allowedOriginsConfig.length > 0) {
+    corsOrigin = allowedOriginsConfig;
+  } else if (Array.isArray(allowedOriginsConfig) && allowedOriginsConfig.length === 0) {
+    if (isDevelopment()) {
+      console.warn(
+        '[Security Warning] No ALLOWED_ORIGINS specified in development. Defaulting to allow all origins. This is not secure for production.',
+      );
+      corsOrigin = '*';
+    } else if (isProduction() || isStaging()) {
+      console.error(
+        '[Security Error] No ALLOWED_ORIGINS specified in production/staging environment. Denying all origins.',
+      );
+      corsOrigin = (origin: string) => {
+        return '';
+      };
+    }
+  }
 
   return honoCors({
-    origin: (origin) => {
-      // If no allowed origins are configured, allow all origins
-      if (allowedOrigins.length === 0) {
-        return '*';
-      }
-
-      // If the origin is in the allowed origins list, allow it
-      if (origin && allowedOrigins.includes(origin)) {
-        return origin;
-      }
-
-      // Otherwise, deny the request
-      return '';
-    },
+    origin: corsOrigin,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-Near-Account'],
     exposeHeaders: [],
