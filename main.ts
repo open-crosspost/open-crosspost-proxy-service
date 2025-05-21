@@ -247,7 +247,7 @@ const port = parseInt(Deno.env.get('PORT') || '8000');
 
 // Initialize usage rate limit middleware with configuration
 UsageRateLimitMiddleware.initialize({
-  maxPostsPerDay: 10, // Configurable limit for posts per day per NEAR account
+  maxPostsPerDay: 100, // Configurable limit for posts per day per NEAR account
 });
 
 console.log(`Starting server on port ${port}...`);

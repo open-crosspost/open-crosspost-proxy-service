@@ -17,16 +17,6 @@ const MEDIA_LIMITS = {
   ADDITIONAL_OWNERS_LIMIT: 100,
 };
 
-const MEDIA_CATEGORIES: Record<EUploadMimeType, any> = { // MediaV2MediaCategory
-  'image/jpeg': 'tweet_image',
-  'image/png': 'tweet_image',
-  'image/gif': 'tweet_gif',
-  'video/mp4': 'tweet_video',
-  'video/quicktime': 'tweet_video',
-  'image/webp': 'tweet_image',
-  'text/plain': 'tweet_image', // Fallback, though we shouldn't get this
-} as const;
-
 export class TwitterMedia implements PlatformMedia {
   private twitterClient: TwitterClient;
 
@@ -64,12 +54,6 @@ export class TwitterMedia implements PlatformMedia {
         throw new Error(`Image size exceeds maximum of ${MEDIA_LIMITS.MAX_IMAGE_SIZE_MB}MB`);
       }
 
-      // Determine media category
-      const mediaCategory = MEDIA_CATEGORIES[mimeType as keyof typeof MEDIA_CATEGORIES];
-      if (!mediaCategory) {
-        throw new Error(`Unsupported media type: ${mimeType}`);
-      }
-
       // Validate additional owners
       if (additionalOwners && additionalOwners.length > MEDIA_LIMITS.ADDITIONAL_OWNERS_LIMIT) {
         throw new Error(
@@ -80,7 +64,6 @@ export class TwitterMedia implements PlatformMedia {
       // Upload media using v2 endpoint
       const mediaId = await client.v2.uploadMedia(mediaBuffer, {
         media_type: mimeType,
-        media_category: mediaCategory,
       });
 
       // Set alt text if provided

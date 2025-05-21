@@ -156,8 +156,13 @@ export abstract class BasePostController extends BaseController {
           continue;
         }
 
-        // Process the target
-        const result = await processor(target, i);
+        const result = await this.executePlatformOperationWithRetry(
+          () => processor(target, i),
+          target.platform,
+          target.userId,
+          signerId,
+          this.authService,
+        );
         successResults.push(result);
 
         // Add a small delay between operations to avoid spam detection
@@ -165,34 +170,26 @@ export abstract class BasePostController extends BaseController {
           await new Promise((resolve) => setTimeout(resolve, getPostDelay(target.platform)));
         }
       } catch (error) {
-        // Check if this is an unauthorized error (e.g., from token refresh failure)
-        if (error instanceof PlatformError && error.code === ApiErrorCode.UNAUTHORIZED) {
-          try {
-            // Unlink the account since the tokens are no longer valid
-            await this.authService.unlinkAccount(signerId, target.platform, target.userId);
-            console.log(
-              `Automatically unlinked ${target.platform}:${target.userId} from ${signerId} due to auth error.`,
-            );
-          } catch (unlinkError) {
-            console.error(
-              `Failed to automatically unlink ${target.platform}:${target.userId} from ${signerId}:`,
-              unlinkError,
-            );
-            // Continue with error handling even if unlinking fails
-          }
-        }
+        const processedError = error instanceof PlatformError ? error : new PlatformError(
+          error instanceof Error
+            ? error.message
+            : 'Unknown processing error in processMultipleTargets loop',
+          ApiErrorCode.PLATFORM_ERROR,
+          target.platform,
+          { originalError: error, userId: target.userId, signerId },
+          false,
+        );
 
         errorDetails.push(
           createErrorDetail(
-            error instanceof Error ? error.message : 'Unknown error',
-            error instanceof PlatformError ? error.code : ApiErrorCode.PLATFORM_ERROR,
-            error instanceof PlatformError ? error.recoverable : false,
+            processedError.message,
+            processedError.code,
+            processedError.recoverable,
             {
               platform: target.platform,
               userId: target.userId,
-              ...((error instanceof PlatformError)
-                ? (error as PlatformError).details
-                : (error instanceof Error ? { errorStack: error.stack } : undefined)),
+              signerId: signerId,
+              ...processedError.details,
             },
           ),
         );

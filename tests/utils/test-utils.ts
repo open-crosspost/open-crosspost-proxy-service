@@ -122,12 +122,21 @@ export function createTestUserId(platform: PlatformName): string {
 
 /**
  * Create mock services for testing
+ * @param customMocks Optional custom mock implementations for services
  * @returns Mock services for testing
  */
-export function createMockServices() {
-  // Create mock service objects with all required methods
-  const mockPostService = {
-    createPost: (_platform: PlatformName, userId: string, content: any) => {
+export function createMockServices(customMocks: {
+  postService?: Partial<PostService>;
+  // Ensure the AuthService type here matches the structure including _spies if used
+  authService?: Partial<
+    AuthService & { _spies?: { unlinkAccount: { called: number; reset: () => void; fn: any } } }
+  >;
+  rateLimitService?: Partial<RateLimitService>;
+  activityTrackingService?: Partial<ActivityTrackingService>;
+} = {}) {
+  // Default mock PostService implementation
+  const defaultMockPostService = {
+    createPost: (_platform: PlatformName, userId: string, content: any): Promise<PostResult> => {
       return Promise.resolve({
         id: `mock-post-id-${userId}`,
         url: `https://mock.platform/${userId}/posts/mock-post-id-${userId}`,
@@ -136,28 +145,130 @@ export function createMockServices() {
         success: true,
       } as PostResult);
     },
+    // Add other PostService methods as needed, or ensure they are mocked if called
   };
 
-  const mockAuthService = {
-    hasAccess: (_signerId: string, _platform: PlatformName, _userId: string) =>
+  // Simple call counter for spy-like behavior for unlinkAccount
+  const defaultUnlinkAccountSpy = {
+    called: 0,
+    reset: () => {
+      defaultUnlinkAccountSpy.called = 0;
+    },
+    fn: async (_signerId: string, _platform: PlatformName, _userId: string): Promise<void> => {
+      defaultUnlinkAccountSpy.called++;
+      await Promise.resolve();
+    },
+  };
+
+  // Default mock AuthService implementation
+  const defaultMockAuthService = {
+    // Properties from AuthService constructor
+    nearAuthService: nearAuthServiceMock, // Use the imported mock or a simpler one
+    authStateStore: {
+      get: () => Promise.resolve(null),
+      set: () => Promise.resolve(),
+      delete: () => Promise.resolve(),
+      list: () => Promise.resolve({ entries: [], cursor: '' }),
+    } as any, // Mock PrefixedKvStore
+    platformAuthMap: new Map(),
+    platformProfileMap: new Map(),
+
+    // Existing mocked methods
+    hasAccess: (_signerId: string, _platform: PlatformName, _userId: string): Promise<boolean> =>
       Promise.resolve(true),
-    getTokensForUser: () => Promise.resolve({ accessToken: 'mock-token' }),
+    getTokensForUser: (): Promise<{ accessToken: string }> =>
+      Promise.resolve({ accessToken: 'mock-token' }), // This might need to align with AuthToken type
+    unlinkAccount: defaultUnlinkAccountSpy.fn,
+    _spies: {
+      unlinkAccount: defaultUnlinkAccountSpy,
+    },
+
+    // Adding missing methods from AuthService with minimal mocks
+    getPlatformAuth: (_platform: PlatformName) => {
+      // Return a basic mock PlatformAuth or throw if not expected to be called
+      return {
+        initializeAuth: () =>
+          Promise.resolve({
+            authUrl: 'mockAuthUrl',
+            state: 'mockState',
+            codeVerifier: 'mockCodeVerifier',
+          }),
+        handleCallback: () =>
+          Promise.resolve({
+            userId: 'mockUserId',
+            token: { accessToken: 'mockAccessToken', tokenType: 'bearer' } as any,
+            successUrl: '/',
+            redirect: true,
+            origin: '/',
+          }),
+        refreshToken: () =>
+          Promise.resolve({ accessToken: 'mockRefreshedToken', tokenType: 'bearer' } as any),
+        revokeToken: () => Promise.resolve(true),
+      } as any; // Cast to any to simplify mock structure if full PlatformAuth is complex
+    },
+    getPlatformProfile: (_platform: PlatformName) => {
+      // Return a basic mock PlatformProfile or throw
+      return {
+        getUserProfile: () => Promise.resolve(null), // Or a mock UserProfile
+      } as any; // Cast to any for simplicity
+    },
+    initializeAuth: () =>
+      Promise.resolve({
+        authUrl: 'mockAuthUrl',
+        state: 'mockState',
+        codeVerifier: 'mockCodeVerifier',
+      }),
+    handleCallback: () =>
+      Promise.resolve({
+        userId: 'mockUserId',
+        token: { accessToken: 'mockAccessToken', tokenType: 'bearer' } as any,
+        successUrl: '/',
+        redirect: true,
+        origin: '/',
+      }),
+    refreshToken: (_platform: PlatformName, _userId: string) =>
+      Promise.resolve({ accessToken: 'mockRefreshedToken', tokenType: 'bearer' } as any),
+    revokeToken: (_platform: PlatformName, _userId: string) => Promise.resolve(true),
+    hasValidTokens: (_platform: PlatformName, _userId: string) => Promise.resolve(true),
+    linkAccount: (_signerId: string, _platform: PlatformName, _userId: string) =>
+      Promise.resolve(true),
+    getUserProfile: (_platform: PlatformName, _userId: string, _forceRefresh?: boolean) =>
+      Promise.resolve(null), // Or a mock UserProfile
   };
 
-  const mockRateLimitService = {
-    canPerformAction: (_platform: PlatformName, _action?: string) => Promise.resolve(true),
+  // Default mock RateLimitService
+  const defaultMockRateLimitService = {
+    canPerformAction: (_platform: PlatformName, _action?: string): Promise<boolean> =>
+      Promise.resolve(true),
   };
 
-  const mockActivityTrackingService = {
-    trackPost: (_signerId: string, _platform: PlatformName, _userId: string, _postId: string) =>
-      Promise.resolve(),
+  // Default mock ActivityTrackingService
+  const defaultMockActivityTrackingService = {
+    trackPost: (
+      _signerId: string,
+      _platform: PlatformName,
+      _userId: string,
+      _postId: string,
+    ): Promise<void> => Promise.resolve(),
+  };
+
+  // Merge defaults with custom mocks
+  const finalPostService = { ...defaultMockPostService, ...customMocks.postService };
+  const finalAuthService = { ...defaultMockAuthService, ...customMocks.authService };
+
+  const finalRateLimitService = { ...defaultMockRateLimitService, ...customMocks.rateLimitService };
+  const finalActivityTrackingService = {
+    ...defaultMockActivityTrackingService,
+    ...customMocks.activityTrackingService,
   };
 
   return {
-    postService: mockPostService as unknown as PostService,
-    authService: mockAuthService as unknown as AuthService,
-    rateLimitService: mockRateLimitService as unknown as RateLimitService,
-    activityTrackingService: mockActivityTrackingService as unknown as ActivityTrackingService,
+    postService: finalPostService as PostService,
+    authService: finalAuthService as any as AuthService & {
+      _spies: { unlinkAccount: typeof defaultUnlinkAccountSpy };
+    },
+    rateLimitService: finalRateLimitService as RateLimitService,
+    activityTrackingService: finalActivityTrackingService as ActivityTrackingService,
   };
 }
 
