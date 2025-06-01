@@ -10,48 +10,6 @@ import type {
 import { makeRequest, type RequestOptions } from '../core/request.ts';
 
 /**
- * Creates a modified query object with filter properties
- * @param query The original query object
- * @returns A new query object with filter properties formatted as filter[key]=value.
- */
-function createFilterQuery<
-  T extends { filter?: Record<string, any>; limit?: number; offset?: number },
->(
-  query?: T,
-): Record<string, string | number | boolean> {
-  if (!query) return {};
-
-  const result: Record<string, string | number | boolean> = {};
-
-  if (query.limit !== undefined) {
-    result.limit = query.limit;
-  }
-  if (query.offset !== undefined) {
-    result.offset = query.offset;
-  }
-
-  // e.g., query.filter = { timeframe: 'month', platforms: ['twitter'] }
-  // becomes result['filter[timeframe]'] = 'month', result['filter[platforms]'] = 'twitter'
-  if (query.filter) {
-    const filterParams = query.filter;
-    for (const filterKey in filterParams) {
-      if (
-        Object.prototype.hasOwnProperty.call(filterParams, filterKey) &&
-        filterParams[filterKey] !== undefined
-      ) {
-        const value = filterParams[filterKey];
-        if (Array.isArray(value)) {
-          result[`filter[${filterKey}]`] = value.join(',');
-        } else {
-          result[`filter[${filterKey}]`] = String(value);
-        }
-      }
-    }
-  }
-  return result;
-}
-
-/**
  * Activity-related API operations
  */
 export class ActivityApi {
@@ -78,7 +36,7 @@ export class ActivityApi {
       '/api/activity',
       this.options,
       undefined,
-      createFilterQuery(query),
+      query,
     );
   }
 
@@ -97,7 +55,7 @@ export class ActivityApi {
       `/api/activity/${signerId}`,
       this.options,
       undefined,
-      createFilterQuery(query),
+      query,
     );
   }
 
@@ -116,7 +74,7 @@ export class ActivityApi {
       `/api/activity/${signerId}/posts`,
       this.options,
       undefined,
-      createFilterQuery(query),
+      query,
     );
   }
 }
