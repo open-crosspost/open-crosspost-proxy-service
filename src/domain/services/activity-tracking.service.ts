@@ -28,7 +28,7 @@ export class ActivityTrackingService {
    * Creates an instance of ActivityTrackingService with dependency injection
    * @param kvStore KV store for activity data
    */
-  constructor(private kvStore: PrefixedKvStore) { }
+  constructor(private kvStore: PrefixedKvStore) {}
 
   /**
    * Track a post for a NEAR account
