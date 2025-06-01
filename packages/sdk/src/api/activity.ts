@@ -10,40 +10,44 @@ import type {
 import { makeRequest, type RequestOptions } from '../core/request.ts';
 
 /**
- * Creates a modified query object with filter properties flattened
+ * Creates a modified query object with filter properties
  * @param query The original query object
- * @returns A new query object with filter properties flattened
+ * @returns A new query object with filter properties formatted as filter[key]=value.
  */
-function createFilterQuery<T>(query?: T): Record<string, unknown> {
+function createFilterQuery<
+  T extends { filter?: Record<string, any>; limit?: number; offset?: number },
+>(
+  query?: T,
+): Record<string, string | number | boolean> {
   if (!query) return {};
 
-  const queryObj = query as Record<string, any>;
-  const result: Record<string, unknown> = {};
+  const result: Record<string, string | number | boolean> = {};
 
-  // Copy non-filter properties
-  Object.keys(queryObj).forEach((key) => {
-    if (key !== 'filter') {
-      result[key] = queryObj[key];
-    }
-  });
-
-  // Extract and flatten filter properties if they exist
-  if (queryObj.filter) {
-    const filter = queryObj.filter;
-
-    if (filter.platforms && Array.isArray(filter.platforms)) {
-      result.platforms = filter.platforms.join(',');
-    }
-
-    if (filter.types && Array.isArray(filter.types)) {
-      result.types = filter.types.join(',');
-    }
-
-    if (filter.timeframe) {
-      result.timeframe = filter.timeframe;
-    }
+  if (query.limit !== undefined) {
+    result.limit = query.limit;
+  }
+  if (query.offset !== undefined) {
+    result.offset = query.offset;
   }
 
+  // e.g., query.filter = { timeframe: 'month', platforms: ['twitter'] }
+  // becomes result['filter[timeframe]'] = 'month', result['filter[platforms]'] = 'twitter'
+  if (query.filter) {
+    const filterParams = query.filter;
+    for (const filterKey in filterParams) {
+      if (
+        Object.prototype.hasOwnProperty.call(filterParams, filterKey) &&
+        filterParams[filterKey] !== undefined
+      ) {
+        const value = filterParams[filterKey];
+        if (Array.isArray(value)) {
+          result[`filter[${filterKey}]`] = value.join(',');
+        } else {
+          result[`filter[${filterKey}]`] = String(value);
+        }
+      }
+    }
+  }
   return result;
 }
 
