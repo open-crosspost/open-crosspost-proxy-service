@@ -256,7 +256,9 @@ export class ActivityTrackingService {
       // Calculate platform breakdown based on filtered posts
       const platformBreakdown: PlatformActivity[] = platformActivities.map((pa) => {
         const platformPosts = filteredPosts.filter((post) => post.p === pa.platform);
-        const platformPostCount = platformPosts.filter((p) => p.ty === ActivityType.POST || p.ty === undefined).length;
+        const platformPostCount = platformPosts.filter((p) =>
+          p.ty === ActivityType.POST || p.ty === undefined
+        ).length;
         const platformLikes = platformPosts.filter((p) => p.ty === ActivityType.LIKE).length;
         const platformReposts = platformPosts.filter((p) => p.ty === ActivityType.REPOST).length;
         const platformReplies = platformPosts.filter((p) => p.ty === ActivityType.REPLY).length;
