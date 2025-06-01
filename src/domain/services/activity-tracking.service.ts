@@ -22,7 +22,7 @@ import { getPostUrl } from '../../utils/platform.utils.ts';
  * Tracks NEAR account activity and provides leaderboard functionality
  */
 export class ActivityTrackingService {
-  private readonly MAX_POSTS_PER_ACCOUNT = 100; // Maximum number of posts to store per account
+  private readonly MAX_POSTS_PER_ACCOUNT = 1000; // Maximum number of posts to store per account
   private readonly LEADERBOARD_CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   /**
