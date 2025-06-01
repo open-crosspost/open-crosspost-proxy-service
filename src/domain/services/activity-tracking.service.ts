@@ -282,8 +282,9 @@ export class ActivityTrackingService {
       });
 
       const allAccountMetrics = await this.calculateAccountMetrics(filter);
-      const accountRank = allAccountMetrics.findIndex((account) => account.signerId === signerId) +
-        1;
+      const rankedAccounts = this.calculateRanks(allAccountMetrics);
+      const accountRank = rankedAccounts.find((account) => account.signerId === signerId)?.rank ||
+        0;
 
       return {
         signerId,
@@ -424,6 +425,35 @@ export class ActivityTrackingService {
 
     // For predefined periods, end time is "now"
     return Date.now();
+  }
+
+  /**
+   * Calculate proper ranks for accounts with tied scores
+   * @param sortedAccounts Array of accounts sorted by totalScore descending
+   * @returns Array of accounts with proper rank assigned
+   */
+  private calculateRanks<T extends { totalScore: number }>(
+    sortedAccounts: T[],
+  ): (T & { rank: number })[] {
+    const rankedAccounts: (T & { rank: number })[] = [];
+    let currentRank = 1;
+
+    for (let i = 0; i < sortedAccounts.length; i++) {
+      const account = sortedAccounts[i];
+
+      // If this is not the first account and score is different from previous,
+      // update rank to current position
+      if (i > 0 && account.totalScore !== sortedAccounts[i - 1].totalScore) {
+        currentRank = i + 1;
+      }
+
+      rankedAccounts.push({
+        ...account,
+        rank: currentRank,
+      });
+    }
+
+    return rankedAccounts;
   }
 
   /**
@@ -620,20 +650,18 @@ export class ActivityTrackingService {
           Date.now() - cachedLeaderboard.timestamp < this.LEADERBOARD_CACHE_TTL
         ) {
           // Return paginated result from cache
-          return cachedLeaderboard.entries.slice(offset, offset + limit).map((entry, index) => ({
-            ...entry,
-            rank: offset + index + 1, // Recalculate rank based on pagination
-          }));
+          return cachedLeaderboard.entries.slice(offset, offset + limit);
         }
       }
 
       // Otherwise, generate the leaderboard
       const sortedAccounts = await this.calculateAccountMetrics(filter);
 
-      // Prepare the full leaderboard entries (without rank initially)
-      const fullLeaderboardEntries: Omit<AccountActivityEntry, 'rank'>[] = sortedAccounts.map((
-        entry,
-      ) => ({
+      // Calculate proper ranks for all accounts
+      const rankedAccounts = this.calculateRanks(sortedAccounts);
+
+      // Prepare the full leaderboard entries with proper ranks
+      const fullLeaderboardEntries: AccountActivityEntry[] = rankedAccounts.map((entry) => ({
         signerId: entry.signerId,
         totalPosts: entry.totalPosts,
         totalLikes: entry.totalLikes,
@@ -641,6 +669,7 @@ export class ActivityTrackingService {
         totalReplies: entry.totalReplies,
         totalQuotes: entry.totalQuotes,
         totalScore: entry.totalScore,
+        rank: entry.rank,
         lastActive: new Date(entry.lastPostTimestamp).toISOString(),
         firstPostTimestamp: new Date(entry.firstPostTimestamp).toISOString(),
       }));
@@ -648,16 +677,13 @@ export class ActivityTrackingService {
       // Cache the full result if applicable (global or single platform)
       if (cacheKey && shouldCache) {
         await this.kvStore.set(cacheKey, {
-          entries: fullLeaderboardEntries, // Cache the unranked, full list
+          entries: fullLeaderboardEntries,
           timestamp: Date.now(),
         });
       }
 
-      // Apply pagination and add rank to the paginated result
-      return fullLeaderboardEntries.slice(offset, offset + limit).map((entry, index) => ({
-        ...entry,
-        rank: offset + index + 1, // Calculate rank based on paginated position
-      }));
+      // Apply pagination
+      return fullLeaderboardEntries.slice(offset, offset + limit);
     } catch (error) {
       console.error('Error getting leaderboard:', error);
 
