@@ -211,36 +211,26 @@ export class ActivityTrackingService {
   ): Promise<AccountActivityResponse | null> {
     try {
       const timeframe = filter?.timeframe || TimePeriod.ALL;
-      const timePeriodStart = this.getTimePeriodStart(timeframe, filter?.startDate);
-      const timePeriodEnd = this.getTimePeriodEnd(timeframe, filter?.endDate);
 
-      // Get all posts for the account to filter by timeframe if needed
+      // Get all posts for the account and filter them
       const postsKey = ['near_account_posts', signerId];
       const allPosts = await this.kvStore.get<PostRecord[]>(postsKey) || [];
-
-      // Filter posts by timeframe and platforms if specified
-      let filteredPosts = allPosts.filter((post) =>
-        post.t >= timePeriodStart && post.t <= timePeriodEnd
-      );
-
-      if (filter?.platforms && filter.platforms.length > 0) {
-        filteredPosts = filteredPosts.filter((post) =>
-          filter.platforms!.includes(post.p as PlatformName)
-        );
-      }
+      const filteredPosts = this.filterPosts(allPosts, filter);
 
       // If no posts match the filter, return null
       if (filteredPosts.length === 0) {
         return null;
       }
 
-      // Calculate metrics from filtered posts by activity type
-      const totalPosts = filteredPosts.filter((p) => p.ty === ActivityType.POST).length;
-      const totalLikes = filteredPosts.filter((p) => p.ty === ActivityType.LIKE).length;
-      const totalReposts = filteredPosts.filter((p) => p.ty === ActivityType.REPOST).length;
-      const totalReplies = filteredPosts.filter((p) => p.ty === ActivityType.REPLY).length;
-      const totalQuotes = filteredPosts.filter((p) => p.ty === ActivityType.QUOTE).length;
-      const totalScore = totalPosts + totalLikes + totalReposts + totalReplies + totalQuotes;
+      // Calculate metrics from filtered posts
+      const {
+        totalPosts,
+        totalLikes,
+        totalReposts,
+        totalReplies,
+        totalQuotes,
+        totalScore,
+      } = this.calculateActivityMetrics(filteredPosts);
       const lastPostTimestamp = Math.max(...filteredPosts.map((p) => p.t));
 
       // Get platform activities for breakdown
@@ -289,6 +279,10 @@ export class ActivityTrackingService {
         };
       });
 
+      const allAccountMetrics = await this.calculateAccountMetrics(filter);
+      const accountRank = allAccountMetrics.findIndex((account) => account.signerId === signerId) +
+        1;
+
       return {
         signerId,
         timeframe: timeframe,
@@ -298,7 +292,7 @@ export class ActivityTrackingService {
         totalReplies: totalReplies,
         totalQuotes: totalQuotes,
         totalScore: totalScore,
-        rank: 0,
+        rank: accountRank,
         lastActive: new Date(lastPostTimestamp).toISOString(),
         platforms: platformBreakdown,
       };
@@ -431,6 +425,153 @@ export class ActivityTrackingService {
   }
 
   /**
+   * Calculate activity metrics from filtered posts
+   * @param posts Array of post records
+   * @returns Activity metrics object
+   */
+  private calculateActivityMetrics(posts: PostRecord[]): {
+    totalPosts: number;
+    totalLikes: number;
+    totalReposts: number;
+    totalReplies: number;
+    totalQuotes: number;
+    totalScore: number;
+  } {
+    const totalPosts = posts.filter((p) => p.ty === ActivityType.POST).length;
+    const totalLikes = posts.filter((p) => p.ty === ActivityType.LIKE).length;
+    const totalReposts = posts.filter((p) => p.ty === ActivityType.REPOST).length;
+    const totalReplies = posts.filter((p) => p.ty === ActivityType.REPLY).length;
+    const totalQuotes = posts.filter((p) => p.ty === ActivityType.QUOTE).length;
+    const totalScore = totalPosts + totalLikes + totalReposts + totalReplies + totalQuotes;
+
+    return {
+      totalPosts,
+      totalLikes,
+      totalReposts,
+      totalReplies,
+      totalQuotes,
+      totalScore,
+    };
+  }
+
+  /**
+   * Filter posts by timeframe and platforms
+   * @param posts Array of post records
+   * @param filter Filter criteria
+   * @returns Filtered posts
+   */
+  private filterPosts(posts: PostRecord[], filter?: Filter): PostRecord[] {
+    const timeframe = filter?.timeframe || TimePeriod.ALL;
+    const platforms = filter?.platforms;
+    const timePeriodStart = this.getTimePeriodStart(timeframe, filter?.startDate);
+    const timePeriodEnd = this.getTimePeriodEnd(timeframe, filter?.endDate);
+
+    let filteredPosts = posts.filter((post) =>
+      post.t >= timePeriodStart && post.t <= timePeriodEnd
+    );
+
+    if (platforms && platforms.length > 0) {
+      filteredPosts = filteredPosts.filter((post) => platforms.includes(post.p as PlatformName));
+    }
+
+    return filteredPosts;
+  }
+
+  /**
+   * Calculate account metrics for a given timeframe and filter
+   * @param filter Optional filter for platforms, timeframe, etc.
+   * @returns Sorted array of account metrics (by totalScore descending)
+   */
+  private async calculateAccountMetrics(
+    filter?: Filter,
+  ): Promise<
+    Array<{
+      signerId: string;
+      totalPosts: number;
+      totalLikes: number;
+      totalReposts: number;
+      totalReplies: number;
+      totalQuotes: number;
+      totalScore: number;
+      firstPostTimestamp: number;
+      lastPostTimestamp: number;
+    }>
+  > {
+    const platforms = filter?.platforms;
+
+    // Get all accounts that have activity
+    let accountIds: string[];
+
+    if (platforms && platforms.length > 0) {
+      // Get platform-specific accounts if platforms are specified
+      const accounts = await this.kvStore.list<PlatformAccountActivity>([
+        'near_account_platform',
+      ]);
+
+      // Get unique account IDs for the specified platforms
+      const platformAccountIds = new Set<string>();
+      accounts.forEach(({ value }) => {
+        if (platforms.includes(value.platform as PlatformName)) {
+          platformAccountIds.add(value.signerId);
+        }
+      });
+      accountIds = Array.from(platformAccountIds);
+    } else {
+      // Get all global accounts if no platforms are specified
+      const accounts = await this.kvStore.list<AccountActivity>(['near_account']);
+      accountIds = accounts.map(({ value }) => value.signerId);
+    }
+
+    // Calculate metrics for each account based on filtered posts
+    const accountMetrics: Array<{
+      signerId: string;
+      totalPosts: number;
+      totalLikes: number;
+      totalReposts: number;
+      totalReplies: number;
+      totalQuotes: number;
+      totalScore: number;
+      firstPostTimestamp: number;
+      lastPostTimestamp: number;
+    }> = [];
+
+    for (const signerId of accountIds) {
+      const postsKey = ['near_account_posts', signerId];
+      const allPosts = await this.kvStore.get<PostRecord[]>(postsKey) || [];
+
+      // Filter posts
+      const filteredPosts = this.filterPosts(allPosts, filter);
+
+      // Only include accounts that have posts in the timeframe
+      if (filteredPosts.length > 0) {
+        const {
+          totalPosts,
+          totalLikes,
+          totalReposts,
+          totalReplies,
+          totalQuotes,
+          totalScore,
+        } = this.calculateActivityMetrics(filteredPosts);
+
+        accountMetrics.push({
+          signerId,
+          totalPosts,
+          totalLikes,
+          totalReposts,
+          totalReplies,
+          totalQuotes,
+          totalScore,
+          firstPostTimestamp: Math.min(...filteredPosts.map((p) => p.t)),
+          lastPostTimestamp: Math.max(...filteredPosts.map((p) => p.t)),
+        });
+      }
+    }
+
+    // Sort by total score (descending)
+    return accountMetrics.sort((a, b) => b.totalScore - a.totalScore);
+  }
+
+  /**
    * Get leaderboard with optional filtering
    * @param limit Maximum number of entries to return
    * @param offset Number of entries to skip
@@ -485,85 +626,7 @@ export class ActivityTrackingService {
       }
 
       // Otherwise, generate the leaderboard
-      const timePeriodStart = this.getTimePeriodStart(timeframe, filter?.startDate);
-      const timePeriodEnd = this.getTimePeriodEnd(timeframe, filter?.endDate);
-
-      // Get all accounts that have activity
-      let accountIds: string[];
-
-      if (platforms && platforms.length > 0) {
-        // Get platform-specific accounts if platforms are specified
-        const accounts = await this.kvStore.list<PlatformAccountActivity>([
-          'near_account_platform',
-        ]);
-
-        // Get unique account IDs for the specified platforms
-        const platformAccountIds = new Set<string>();
-        accounts.forEach(({ value }) => {
-          if (platforms.includes(value.platform as PlatformName)) {
-            platformAccountIds.add(value.signerId);
-          }
-        });
-        accountIds = Array.from(platformAccountIds);
-      } else {
-        // Get all global accounts if no platforms are specified
-        const accounts = await this.kvStore.list<AccountActivity>(['near_account']);
-        accountIds = accounts.map(({ value }) => value.signerId);
-      }
-
-      // Calculate metrics for each account based on filtered posts
-      const accountMetrics: Array<{
-        signerId: string;
-        totalPosts: number;
-        totalLikes: number;
-        totalReposts: number;
-        totalReplies: number;
-        totalQuotes: number;
-        totalScore: number;
-        firstPostTimestamp: number;
-        lastPostTimestamp: number;
-      }> = [];
-
-      for (const signerId of accountIds) {
-        const postsKey = ['near_account_posts', signerId];
-        const allPosts = await this.kvStore.get<PostRecord[]>(postsKey) || [];
-
-        // Filter posts by timeframe and platforms
-        let filteredPosts = allPosts.filter((post) =>
-          post.t >= timePeriodStart && post.t <= timePeriodEnd
-        );
-
-        if (platforms && platforms.length > 0) {
-          filteredPosts = filteredPosts.filter((post) =>
-            platforms.includes(post.p as PlatformName)
-          );
-        }
-
-        // Only include accounts that have posts in the timeframe
-        if (filteredPosts.length > 0) {
-          const totalPosts = filteredPosts.filter((p) => p.ty === ActivityType.POST).length;
-          const totalLikes = filteredPosts.filter((p) => p.ty === ActivityType.LIKE).length;
-          const totalReposts = filteredPosts.filter((p) => p.ty === ActivityType.REPOST).length;
-          const totalReplies = filteredPosts.filter((p) => p.ty === ActivityType.REPLY).length;
-          const totalQuotes = filteredPosts.filter((p) => p.ty === ActivityType.QUOTE).length;
-          const totalScore = totalPosts + totalLikes + totalReposts + totalReplies + totalQuotes;
-
-          accountMetrics.push({
-            signerId,
-            totalPosts,
-            totalLikes,
-            totalReposts,
-            totalReplies,
-            totalQuotes,
-            totalScore,
-            firstPostTimestamp: Math.min(...filteredPosts.map((p) => p.t)),
-            lastPostTimestamp: Math.max(...filteredPosts.map((p) => p.t)),
-          });
-        }
-      }
-
-      // Sort by total score (descending)
-      const sortedAccounts = accountMetrics.sort((a, b) => b.totalScore - a.totalScore);
+      const sortedAccounts = await this.calculateAccountMetrics(filter);
 
       // Prepare the full leaderboard entries (without rank initially)
       const fullLeaderboardEntries: Omit<AccountActivityEntry, 'rank'>[] = sortedAccounts.map((
