@@ -586,8 +586,8 @@ export class ActivityTrackingService {
         if (activity?.postCount && activity?.postCount > totalScore) {
           // if post count is greater than the total score
           const adjusted = activity.postCount - totalScore; // number of untracked posts
-          totalPosts += adjusted;
-          totalScore += adjusted;
+          totalPosts += adjusted; // count them as posts
+          totalScore += adjusted; // increase the score
         }
 
         accountMetrics.push({
