@@ -22,14 +22,13 @@ import { getPostUrl } from '../../utils/platform.utils.ts';
  * Tracks NEAR account activity and provides leaderboard functionality
  */
 export class ActivityTrackingService {
-  private readonly MAX_POSTS_PER_ACCOUNT = 1000; // Maximum number of posts to store per account
   private readonly LEADERBOARD_CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   /**
    * Creates an instance of ActivityTrackingService with dependency injection
    * @param kvStore KV store for activity data
    */
-  constructor(private kvStore: PrefixedKvStore) {}
+  constructor(private kvStore: PrefixedKvStore) { }
 
   /**
    * Track a post for a NEAR account
@@ -155,11 +154,8 @@ export class ActivityTrackingService {
       ty: type,
     });
 
-    // Limit the number of posts stored
-    const limitedPosts = posts.slice(0, this.MAX_POSTS_PER_ACCOUNT);
-
     // Save updated posts
-    await this.kvStore.set(key, limitedPosts);
+    await this.kvStore.set(key, posts);
   }
 
   /**
@@ -568,6 +564,7 @@ export class ActivityTrackingService {
     }> = [];
 
     for (const signerId of accountIds) {
+      const activity = await this.kvStore.get<AccountActivity>(['near_account', signerId]);
       const postsKey = ['near_account_posts', signerId];
       const allPosts = await this.kvStore.get<PostRecord[]>(postsKey) || [];
 
@@ -576,7 +573,7 @@ export class ActivityTrackingService {
 
       // Only include accounts that have posts in the timeframe
       if (filteredPosts.length > 0) {
-        const {
+        let {
           totalPosts,
           totalLikes,
           totalReposts,
@@ -584,6 +581,14 @@ export class ActivityTrackingService {
           totalQuotes,
           totalScore,
         } = this.calculateActivityMetrics(filteredPosts);
+
+        // adjustment, sleet.near and crocs2.tg (we used to only save 100 posts max)
+        if (activity?.postCount && activity?.postCount > totalScore) {
+          // if post count is greater than the total score
+          const adjusted = activity.postCount - totalScore; // number of untracked posts
+          totalPosts += adjusted;
+          totalScore += adjusted;
+        }
 
         accountMetrics.push({
           signerId,
