@@ -29,7 +29,7 @@ export class ActivityTrackingService {
    * Creates an instance of ActivityTrackingService with dependency injection
    * @param kvStore KV store for activity data
    */
-  constructor(private kvStore: PrefixedKvStore) {}
+  constructor(private kvStore: PrefixedKvStore) { }
 
   /**
    * Track a post for a NEAR account
@@ -211,14 +211,15 @@ export class ActivityTrackingService {
   ): Promise<AccountActivityResponse | null> {
     try {
       const timeframe = filter?.timeframe || TimePeriod.ALL;
-      const timePeriodStart = this.getTimePeriodStart(timeframe);
+      const timePeriodStart = this.getTimePeriodStart(timeframe, filter?.startDate);
+      const timePeriodEnd = this.getTimePeriodEnd(timeframe, filter?.endDate);
 
       // Get all posts for the account to filter by timeframe if needed
       const postsKey = ['near_account_posts', signerId];
       const allPosts = await this.kvStore.get<PostRecord[]>(postsKey) || [];
 
       // Filter posts by timeframe and platforms if specified
-      let filteredPosts = allPosts.filter((post) => post.t >= timePeriodStart);
+      let filteredPosts = allPosts.filter((post) => post.t >= timePeriodStart && post.t <= timePeriodEnd);
 
       if (filter?.platforms && filter.platforms.length > 0) {
         filteredPosts = filteredPosts.filter((post) =>
@@ -320,11 +321,7 @@ export class ActivityTrackingService {
     signerId: string,
     limit = 10,
     offset = 0,
-    filter?: {
-      platforms?: PlatformName[];
-      types?: ActivityType[];
-      timeframe?: TimePeriod;
-    },
+    filter?: Filter,
   ): Promise<AccountPost[]> {
     try {
       const key = ['near_account_posts', signerId];
@@ -335,8 +332,9 @@ export class ActivityTrackingService {
 
       // Filter by timeframe if specified
       if (filter?.timeframe && filter.timeframe !== TimePeriod.ALL) {
-        const timePeriodStart = this.getTimePeriodStart(filter.timeframe);
-        filteredPosts = filteredPosts.filter((post) => post.t >= timePeriodStart);
+        const timePeriodStart = this.getTimePeriodStart(filter.timeframe, filter?.startDate);
+        const timePeriodEnd = this.getTimePeriodEnd(filter.timeframe, filter?.endDate);
+        filteredPosts = filteredPosts.filter((post) => post.t >= timePeriodStart && post.t <= timePeriodEnd);
       }
 
       // Filter by platforms if specified
@@ -378,9 +376,14 @@ export class ActivityTrackingService {
   /**
    * Get the start timestamp for a time period
    * @param timePeriod Time period
+   * @param startDate Custom range start (for CUSTOM timeframe)
    * @returns Start timestamp
    */
-  private getTimePeriodStart(timePeriod: TimePeriod): number {
+  private getTimePeriodStart(timePeriod: TimePeriod, startDate?: string): number {
+    if (timePeriod === TimePeriod.CUSTOM) {
+      return startDate ? new Date(startDate).getTime() : 0;
+    }
+
     const now = new Date();
 
     switch (timePeriod) {
@@ -405,6 +408,22 @@ export class ActivityTrackingService {
       default:
         return 0;
     }
+  }
+
+  /**
+   * Get the end timestamp for a time period
+   * @param timePeriod Time period
+   * @param endDate Custom range end (for CUSTOM timeframe, optional - defaults to now)
+   * @returns End timestamp
+   */
+  private getTimePeriodEnd(timePeriod: TimePeriod, endDate?: string): number {
+    if (timePeriod === TimePeriod.CUSTOM) {
+      // If endDate is provided, use it; otherwise default to now
+      return endDate ? new Date(endDate).getTime() : Date.now();
+    }
+
+    // For predefined periods, end time is "now"
+    return Date.now();
   }
 
   /**
@@ -461,7 +480,8 @@ export class ActivityTrackingService {
       }
 
       // Otherwise, generate the leaderboard
-      const timePeriodStart = this.getTimePeriodStart(timeframe);
+      const timePeriodStart = this.getTimePeriodStart(timeframe, filter?.startDate);
+      const timePeriodEnd = this.getTimePeriodEnd(timeframe, filter?.endDate);
 
       // Get all accounts that have activity
       let accountIds: string[];
@@ -504,7 +524,7 @@ export class ActivityTrackingService {
         const allPosts = await this.kvStore.get<PostRecord[]>(postsKey) || [];
 
         // Filter posts by timeframe and platforms
-        let filteredPosts = allPosts.filter((post) => post.t >= timePeriodStart);
+        let filteredPosts = allPosts.filter((post) => post.t >= timePeriodStart && post.t <= timePeriodEnd);
 
         if (platforms && platforms.length > 0) {
           filteredPosts = filteredPosts.filter((post) =>
@@ -636,7 +656,8 @@ export class ActivityTrackingService {
     try {
       const timeframe = filter?.timeframe || TimePeriod.ALL;
       const platforms = filter?.platforms;
-      const timePeriodStart = this.getTimePeriodStart(timeframe);
+      const timePeriodStart = this.getTimePeriodStart(timeframe, filter?.startDate);
+      const timePeriodEnd = this.getTimePeriodEnd(timeframe, filter?.endDate);
 
       if (platforms && platforms.length > 0) {
         // Get platform-specific accounts
@@ -647,7 +668,8 @@ export class ActivityTrackingService {
         // Filter accounts by platforms and time period
         return accounts.filter(({ value }) =>
           platforms.includes(value.platform as PlatformName) &&
-          value.lastPostTimestamp >= timePeriodStart
+          value.lastPostTimestamp >= timePeriodStart &&
+          value.lastPostTimestamp <= timePeriodEnd
         ).length;
       } else {
         // Get all accounts

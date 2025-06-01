@@ -40,13 +40,15 @@ export class ActivityController extends BaseController {
    */
   async getLeaderboard(c: Context): Promise<Response> {
     try {
-      const { limit, offset, timeframe, platforms, types } =
+      const { limit, offset, timeframe, platforms, types, startDate, endDate } =
         c.get('validatedQuery') as ActivityLeaderboardQuery || {};
 
       const filter = {
         timeframe,
         platforms,
         types,
+        startDate,
+        endDate
       };
 
       const leaderboard: AccountActivityEntry[] = await this.activityTrackingService.getLeaderboard(
@@ -88,12 +90,14 @@ export class ActivityController extends BaseController {
     try {
       const signerId = c.get('signerId') as string;
 
-      const { timeframe, platforms, types } = c.get('validatedQuery') as AccountActivityQuery || {};
+      const { timeframe, platforms, types, startDate, endDate } = c.get('validatedQuery') as AccountActivityQuery || {};
 
       const filter = {
         timeframe,
         platforms,
         types,
+        startDate,
+        endDate
       };
 
       const activity = await this.activityTrackingService.getAccountActivity(signerId, filter);
@@ -120,13 +124,15 @@ export class ActivityController extends BaseController {
       // const signerId = c.get('signerId') as string;
 
       const { signerId } = c.get('validatedParams') as AccountPostsParams || {};
-      const { limit, offset, timeframe, platforms, types } =
+      const { limit, offset, timeframe, platforms, types, startDate, endDate } =
         c.get('validatedQuery') as AccountPostsQuery || {};
 
       const filter = {
         timeframe,
         platforms,
         types,
+        startDate,
+        endDate
       };
 
       // Get posts with pagination
