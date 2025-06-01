@@ -583,7 +583,8 @@ export class ActivityTrackingService {
         } = this.calculateActivityMetrics(filteredPosts);
 
         // adjustment, sleet.near and crocs2.tg (we used to only save 100 posts max)
-        if (activity?.postCount && activity?.postCount > totalScore) {
+        if (filter?.timeframe === TimePeriod.ALL && activity?.postCount && activity?.postCount > totalScore) {
+          // for the all time leaderboard
           // if post count is greater than the total score
           const adjusted = activity.postCount - totalScore; // number of untracked posts
           totalPosts += adjusted; // count them as posts
