@@ -582,6 +582,8 @@ export class ActivityTrackingService {
           totalScore,
         } = this.calculateActivityMetrics(filteredPosts);
 
+        let firstPostTimestamp = Math.min(...filteredPosts.map((p) => p.t));
+
         // adjustment, sleet.near and crocs2.tg (we used to only save 100 posts max)
         if (
           filter?.timeframe === TimePeriod.ALL && activity?.postCount &&
@@ -592,6 +594,7 @@ export class ActivityTrackingService {
           const adjusted = activity.postCount - totalScore; // number of untracked posts
           totalPosts += adjusted; // count them as posts
           totalScore += adjusted; // increase the score
+          firstPostTimestamp = activity?.firstPostTimestamp; // actual first post
         }
 
         accountMetrics.push({
@@ -602,7 +605,7 @@ export class ActivityTrackingService {
           totalReplies,
           totalQuotes,
           totalScore,
-          firstPostTimestamp: Math.min(...filteredPosts.map((p) => p.t)),
+          firstPostTimestamp,
           lastPostTimestamp: Math.max(...filteredPosts.map((p) => p.t)),
         });
       }
