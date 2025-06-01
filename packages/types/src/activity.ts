@@ -63,9 +63,13 @@ export const FilterSchema = z.object({
     'Timeframe for filtering (optional)',
   ),
   startDate: z.string().datetime().optional()
-    .describe('Start date for custom timeframe (ISO 8601 format, optional - defaults to beginning when timeframe=custom)'),
+    .describe(
+      'Start date for custom timeframe (ISO 8601 format, optional - defaults to beginning when timeframe=custom)',
+    ),
   endDate: z.string().datetime().optional()
-    .describe('End date for custom timeframe (ISO 8601 format, optional - defaults to now when timeframe=custom)'),
+    .describe(
+      'End date for custom timeframe (ISO 8601 format, optional - defaults to now when timeframe=custom)',
+    ),
 }).describe('Filter parameters');
 
 /**

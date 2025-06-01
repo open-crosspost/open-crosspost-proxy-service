@@ -29,7 +29,7 @@ export class ActivityTrackingService {
    * Creates an instance of ActivityTrackingService with dependency injection
    * @param kvStore KV store for activity data
    */
-  constructor(private kvStore: PrefixedKvStore) { }
+  constructor(private kvStore: PrefixedKvStore) {}
 
   /**
    * Track a post for a NEAR account
@@ -219,7 +219,9 @@ export class ActivityTrackingService {
       const allPosts = await this.kvStore.get<PostRecord[]>(postsKey) || [];
 
       // Filter posts by timeframe and platforms if specified
-      let filteredPosts = allPosts.filter((post) => post.t >= timePeriodStart && post.t <= timePeriodEnd);
+      let filteredPosts = allPosts.filter((post) =>
+        post.t >= timePeriodStart && post.t <= timePeriodEnd
+      );
 
       if (filter?.platforms && filter.platforms.length > 0) {
         filteredPosts = filteredPosts.filter((post) =>
@@ -334,7 +336,9 @@ export class ActivityTrackingService {
       if (filter?.timeframe && filter.timeframe !== TimePeriod.ALL) {
         const timePeriodStart = this.getTimePeriodStart(filter.timeframe, filter?.startDate);
         const timePeriodEnd = this.getTimePeriodEnd(filter.timeframe, filter?.endDate);
-        filteredPosts = filteredPosts.filter((post) => post.t >= timePeriodStart && post.t <= timePeriodEnd);
+        filteredPosts = filteredPosts.filter((post) =>
+          post.t >= timePeriodStart && post.t <= timePeriodEnd
+        );
       }
 
       // Filter by platforms if specified
@@ -524,7 +528,9 @@ export class ActivityTrackingService {
         const allPosts = await this.kvStore.get<PostRecord[]>(postsKey) || [];
 
         // Filter posts by timeframe and platforms
-        let filteredPosts = allPosts.filter((post) => post.t >= timePeriodStart && post.t <= timePeriodEnd);
+        let filteredPosts = allPosts.filter((post) =>
+          post.t >= timePeriodStart && post.t <= timePeriodEnd
+        );
 
         if (platforms && platforms.length > 0) {
           filteredPosts = filteredPosts.filter((post) =>

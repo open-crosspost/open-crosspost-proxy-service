@@ -48,7 +48,7 @@ export class ActivityController extends BaseController {
         platforms,
         types,
         startDate,
-        endDate
+        endDate,
       };
 
       const leaderboard: AccountActivityEntry[] = await this.activityTrackingService.getLeaderboard(
@@ -90,14 +90,15 @@ export class ActivityController extends BaseController {
     try {
       const signerId = c.get('signerId') as string;
 
-      const { timeframe, platforms, types, startDate, endDate } = c.get('validatedQuery') as AccountActivityQuery || {};
+      const { timeframe, platforms, types, startDate, endDate } =
+        c.get('validatedQuery') as AccountActivityQuery || {};
 
       const filter = {
         timeframe,
         platforms,
         types,
         startDate,
-        endDate
+        endDate,
       };
 
       const activity = await this.activityTrackingService.getAccountActivity(signerId, filter);
@@ -132,7 +133,7 @@ export class ActivityController extends BaseController {
         platforms,
         types,
         startDate,
-        endDate
+        endDate,
       };
 
       // Get posts with pagination
