@@ -448,20 +448,21 @@ export class ActivityTrackingService {
       const timeframe = filter?.timeframe || TimePeriod.ALL;
       const platforms = filter?.platforms;
 
-      // Determine cache key: Only cache global or single-platform leaderboards
       let cacheKey: (string | number | TimePeriod)[] | null = null;
       let shouldCache = false;
 
-      if (!platforms || platforms.length === 0) {
-        // Global leaderboard
-        cacheKey = ['leaderboard_cache', timeframe];
-        shouldCache = true;
-      } else if (platforms.length === 1) {
-        // Single platform leaderboard
-        cacheKey = ['leaderboard_cache_platform', platforms[0], timeframe];
-        shouldCache = true;
+      if (timeframe !== TimePeriod.CUSTOM) {
+        if (!platforms || platforms.length === 0) {
+          // Global leaderboard
+          cacheKey = ['leaderboard_cache', timeframe];
+          shouldCache = true;
+        } else if (platforms.length === 1) {
+          // Single platform leaderboard
+          cacheKey = ['leaderboard_cache_platform', platforms[0], timeframe];
+          shouldCache = true;
+        }
       }
-      // For multi-platform requests, cacheKey remains null, and we don't cache
+      // For custom timeframes or multi-platform requests, don't cache
 
       // Try to get from cache first if applicable
       if (cacheKey) {
@@ -664,6 +665,58 @@ export class ActivityTrackingService {
       const platforms = filter?.platforms;
       const timePeriodStart = this.getTimePeriodStart(timeframe, filter?.startDate);
       const timePeriodEnd = this.getTimePeriodEnd(timeframe, filter?.endDate);
+
+      // For custom timeframes, use post-based filtering for accuracy
+      if (timeframe === TimePeriod.CUSTOM) {
+        // Get all accounts that have activity
+        let accountIds: string[];
+
+        if (platforms && platforms.length > 0) {
+          // Get platform-specific accounts if platforms are specified
+          const accounts = await this.kvStore.list<PlatformAccountActivity>([
+            'near_account_platform',
+          ]);
+
+          // Get unique account IDs for the specified platforms
+          const platformAccountIds = new Set<string>();
+          accounts.forEach(({ value }) => {
+            if (platforms.includes(value.platform as PlatformName)) {
+              platformAccountIds.add(value.signerId);
+            }
+          });
+          accountIds = Array.from(platformAccountIds);
+        } else {
+          // Get all global accounts if no platforms are specified
+          const accounts = await this.kvStore.list<AccountActivity>(['near_account']);
+          accountIds = accounts.map(({ value }) => value.signerId);
+        }
+
+        // Count accounts that have posts within the custom date range
+        let accountsWithActivity = 0;
+
+        for (const signerId of accountIds) {
+          const postsKey = ['near_account_posts', signerId];
+          const allPosts = await this.kvStore.get<PostRecord[]>(postsKey) || [];
+
+          // Filter posts by timeframe and platforms
+          let filteredPosts = allPosts.filter((post) =>
+            post.t >= timePeriodStart && post.t <= timePeriodEnd
+          );
+
+          if (platforms && platforms.length > 0) {
+            filteredPosts = filteredPosts.filter((post) =>
+              platforms.includes(post.p as PlatformName)
+            );
+          }
+
+          // Count this account if it has posts in the timeframe
+          if (filteredPosts.length > 0) {
+            accountsWithActivity++;
+          }
+        }
+
+        return accountsWithActivity;
+      }
 
       if (platforms && platforms.length > 0) {
         // Get platform-specific accounts
