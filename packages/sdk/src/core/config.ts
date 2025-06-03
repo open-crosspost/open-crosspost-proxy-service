@@ -6,7 +6,7 @@ import type { NearAuthData } from 'near-sign-verify';
 export interface CrosspostClientConfig {
   /**
    * Base URL for the Crosspost API
-   * @default 'https://open-crosspost-proxy.deno.dev'
+   * @default 'https://api.opencrosspost.com/'
    */
   baseUrl?: string | URL;
   /**
@@ -24,6 +24,6 @@ export interface CrosspostClientConfig {
  * Default configuration values for the CrosspostClient
  */
 export const DEFAULT_CONFIG: Required<Omit<CrosspostClientConfig, 'nearAuthData'>> = {
-  baseUrl: new URL('https://open-crosspost-proxy.deno.dev/'),
+  baseUrl: new URL('https://api.opencrosspost.com/'),
   timeout: 30000,
 };
