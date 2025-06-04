@@ -91,16 +91,13 @@ export class AuthApi {
     // Otherwise, continue with popup flow
     const result = await openAuthPopup(response.data.url);
 
+    console.log("result", result);
+
     if (!result.success || !result.userId) {
       throw new Error(result.error || 'Authentication failed');
     }
 
-    // Return the result in the expected format
-    return {
-      platform,
-      userId: result.userId,
-      status: result.status,
-    };
+    return result;
   }
 
   /**

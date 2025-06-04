@@ -32,10 +32,12 @@ export const AuthCallbackQuerySchema = z.object({
 }).describe('Auth callback query');
 
 export const AuthCallbackResponseSchema = z.object({
-  platform: PlatformSchema,
-  userId: z.string().describe('User ID'),
+  platform: PlatformSchema.optional(),
+  userId: z.string().optional().describe('User ID, if authentication was successful for a user'),
   redirectUrl: z.string().optional().describe('URL to redirect the user to after authentication'),
   status: AuthStatusSchema.describe('Authentication status information'),
+  success: z.boolean(),
+  error: z.string().optional().describe('Error message description if success is false'),
 }).describe('Auth callback response');
 
 export const AuthStatusParamsSchema = z.object({
@@ -64,8 +66,9 @@ export const AuthTokenRequestSchema = z.object({
 }).describe('Auth token request');
 
 export const AuthRevokeResponseSchema = z.object({
-  platform: PlatformSchema,
-  userId: z.string().describe('User ID'),
+  success: z.boolean().describe('Whether the revoke operation was successful'),
+  userId: z.string().describe('User ID successfully revoked'),
+  platform: z.string().describe('Platform successfully revoked')
 }).describe('Auth revoke response');
 
 export const ConnectedAccountSchema = z.object({

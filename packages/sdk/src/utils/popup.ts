@@ -1,10 +1,5 @@
-// @ts-nocheck
-import type { PlatformName } from '@crosspost/types';
-declare global {
-  interface WindowEventMap {
-    message: MessageEvent<AuthCallbackMessage>;
-  }
-}
+import type { AuthCallbackResponse } from '@crosspost/types';
+import { ParentHandshake, WindowMessenger, type Connection, type MethodsType } from 'post-me';
 
 interface PopupOptions {
   width?: number;
@@ -13,51 +8,37 @@ interface PopupOptions {
   top?: number;
 }
 
-interface AuthCallbackData {
-  success: boolean;
-  platform: PlatformName;
-  userId?: string;
-  error?: string;
-  error_description?: string;
-  status: {
-    message: string; // User-friendly status message
-    code: string; // Status code for programmatic handling
-    details?: string; // Additional details if needed
-  };
-}
-
-interface AuthCallbackMessage {
-  type: 'AUTH_CALLBACK';
-  data: AuthCallbackData;
+interface AuthPopupLocalApi extends MethodsType {
+  onAuthCallback: (data: AuthCallbackResponse) => void;
 }
 
 /**
- * Opens a popup window and returns a promise that resolves when the authentication is complete
- * @param url The URL to open in the popup
- * @param options Optional popup window dimensions and position
- * @returns Promise that resolves with the authentication result
- * @throws Error if popups are blocked or if running in a non-browser environment
+ * Opens a popup window and returns a promise that resolves when the authentication is complete.
+ * @param url The URL to open in the popup.
+ * @param options Optional popup window dimensions and position.
+ * @returns Promise that resolves with the authentication result.
+ * @throws Error if popups are blocked or if running in a non-browser environment.
  */
-export function openAuthPopup(url: string, options: PopupOptions = {}): Promise<AuthCallbackData> {
-  // Check for browser environment
+export function openAuthPopup(url: string, options: PopupOptions = {}): Promise<AuthCallbackResponse> {
   if (typeof window === 'undefined') {
-    throw new Error('openAuthPopup can only be used in a browser environment');
+    return Promise.reject(new Error('openAuthPopup can only be used in a browser environment'));
   }
 
   return new Promise((resolve, reject) => {
-    // Calculate popup dimensions and position
     const {
       width = 600,
       height = 700,
-      left = Math.max(0, (window.innerWidth - 600) / 2),
-      top = Math.max(0, (window.innerHeight - 700) / 2),
+      // @ts-expect-error deno doesn't like window
+      left = Math.max(0, (window.innerWidth - width) / 2),
+      // @ts-expect-error deno doesn't like window
+      top = Math.max(0, (window.innerHeight - height) / 2),
     } = options;
 
-    // Open the popup
+    // @ts-expect-error deno doesn't like window
     const popup = window.open(
       url,
       'authPopup',
-      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes`,
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`,
     );
 
     if (!popup) {
@@ -65,60 +46,130 @@ export function openAuthPopup(url: string, options: PopupOptions = {}): Promise<
       return;
     }
 
-    let messageReceived = false;
+    let authDataReceived = false;
+    let connectionStateHandled = false; // Tracks if connection closure or data reception has been handled
+    let checkClosedIntervalId: number | undefined = undefined;
+    let postMeConnection: Connection<AuthPopupLocalApi> | null = null;
 
-    // Function to handle messages from the popup with proper typing
-    const handleMessage = (event: MessageEvent<AuthCallbackMessage>) => {
-      // Verify the message is from our popup and popup exists
-      if (!popup || event.source !== popup) {
-        return;
+    const cleanupAndResolveOrReject = (
+      action: 'resolve' | 'reject',
+      data: AuthCallbackResponse | Error,
+    ) => {
+      if (connectionStateHandled) return;
+      connectionStateHandled = true;
+
+      if (checkClosedIntervalId) clearInterval(checkClosedIntervalId);
+      checkClosedIntervalId = undefined;
+
+      postMeConnection?.close();
+      postMeConnection = null;
+
+      if (popup && !popup.closed) {
+        popup.close();
       }
 
-      const message = event.data;
-      if (message?.type === 'AUTH_CALLBACK') {
-        messageReceived = true;
-        window.removeEventListener('message', handleMessage);
-        clearInterval(checkClosedInterval);
-
-        if (message.data.success) {
-          resolve(message.data);
-        } else {
-          reject(message.data);
-        }
+      if (action === 'resolve') {
+        console.log("data", data);
+        resolve(data as AuthCallbackResponse);
+      } else {
+        reject(data);
       }
     };
 
-    // Listen for messages from the popup
-    window.addEventListener('message', handleMessage as EventListener);
-
-    // Check if popup was closed manually
-    const checkClosedInterval = setInterval(() => {
-      try {
-        if (!popup || popup.closed) {
-          cleanup();
+    const localApiMethods: AuthPopupLocalApi = {
+      onAuthCallback: (data: AuthCallbackResponse) => {
+        console.log('[Parent Popup] onAuthCallback invoked. Data:', data);
+        if (authDataReceived || connectionStateHandled) {
+          console.log('[Parent Popup] onAuthCallback: Already handled or authDataReceived. Ignoring.');
+          return;
         }
-      } catch (e) {
-        console.warn('Error checking popup state:', e);
-        cleanup();
-      }
-    }, 500);
+        authDataReceived = true;
 
-    // Cleanup function to handle popup closure
-    function cleanup() {
-      clearInterval(checkClosedInterval);
-      window.removeEventListener('message', handleMessage as EventListener);
 
-      if (!messageReceived) {
-        reject({
-          success: false,
-          error: 'Authentication cancelled by user.',
-          status: {
-            message: 'Authentication Cancelled',
-            code: 'AUTH_CANCELLED',
-            details: 'The authentication window was closed before completion.',
-          },
-        });
-      }
-    }
+        if (data.success) {
+          console.log('[Parent Popup] onAuthCallback: Data indicates success. Resolving promise.');
+          cleanupAndResolveOrReject('resolve', data);
+        } else {
+          console.log('[Parent Popup] onAuthCallback: Data indicates failure. Rejecting promise.');
+          cleanupAndResolveOrReject('reject', data);
+        }
+      },
+    };
+
+    // TODO: We need to open up an initial window first.
+
+//     I see this:
+
+// [Parent Popup] Initializing PostMe WindowMessenger. Remote origin for popup: https://x.com
+// index.js:451 [Parent Popup] Attempting PostMe ParentHandshake...
+
+// And so it seems that's it's probably because the initial url is The X url ... 
+
+// And so we should instead send the url to the window, have it handshake, then handle redirect to url, then url redirects back, and then 
+
+    console.log('[Parent Popup] Initializing PostMe WindowMessenger. Remote origin for popup:', new URL(url).origin);
+    const messenger = new WindowMessenger({
+      localWindow: window,
+      remoteWindow: popup,
+      remoteOrigin: new URL(url).origin,
+    });
+
+    console.log('[Parent Popup] Attempting PostMe ParentHandshake...');
+    ParentHandshake<AuthPopupLocalApi>(messenger, localApiMethods, 5000) // 5s handshake timeout
+      .then((connection: Connection<AuthPopupLocalApi>) => {
+        console.log('[Parent Popup] PostMe ParentHandshake successful. Connection established.');
+        postMeConnection = connection;
+
+        // Start interval to check if user manually closed the popup
+        checkClosedIntervalId = setInterval(() => {
+          try {
+            if (!popup || popup.closed) {
+              if (!authDataReceived && !connectionStateHandled) {
+                cleanupAndResolveOrReject('reject', {
+                  success: false,
+                  error: 'Authentication cancelled by user.',
+                  status: {
+                    message: 'Authentication Cancelled',
+                    code: 'AUTH_CANCELLED',
+                    details: 'The authentication window was closed before completion.',
+                  },
+                });
+              } else {
+                // Already handled or resolved, just clear interval
+                if (checkClosedIntervalId) clearInterval(checkClosedIntervalId);
+                checkClosedIntervalId = undefined;
+              }
+            }
+          } catch (e) {
+            console.warn('Error checking popup state:', e);
+            if (!authDataReceived && !connectionStateHandled) {
+              cleanupAndResolveOrReject('reject', {
+                success: false,
+                error: 'Error while checking popup state.',
+                status: {
+                  message: 'Popup State Error',
+                  code: 'POPUP_STATE_ERROR',
+                  details: e instanceof Error ? e.message : String(e),
+                },
+              });
+            } else {
+              if (checkClosedIntervalId) clearInterval(checkClosedIntervalId);
+              checkClosedIntervalId = undefined;
+            }
+          }
+        }, 500) as unknown as number;
+      })
+      .catch((handshakeError) => {
+        console.error('[Parent Popup] PostMe ParentHandshake failed:', handshakeError);
+        // Handshake failed to establish connection
+        if (popup && !popup.closed) popup.close();
+        cleanupAndResolveOrReject(
+          'reject',
+          new Error(
+            `Failed to establish communication with popup: ${handshakeError instanceof Error ? handshakeError.message : String(handshakeError)
+            }`,
+          ),
+        );
+      });
   });
 }

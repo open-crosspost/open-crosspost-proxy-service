@@ -36,8 +36,9 @@
   "author": "crosspost.near",
   "license": "MIT",
   "dependencies": {
-    "@crosspost/types": "^0.2.8",
-    "near-sign-verify": "^0.2.0"
+    "@crosspost/types": "link:@crosspost/types",
+    "near-sign-verify": "^0.2.0",
+    "post-me": "^0.4.5"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",

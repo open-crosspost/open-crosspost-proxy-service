@@ -1,51 +1,32 @@
 import { Context } from '../../deps.ts';
-import { PlatformName } from '@crosspost/types';
+import { AuthCallbackResponse, PlatformName } from '@crosspost/types';
 
-/**
- * Interface for the data to be sent back to the frontend via postMessage
- */
-export interface AuthCallbackData {
-  success: boolean;
-  platform: PlatformName;
-  userId?: string;
-  error?: string;
-  error_description?: string;
-  status: {
-    message: string;
-    code: string;
-    details?: string;
-  };
-}
 
 /**
  * Generates HTML content for the auth callback page that communicates with the opener window
  * @param data The data to be sent back to the opener window
  * @returns HTML string for the callback page
  */
-function createCallbackHtml(data: AuthCallbackData, authState: { origin: string }): string {
-  // Create status object
-  const status = {
-    message: data.success ? 'Authentication Successful' : 'Authentication Failed',
-    code: data.success ? 'AUTH_SUCCESS' : 'AUTH_ERROR',
-    details: data.success
-      ? 'Your account has been connected successfully'
-      : data.error_description || data.error || 'An error occurred during authentication',
-  };
-
-  // Add status to the message data
+function createCallbackHtml(data: AuthCallbackResponse, authState: { origin: string }): string {
   const message = JSON.stringify({
     type: 'AUTH_CALLBACK',
     data: {
-      ...data,
-      status,
-    },
+    success: data.success,
+    platform: data.platform,
+    userId: data.userId,
+    error: data.error,
+    status: data.status,
+  },
   });
 
   // Pass auth state to the script
   const authStateJson = JSON.stringify({ origin: authState.origin });
 
-  const title = status.message;
-  const bodyText = status.details;
+  const title = data.status.message;
+  const bodyText = data.status.details || 
+                   (data.success 
+                     ? 'Your account has been connected successfully.' 
+                     : data.error || 'An error occurred during authentication.');
 
   return `
 <!DOCTYPE html>
@@ -89,12 +70,12 @@ function createCallbackHtml(data: AuthCallbackData, authState: { origin: string 
       color: #57606a;
     }
   </style>
+  <script src="https://unpkg.com/post-me/dist/index.js"></script>
   <script>
-    (function() {
-      // Initialize auth state from server
+    document.addEventListener('DOMContentLoaded', function() {
       const authState = ${authStateJson};
-      let messageSent = false;
-      
+      const authResponseData = ${message}.data;
+
       function updateUI(data) {
         const statusEl = document.getElementById('status');
         const detailsEl = document.getElementById('details');
@@ -102,68 +83,76 @@ function createCallbackHtml(data: AuthCallbackData, authState: { origin: string 
         
         if (data.success) {
           statusEl.textContent = 'Authentication Successful';
-          detailsEl.textContent = 'Your account has been connected successfully.';
+          detailsEl.textContent = data.details || 'Your account has been connected successfully.';
         } else {
           statusEl.textContent = 'Authentication Failed';
-          detailsEl.textContent = data.error || 'An error occurred during authentication.';
+          detailsEl.textContent = data.details || data.error || 'An error occurred during authentication.';
         }
         closeEl.textContent = 'This window will close automatically...';
       }
       
-      function showCloseMessage() {
-        document.getElementById('close-info').textContent = 'You can safely close this window.';
+      function showCloseMessage(messageText = 'You can safely close this window.') {
+        const closeEl = document.getElementById('close-info');
+        if (closeEl) closeEl.textContent = messageText;
       }
-      
-      function sendMessageAndClose() {
-        if (messageSent) return;
-        
-        try {
-          const message = ${message};
-          if (window.opener) {
-            // Send message to opener first
-            window.opener.postMessage(message, authState.origin);
-            messageSent = true;
 
-            // Update UI
-            updateUI(message.data);
-            
-            // Close after a short delay
+      function attemptToCloseWindow() {
+        setTimeout(() => {
+          try {
+            window.close();
+            // If window doesn't close after a short delay, show manual close message
             setTimeout(() => {
-              try {
-                window.close();
-                // If window doesn't close after 100ms, show manual close message
-                setTimeout(() => {
-                  if (!window.closed) {
-                    showCloseMessage();
-                  }
-                }, 100);
-              } catch (e) {
-                console.error('Failed to close window:', e);
+              if (!window.closed) {
                 showCloseMessage();
               }
-            }, 1000); // Give time for the user to see the success message
-          } else {
-            console.warn('window.opener not found. Cannot post message.');
-            document.getElementById('status').textContent = 'Authentication Complete';
-            document.getElementById('details').textContent = 'The authentication process has completed, but we could not communicate with the main window.';
+            }, 200);
+          } catch (e) {
+            console.error('Failed to close window:', e);
             showCloseMessage();
           }
-        } catch (e) {
-          console.error('Error posting message to opener:', e);
-          document.getElementById('status').textContent = 'Authentication Error';
-          document.getElementById('details').textContent = 'An error occurred while completing the authentication process.';
-          showCloseMessage();
-        }
+        }, 1000); // Delay to allow user to see message
       }
 
-      // Send message immediately when the script runs
-      sendMessageAndClose();
-    })();
+      if (window.opener && PostMe) {
+        const { ChildHandshake, WindowMessenger } = PostMe;
+        
+        const messenger = new WindowMessenger({
+          localWindow: window,
+          remoteWindow: window.opener,
+          remoteOrigin: authState.origin 
+        });
+
+        ChildHandshake(messenger, undefined, 5000) // 5s handshake timeout, no local methods exposed by child
+          .then(connection => {
+            // connection.remoteHandle() is a proxy to parent's localApiMethods
+            // The parent expects onAuthCallback(data: AuthCallbackResponse)
+            return connection.remoteHandle().onAuthCallback(authResponseData);
+          })
+          .then(() => {
+            console.log('Successfully sent auth data to parent via post-me.');
+            updateUI(authResponseData); 
+            attemptToCloseWindow();
+          })
+          .catch(err => {
+            console.error('PostMe ChildHandshake or parent call failed:', err);
+            document.getElementById('status').textContent = 'Communication Error';
+            document.getElementById('details').textContent = 'Failed to communicate with the application. Please try again.';
+            showCloseMessage('Please close this window and try again.');
+            // Optionally, still try to close, or leave it open for debugging.
+            // attemptToCloseWindow(); 
+          });
+      } else {
+        console.warn('window.opener or PostMe not found. Cannot use post-me.');
+        document.getElementById('status').textContent = 'Setup Error';
+        document.getElementById('details').textContent = 'Could not initialize communication channel.';
+        showCloseMessage('Please close this window and report this issue.');
+      }
+    });
   </script>
 </head>
 <body>
   <div class="message">
-    <h1 id="status" class="status">${status.message}</h1>
+    <h1 id="status" class="status">${data.status.message}</h1>
     <p id="details" class="details">${bodyText}</p>
     <p id="close-info" class="close-info">This window will close automatically...</p>
   </div>
@@ -218,8 +207,7 @@ export function createErrorCallbackResponse(
   const html = createCallbackHtml({
     success: false,
     platform,
-    error,
-    error_description,
+    error: error,
     status: {
       message: 'Authentication Failed',
       code: 'AUTH_ERROR',
