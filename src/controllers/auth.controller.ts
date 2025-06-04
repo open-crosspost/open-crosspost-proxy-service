@@ -7,6 +7,7 @@ import {
   NearAuthorizationStatusResponse,
   PlatformName,
   ProfileRefreshResponse,
+  AuthRevokeResponse
 } from '@crosspost/types';
 import { Context } from '../../deps.ts';
 import { AuthService } from '../domain/services/auth.service.ts';
@@ -14,14 +15,14 @@ import { ApiError, createApiError } from '../errors/api-error.ts';
 import { createPlatformError, PlatformError } from '../errors/platform-error.ts';
 import { NearAuthService } from '../infrastructure/security/near-auth-service.ts';
 import {
+  createErrorCallbackResponse,
+  createSuccessCallbackResponse,
+} from '../utils/auth-callback.utils.ts';
+import {
   createErrorDetail,
   createErrorResponse,
   createSuccessResponse,
 } from '../utils/response.utils.ts';
-import {
-  createErrorCallbackResponse,
-  createSuccessCallbackResponse,
-} from '../utils/auth-callback.utils.ts';
 import { BaseController } from './base.controller.ts';
 
 export class AuthController extends BaseController {
@@ -115,9 +116,8 @@ export class AuthController extends BaseController {
 
       // Check for errors from the OAuth provider
       if (error) {
-        const errorMessage = `${platform} authorization error: ${error}${
-          error_description ? ` - ${error_description}` : ''
-        }`;
+        const errorMessage = `${platform} authorization error: ${error}${error_description ? ` - ${error_description}` : ''
+          }`;
         console.warn(errorMessage); // Log the error
 
         // Try to get auth state if we have a valid state to determine redirect behavior
@@ -150,8 +150,7 @@ export class AuthController extends BaseController {
             // If we can't get the auth state, create a platform error and handle it
             throw createPlatformError(
               ApiErrorCode.UNAUTHORIZED,
-              `${platform} authorization error: ${error}${
-                error_description ? ` - ${error_description}` : ''
+              `${platform} authorization error: ${error}${error_description ? ` - ${error_description}` : ''
               }`,
               platform,
             );
@@ -161,8 +160,7 @@ export class AuthController extends BaseController {
         // If no state or couldn't redirect, return a 400 error response
         throw createPlatformError(
           ApiErrorCode.UNAUTHORIZED,
-          `${platform} authorization error: ${error}${
-            error_description ? ` - ${error_description}` : ''
+          `${platform} authorization error: ${error}${error_description ? ` - ${error_description}` : ''
           }`,
           platform,
         );
@@ -246,8 +244,7 @@ export class AuthController extends BaseController {
         }
         throw createPlatformError(
           ApiErrorCode.TOKEN_REFRESH_FAILED,
-          `Failed to refresh token for ${platform}:${userId}. ${
-            tokenError instanceof Error ? tokenError.message : 'Unknown error'
+          `Failed to refresh token for ${platform}:${userId}. ${tokenError instanceof Error ? tokenError.message : 'Unknown error'
           }`,
           platform,
           { userId },
@@ -278,30 +275,26 @@ export class AuthController extends BaseController {
         throw createApiError(ApiErrorCode.VALIDATION_ERROR, 'userId is required');
       }
 
-      let tokenRevoked = false;
-      let revokeError: string | undefined;
-
-      // First try to revoke the token, but don't let failure stop us
+      // First try to revoke the token
       try {
-        tokenRevoked = await this.authService.revokeToken(platform, userId);
-      } catch (e) {
-        console.error('Error revoking token:', e);
-        revokeError = e instanceof Error ? e.message : 'Unknown error revoking token';
+        await this.authService.revokeToken(platform, userId);
+      } catch {
+        // don't let failure stop us
       }
 
       // Then unlink the account - this is critical and must succeed
       try {
         await this.authService.unlinkAccount(signerId, platform, userId);
-      } catch (unlinkError) {
-        console.error('Error unlinking account:', unlinkError);
-        throw unlinkError;
+      } catch (e) {
+        console.error('Error unlinking account:', e);
+        throw e;
       }
 
       // Return success since unlinking succeeded (if we got here)
-      return c.json(createSuccessResponse(c, {
+      return c.json(createSuccessResponse<AuthRevokeResponse>(c, {
         success: true,
-        tokenRevoked,
-        error: revokeError,
+        userId: userId,
+        platform: platform,
       }));
     } catch (error) {
       console.error('Error revoking token:', error);
