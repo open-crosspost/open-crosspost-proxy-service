@@ -60,22 +60,93 @@ A client SDK that simplifies interaction with the API, handling authentication, 
 management. See the [SDK Documentation](./packages/sdk/README.md) for detailed usage instructions.
 
 ```typescript
-import { CrosspostClient } from '@crosspost/sdk';
+import * as near from "fastintear"; // or near-api-js for creating key pairs
+import { sign } from "near-sign-verify";
+import {
+  CrosspostClient,
+  // error handling helpers
+  CrosspostError,
+  isAuthError,
+  isPlatformError,
+  isRateLimitError,
+  isValidationError
+} from '@crosspost/sdk';
+import type {
+  ConnectedAccount,
+  Target,
+  PostContent
+} from "@crosspost/sdk";
 
+// Initialize the client
 const client = new CrosspostClient({
-  authToken: {
-    accountId: 'your-account.near',
-    publicKey: 'ed25519:...',
-    signature: '...',
-    message: '...',
-  },
+  baseUrl: 'https://your-self-hosted-crosspost-api.com', // Optional: Defaults to official API
 });
 
-// Create a post on Twitter
-await client.post.createPost({
-  targets: [{ platform: 'twitter', userId: 'your-twitter-id' }],
-  content: [{ text: 'Hello from Crosspost!' }],
-});
+const authToken = await sign({ signer: near, recipient: "crosspost.near", message: "do something..." });
+
+client.setAuthentication(authToken);
+client.setAccountHeader("signer.near")
+
+const connectedAccounts: ApiResponse<ConnectedAccountsResponse> = await client.auth.getConnectedAccounts():
+
+try {
+  cosnt response = await await client.post.createPost({
+    targets: [
+      {
+        userId: connectedAccounts[0].userId,
+        platform: connectedAccounts[0].platform
+      }
+    ] as Target[],
+    content: [{
+      text: "hello world",
+      media: {
+        data: imageBlob,
+        mimeType: 'image/jpeg',
+        altText: 'a beautiful sunset',
+      }
+    } as PostContent[]]
+  });
+
+  console.log('Post created successfully');
+  console.log('Post ID:', response.id);
+  console.log('Platform:', response.platform);
+  console.log('URL:', response.url);
+  console.log('Created at:', response.createdAt);
+
+} catch (error) {
+  // Check if it's an authentication error
+  if (isAuthError(error)) {
+    console.error('Authentication required. Attempting to authorize...');
+    // The account must be authorized with the backend
+    const authorized = await client.auth.authorizeNearAccount();
+    if (authorized) {
+      // Retry the operation
+      return createPost();
+    }
+  } else {
+    // Handle other error types
+    console.error('Error creating post:', error);
+    if (error instanceof CrosspostError) {
+      // Use error utility functions to handle specific cases
+      if (isPlatformError(error)) {
+        console.error('Platform:', error.platform);
+        console.error('Error code:', error.code);
+        console.error('Details:', error.details);
+      } else if (isRateLimitError(error)) {
+        console.error('Rate limited until:', error.details?.rateLimit?.reset);
+      } else if (isValidationError(error)) {
+        console.error('Validation errors:', error.details?.validationErrors);
+      }
+      // Check if error is recoverable
+      if (error.recoverable) {
+        console.log('This error is recoverable - retry may succeed');
+      }
+    } else if (error instanceof Error) {
+      // Handle non-API errors (network issues, etc)
+      console.error('Unexpected error:', error.message);
+    }
+  } 
+}
 ```
 
 ## Architecture
