@@ -60,43 +60,27 @@ A client SDK that simplifies interaction with the API, handling authentication, 
 management. See the [SDK Documentation](./packages/sdk/README.md) for detailed usage instructions.
 
 ```typescript
-import * as near from "fastintear"; // or near-api-js for creating key pairs
+import * as near from "fastintear";
 import { sign } from "near-sign-verify";
-import {
-  CrosspostClient,
-  // error handling helpers
-  CrosspostError,
-  isAuthError,
-  isPlatformError,
-  isRateLimitError,
-  isValidationError
-} from '@crosspost/sdk';
-import type {
-  ConnectedAccount,
-  Target,
-  PostContent
-} from "@crosspost/sdk";
+import { CrosspostClient } from '@crosspost/sdk';
+import type { CreatePostRequest } from "@crosspost/sdk";
 
-// Initialize the client
-const client = new CrosspostClient({
-  baseUrl: 'https://your-self-hosted-crosspost-api.com', // Optional: Defaults to official API
-});
-
-const authToken = await sign({ signer: near, recipient: "crosspost.near", message: "do something..." });
+const client = new CrosspostClient();
+const authToken = await sign({ signer: near, recipient: "crosspost.near", message: "createPost" });
 
 client.setAuthentication(authToken);
-client.setAccountHeader("signer.near")
+client.setAccountHeader(near.accountId());
 
 const connectedAccounts: ApiResponse<ConnectedAccountsResponse> = await client.auth.getConnectedAccounts():
 
 try {
-  cosnt response = await await client.post.createPost({
+  const response = await await client.post.createPost({
     targets: [
       {
         userId: connectedAccounts[0].userId,
         platform: connectedAccounts[0].platform
       }
-    ] as Target[],
+    ],
     content: [{
       text: "hello world",
       media: {
@@ -104,8 +88,8 @@ try {
         mimeType: 'image/jpeg',
         altText: 'a beautiful sunset',
       }
-    } as PostContent[]]
-  });
+    }]
+  } as CreatePostRequest);
 
   console.log('Post created successfully');
   console.log('Post ID:', response.id);
