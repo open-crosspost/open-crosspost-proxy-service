@@ -7,19 +7,19 @@ import { RateLimitService } from '../../src/domain/services/rate-limit.service.t
 import { nearAuthServiceMock } from '../mocks/near-auth-service-mock.ts';
 
 /**
- * Generate mock NEAR authentication data for testing
+ * Generate mock auth token for testing
  * @param accountId Optional account ID (defaults to 'test.near')
- * @returns Mock NEAR authentication data
+ * @returns Mock auth token
  */
-export function createMockNearAuthData(accountId: string = 'test.near'): NearAuthData {
-  return {
+export function createMockAuthToken(accountId: string = 'test.near'): string {
+  return JSON.stringify({
     account_id: accountId,
     public_key: 'ed25519:mock-public-key',
     signature: 'mock-signature',
     message: 'mock-message',
     nonce: new Uint8Array(32), // 32-byte nonce
     recipient: 'crosspost.near',
-  };
+  });
 }
 
 /**
@@ -37,15 +37,15 @@ export function createMockContext(options: {
   // Create default Authorization header with NEAR signature if signerId is provided
   const defaultHeaders: Record<string, string> = {};
   if (options.signerId) {
-    const nearAuthData = {
+    const authToken = JSON.stringify({
       account_id: options.signerId,
       public_key: 'ed25519:mock-public-key',
       signature: 'mock-signature',
       message: 'mock-message',
       nonce: 'mock-nonce',
       recipient: 'crosspost.near',
-    };
-    defaultHeaders['Authorization'] = `Bearer ${JSON.stringify(nearAuthData)}`;
+    });
+    defaultHeaders['Authorization'] = `Bearer ${authToken}`;
   }
 
   // Merge default headers with provided headers

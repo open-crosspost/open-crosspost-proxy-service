@@ -1,6 +1,10 @@
 # @crosspost/sdk
 
-SDK for interacting with the Crosspost API.
+SDK for interacting with the [Crosspost API](./../../README.md).
+
+This package is designed to be used with
+[near-sign-verify](https://github.com/elliotBraem/near-sign-verify) for authenticating requests via
+a wallet or keypair.
 
 ## Installation
 
@@ -8,142 +12,163 @@ SDK for interacting with the Crosspost API.
 bun install @crosspost/sdk
 ```
 
-## Quick Start
+## Usage
 
 ```typescript
-import { CrosspostClient, CrosspostError, isAuthError } from '@crosspost/sdk';
+import * as near from "fastintear"; // or near-api-js for creating key pairs
+import { sign } from "near-sign-verify";
+import {
+  CrosspostClient,
+  // error handling helpers
+  CrosspostError,
+  isAuthError,
+  isPlatformError,
+  isRateLimitError,
+  isValidationError
+} from '@crosspost/sdk';
+import type {
+  ConnectedAccount,
+  Target,
+  PostContent
+} from "@crosspost/sdk";
 
-// Initialize the client (authentication can be provided later)
+// Initialize the client
 const client = new CrosspostClient({
-  baseUrl: 'https://your-crosspost-api.com', // Optional: Defaults to official API
+  baseUrl: 'https://your-self-hosted-crosspost-api.com', // Optional: Defaults to official API
 });
 
-// Set authentication with fresh signature for the request
-client.setAuthentication({
-  accountId: 'your-account.near',
-  publicKey: 'ed25519:...',
-  signature: '...',
-  message: '...',
-});
+const authToken = await sign({ signer: near, recipient: "crosspost.near", message: "do something..." });
 
-// Check if client has authentication data set
-if (client.isAuthenticated()) {
-  console.log('Client has authentication data');
-}
+client.setAuthentication(authToken);
+client.setAccountHeader("signer.near")
 
-// NEAR Account Authorization
-async function authorizeNearAccount() {
-  try {
-    // Authorize with NEAR account
-    const authResponse = await client.auth.authorizeNearAccount();
-    console.log('NEAR authorization successful');
-    console.log('Account ID:', authResponse.accountId);
-    console.log('Status:', authResponse.status);
-    console.log('Connected platforms:', authResponse.connectedPlatforms);
-    return true;
-  } catch (error) {
-    console.error('NEAR authorization failed');
-    if (error instanceof CrosspostError) {
-      console.error('Error code:', error.code);
-      console.error('Status:', error.status);
-      console.error('Details:', error.details);
-      console.error('Recoverable:', error.recoverable);
-    }
-    return false;
-  }
-}
+const connectedAccounts: ApiResponse<ConnectedAccountsResponse> = await client.auth.getConnectedAccounts():
 
-// Unauthorize NEAR Account
-async function unauthorizeNearAccount() {
-  try {
-    // Unauthorize NEAR account (removes all platform connections)
-    const response = await client.auth.unauthorizeNearAccount();
-    console.log('NEAR account unauthorized');
-    console.log('Status:', response.status);
-    console.log('Message:', response.message);
-    return true;
-  } catch (error) {
-    console.error('Failed to unauthorize NEAR account');
-    if (error instanceof CrosspostError) {
-      console.error('Error code:', error.code);
-      console.error('Status:', error.status);
-      console.error('Details:', error.details);
-    }
-    return false;
-  }
-}
-
-// Revoke Platform Authorization
-async function revokePlatformAuth(platform) {
-  try {
-    // Revoke specific platform authorization
-    const response = await client.auth.revokeAuth(platform);
-    console.log(`${platform} authorization revoked`);
-    console.log('Status:', response.status);
-    console.log('Platform:', response.platform);
-    console.log('Message:', response.message);
-    return true;
-  } catch (error) {
-    console.error(`Failed to revoke ${platform} authorization`);
-    if (error instanceof CrosspostError) {
-      console.error('Error code:', error.code);
-      console.error('Status:', error.status);
-      console.error('Details:', error.details);
-    }
-    return false;
-  }
-}
-
-// Example usage
-async function createPost() {
-  try {
-    const response = await client.post.createPost({
-      targets: [{ platform: 'twitter', userId: 'your-twitter-id' }],
-      content: {
-        text: 'Hello from Crosspost SDK!',
-      },
-    });
-    console.log('Post created successfully');
-    console.log('Post ID:', response.id);
-    console.log('Platform:', response.platform);
-    console.log('URL:', response.url);
-    console.log('Created at:', response.createdAt);
-  } catch (error) {
-    // Check if it's an authentication error
-    if (isAuthError(error)) {
-      console.error('Authentication required. Attempting to authorize...');
-      const authorized = await authorizeNearAccount();
-      if (authorized) {
-        // Retry the operation
-        return createPost();
+try {
+  cosnt response = await await client.post.createPost({
+    targets: [
+      {
+        userId: connectedAccounts[0].userId,
+        platform: connectedAccounts[0].platform
       }
-    } else {
-      // Handle other error types
-      console.error('Error creating post:', error);
-      if (error instanceof CrosspostError) {
-        // Use error utility functions to handle specific cases
-        if (isPlatformError(error)) {
-          console.error('Platform:', error.platform);
-          console.error('Error code:', error.code);
-          console.error('Details:', error.details);
-        } else if (isRateLimitError(error)) {
-          console.error('Rate limited until:', error.details?.rateLimit?.reset);
-        } else if (isValidationError(error)) {
-          console.error('Validation errors:', error.details?.validationErrors);
-        }
-
-        // Check if error is recoverable
-        if (error.recoverable) {
-          console.log('This error is recoverable - retry may succeed');
-        }
-      } else if (error instanceof Error) {
-        // Handle non-API errors (network issues, etc)
-        console.error('Unexpected error:', error.message);
+    ] as Target[],
+    content: [{
+      text: "hello world",
+      media: {
+        data: imageBlob,
+        mimeType: 'image/jpeg',
+        altText: 'a beautiful sunset',
       }
+    } as PostContent[]]
+  });
+
+  console.log('Post created successfully');
+  console.log('Post ID:', response.id);
+  console.log('Platform:', response.platform);
+  console.log('URL:', response.url);
+  console.log('Created at:', response.createdAt);
+
+} catch (error) {
+  // Check if it's an authentication error
+  if (isAuthError(error)) {
+    console.error('Authentication required. Attempting to authorize...');
+    // The account must be authorized with the backend
+    const authorized = await client.auth.authorizeNearAccount();
+    if (authorized) {
+      // Retry the operation
+      return createPost();
     }
-  }
+  } else {
+    // Handle other error types
+    console.error('Error creating post:', error);
+    if (error instanceof CrosspostError) {
+      // Use error utility functions to handle specific cases
+      if (isPlatformError(error)) {
+        console.error('Platform:', error.platform);
+        console.error('Error code:', error.code);
+        console.error('Details:', error.details);
+      } else if (isRateLimitError(error)) {
+        console.error('Rate limited until:', error.details?.rateLimit?.reset);
+      } else if (isValidationError(error)) {
+        console.error('Validation errors:', error.details?.validationErrors);
+      }
+      // Check if error is recoverable
+      if (error.recoverable) {
+        console.log('This error is recoverable - retry may succeed');
+      }
+    } else if (error instanceof Error) {
+      // Handle non-API errors (network issues, etc)
+      console.error('Unexpected error:', error.message);
+    }
+  } 
 }
 ```
+
+## Methods
+
+- `client.setAuthentication(authToken: string): Promise<void>` - Sets authentication data, necessary
+  for non-GET requests
+- `client.isAuthenticated(): boolean` - Checks if client is authenticated
+- `client.setAccountHeader(accountId: string): Promise<void>` - Sets X-Near-Account Header,
+  necessary for GET requests
+- `client.clear(): boolean` - Clears authentication and account header
+
+### Auth API (client.auth)
+
+- `client.auth.authorizeNearAccount(): Promise<ApiResponse<NearAuthorizationResponse>>` - Authorizes
+  NEAR account
+- `client.auth.unauthorizeNearAccount(): Promise<ApiResponse<NearAuthorizationResponse>>` -
+  Unauthorizes NEAR account
+- `client.auth.getNearAuthorizationStatus(): Promise<ApiResponse<NearAuthorizationResponse>>` -
+  Checks authorization status for authenticated account
+- `client.auth.loginToPlatform(platform, options?): Promise<AuthCallbackResponse | ApiResponse<AuthUrlResponse>>` -
+  Opens popup to initiate OAuth flow with platform
+- `client.auth.refreshToken(platform): Promise<ApiResponse<AuthCallbackResponse>>` - Refreshes
+  platform token
+- `client.auth.refreshProfile(platform): Promise<ApiResponse<ConnectedAccount>>` - Refreshes user
+  profile
+- `client.auth.getAuthStatus(platform): Promise<ApiResponse<AuthStatusResponse>>` - Gets
+  authentication status
+- `client.auth.revokeAuth(platform): Promise<ApiResponse<AuthRevokeResponse>>` - Revokes platform
+  access
+- `client.auth.getConnectedAccounts(): Promise<ApiResponse<ConnectedAccountsResponse>>` - Lists
+  connected accounts
+
+### Post API (client.post)
+
+Each post operation accepts a request object that includes:
+
+- `targets`: Array of `{ platform: string, userId: string }` specifying where to perform the action
+- Additional parameters specific to each operation
+
+Available methods:
+
+- `client.post.createPost(request: CreatePostRequest): Promise<CreatePostResponse>` - Creates posts
+  on specified platforms
+- `client.post.repost(request: RepostRequest): Promise<RepostResponse>` - Reposts an existing post
+- `client.post.quotePost(request: QuotePostRequest): Promise<QuotePostResponse>` - Quotes an
+  existing post
+- `client.post.replyToPost(request: ReplyToPostRequest): Promise<ReplyToPostResponse>` - Replies to
+  a post
+- `client.post.likePost(request: LikePostRequest): Promise<LikePostResponse>` - Likes a post
+- `client.post.unlikePost(request: UnlikePostRequest): Promise<UnlikePostResponse>` - Unlikes a post
+- `client.post.deletePost(request: DeletePostRequest): Promise<DeletePostResponse>` - Deletes posts
+
+### Activity API (client.activity)
+
+- `client.activity.getLeaderboard(options): Promise<LeaderboardResponse>` - Gets activity
+  leaderboard
+- `client.activity.getAccountActivity(signerId, options): Promise<AccountActivityResponse>` - Gets
+  account activity
+- `client.activity.getAccountPosts(signerId, options): Promise<AccountPostsResponse>` - Gets account
+  posts
+
+### System API (client.system)
+
+- `client.system.getRateLimits(): Promise<RateLimitsResponse>` - Gets all rate limits
+- `client.system.getEndpointRateLimit(endpoint): Promise<EndpointRateLimitResponse>` - Gets endpoint
+  rate limit
+- `client.system.getHealthStatus(): Promise<HealthStatusResponse>` - Gets API health status
 
 ## API Reference
 
@@ -166,8 +191,7 @@ console.log(`Current offset: ${response.meta.pagination?.offset}`);
 
 ### Multi-Status Responses
 
-Some operations that target multiple platforms may result in partial success. The SDK handles these
-cases with multi-status responses:
+Post operations always return multi-status responses:
 
 ```typescript
 // Operation targeting multiple platforms
@@ -176,7 +200,7 @@ const response = await client.post.createPost({
     { platform: 'twitter', userId: 'user1' },
     { platform: 'facebook', userId: 'user2' },
   ],
-  content: [{ text: 'Hello world!' }],
+  content: [{ text: 'hello world' }],
 });
 
 // Check multi-status summary
@@ -207,7 +231,7 @@ If all operations fail, the SDK throws a `CrosspostError` with the same error st
 try {
   await client.post.createPost({...});
 } catch (error) {
-  if (error instanceof CrosspostError && error.details?.errors) {
+  if (error instanceof CrosspostError) {
     // Error structure is identical to response.data.errors in partial success case
     error.details.errors.forEach(err => {
       console.log(`Error on ${err.details.platform}: ${err.message}`);
@@ -244,70 +268,10 @@ try {
 }
 ```
 
-### CrosspostClient
-
-```typescript
-constructor(config?: {
-  baseUrl?: string;
-  nearAuthData?: NearAuthData;
-  timeout?: number;
-  retries?: number;
-})
-```
-
-#### Methods
-
-- `setAuthentication(nearAuthData: NearAuthData): Promise<void>` - Sets authentication data
-- `isAuthenticated(): boolean` - Checks if client is authenticated
-
-### Auth API (client.auth)
-
-- `authorizeNearAccount(): Promise<NearAuthorizationResponse>` - Authorizes NEAR account
-- `unauthorizeNearAccount(): Promise<NearAuthorizationResponse>` - Unauthorizes NEAR account
-- `getNearAuthorizationStatus(): Promise<NearAuthorizationResponse>` - Checks authorization status
-- `loginToPlatform(platform, options?): Promise<EnhancedApiResponse<any>>` - Initiates OAuth flow
-- `refreshToken(platform): Promise<EnhancedApiResponse<any>>` - Refreshes platform token
-- `refreshProfile(platform): Promise<EnhancedApiResponse<any>>` - Refreshes user profile
-- `getAuthStatus(platform): Promise<AuthStatusResponse>` - Gets authentication status
-- `revokeAuth(platform): Promise<AuthRevokeResponse>` - Revokes platform access
-- `getConnectedAccounts(): Promise<ConnectedAccountsResponse>` - Lists connected accounts
-
-### Post API (client.post)
-
-Each post operation accepts a request object that includes:
-
-- `targets`: Array of `{ platform: string, userId: string }` specifying where to perform the action
-- Additional parameters specific to each operation
-
-Available methods:
-
-- `createPost(request: CreatePostRequest): Promise<CreatePostResponse>` - Creates posts on specified
-  platforms
-- `repost(request: RepostRequest): Promise<RepostResponse>` - Reposts an existing post
-- `quotePost(request: QuotePostRequest): Promise<QuotePostResponse>` - Quotes an existing post
-- `replyToPost(request: ReplyToPostRequest): Promise<ReplyToPostResponse>` - Replies to a post
-- `likePost(request: LikePostRequest): Promise<LikePostResponse>` - Likes a post
-- `unlikePost(request: UnlikePostRequest): Promise<UnlikePostResponse>` - Unlikes a post
-- `deletePost(request: DeletePostRequest): Promise<DeletePostResponse>` - Deletes posts
-
-### Activity API (client.activity)
-
-- `getLeaderboard(options): Promise<LeaderboardResponse>` - Gets activity leaderboard
-- `getAccountActivity(signerId, options): Promise<AccountActivityResponse>` - Gets account activity
-- `getAccountPosts(signerId, options): Promise<AccountPostsResponse>` - Gets account posts
-
-### System API (client.system)
-
-- `getRateLimits(): Promise<RateLimitsResponse>` - Gets all rate limits
-- `getEndpointRateLimit(endpoint): Promise<EndpointRateLimitResponse>` - Gets endpoint rate limit
-- `getHealthStatus(): Promise<HealthStatusResponse>` - Gets API health status
-
 ### Error Handling Utilities
 
 ```typescript
 import {
-  apiWrapper,
-  enrichErrorWithContext,
   getErrorDetails,
   getErrorMessage,
   isAuthError,
@@ -331,21 +295,6 @@ const message = getErrorMessage(error, 'Default message');
 
 // Get error details
 const details = getErrorDetails(error);
-
-// Add context to errors
-const enrichedError = enrichErrorWithContext(error, {
-  operation: 'createPost',
-  timestamp: Date.now(),
-});
-
-// Wrap API calls with error handling
-const result = await apiWrapper(
-  async () => {
-    // API call implementation
-    return await fetch('/api/endpoint');
-  },
-  { operation: 'fetchData' }, // Optional context
-);
 ```
 
 ## Usage Examples
@@ -413,7 +362,7 @@ await client.post.replyToPost({
   platform: 'twitter',
   postId: '1234567890',
   content: [{
-    text: 'This is a reply!',
+    text: 'This is a reply',
   }],
 });
 
@@ -460,25 +409,4 @@ const rateLimits = await client.system.getRateLimits();
 
 // Get rate limit for a specific endpoint
 const postRateLimit = await client.system.getEndpointRateLimit('post');
-```
-
-## Authentication and Security
-
-### Authentication Strategy
-
-The SDK uses direct authentication with per-request signatures:
-
-```typescript
-// Initialize the client
-const client = new CrosspostClient({
-  baseUrl: 'https://your-crosspost-api.com',
-});
-
-// Before making authenticated requests, set fresh signature
-client.setAuthentication({
-  accountId: 'your-account.near',
-  publicKey: 'ed25519:...',
-  signature: '...',
-  message: '...',
-});
 ```

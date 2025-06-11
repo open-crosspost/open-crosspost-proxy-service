@@ -2,7 +2,7 @@ import { ActivityLeaderboardResponse, TimePeriod } from '@crosspost/types';
 import { expect } from 'jsr:@std/expect';
 import { afterEach, beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { CrosspostClient } from '../../../packages/sdk/src/core/client.ts';
-import { createMockNearAuthData } from '../../utils/test-utils.ts';
+import { createMockAuthToken } from '../../utils/test-utils.ts';
 import { createTestServer, startTestServer } from '../utils/test-server.ts';
 
 describe('SDK Pagination Handling', () => {
@@ -26,7 +26,7 @@ describe('SDK Pagination Handling', () => {
     });
 
     // Set proper authentication for both GET and POST requests
-    const mockAuthData = createMockNearAuthData('test.near');
+    const mockAuthData = createMockAuthToken('test.near');
     client.setAuthentication(mockAuthData);
   });
 

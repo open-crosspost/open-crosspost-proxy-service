@@ -63,7 +63,7 @@ management. See the [SDK Documentation](./packages/sdk/README.md) for detailed u
 import { CrosspostClient } from '@crosspost/sdk';
 
 const client = new CrosspostClient({
-  nearAuthData: {
+  authToken: {
     accountId: 'your-account.near',
     publicKey: 'ed25519:...',
     signature: '...',

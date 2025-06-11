@@ -7,7 +7,7 @@ import { assertRejects } from 'jsr:@std/assert';
 import { makeRequest, type RequestOptions } from '../../../packages/sdk/src/core/request.ts';
 import { CrosspostError } from '../../../packages/sdk/src/utils/error.ts';
 import { ApiErrorCode, type ApiResponse, type ErrorDetail } from '@crosspost/types';
-import type { NearAuthData } from 'near-sign-verify';
+import { createMockAuthToken } from '../../utils/test-utils.ts';
 
 function assertCrosspostError(error: unknown): asserts error is CrosspostError {
   expect(error).toBeInstanceOf(CrosspostError);
@@ -20,24 +20,16 @@ async function expectCrosspostError(promise: Promise<unknown>): Promise<Crosspos
 }
 
 const MOCK_BASE_URL = 'https://api.example.com';
-const MOCK_NEAR_AUTH_DATA: NearAuthData = {
-  account_id: 'test.near',
-  public_key: 'ed25519:test',
-  signature: 'test_sig',
-  message: 'test_msg',
-  nonce: new Uint8Array(32),
-  recipient: 'crosspost-api.near',
-};
 
 const MOCK_REQUEST_OPTIONS: RequestOptions = {
   baseUrl: new URL(MOCK_BASE_URL),
-  nearAuthData: MOCK_NEAR_AUTH_DATA,
+  authToken: createMockAuthToken('test.near'),
   timeout: 1000,
 };
 
 const MOCK_GET_OPTIONS: RequestOptions = {
   baseUrl: new URL(MOCK_BASE_URL),
-  nearAccount: 'test.near',
+  accountId: 'test.near',
   timeout: 1000,
 };
 
@@ -310,8 +302,8 @@ describe('makeRequest', () => {
     }
   });
 
-  it('should throw UNAUTHORIZED if nearAuthData missing for non-GET', async () => {
-    const optionsWithoutAuth = { ...MOCK_REQUEST_OPTIONS, nearAuthData: undefined };
+  it('should throw UNAUTHORIZED if authToken missing for non-GET', async () => {
+    const optionsWithoutAuth = { ...MOCK_REQUEST_OPTIONS, authToken: undefined };
     const fetchStub = stub(globalThis, 'fetch', () => Promise.resolve(new Response()));
 
     try {

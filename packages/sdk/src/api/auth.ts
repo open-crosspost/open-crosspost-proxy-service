@@ -32,7 +32,7 @@ export class AuthApi {
   }
 
   /**
-   * Authorizes the NEAR account associated with the provided nearAuthData with the Crosspost service.
+   * Authorizes the NEAR account associated with the provided authToken with the Crosspost service.
    * @returns A promise resolving with the authorization response.
    */
   async authorizeNearAccount(): Promise<ApiResponse<NearAuthorizationResponse>> {

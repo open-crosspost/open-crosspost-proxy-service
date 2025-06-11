@@ -7,7 +7,6 @@ export { PostApi } from './api/post.ts';
 export { SystemApi } from './api/system.ts';
 
 export {
-  apiWrapper,
   CrosspostError,
   getErrorDetails,
   getErrorMessage,

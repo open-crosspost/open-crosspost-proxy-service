@@ -41,7 +41,7 @@ export class CrosspostClient {
   /**
    * Sets the authentication data (signature) for the client
    * Required for non-GET requests
-   * @param nearAuthData The NEAR authentication data
+   * @param authToken The NEAR authentication data
    */
   public setAuthentication(authToken: string): void {
     this.options.authToken = authToken;
