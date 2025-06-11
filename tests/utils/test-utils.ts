@@ -1,6 +1,5 @@
 import { PlatformName, PostResult } from '@crosspost/types';
 import { Context } from '../../deps.ts';
-import type { NearAuthData } from 'near-sign-verify';
 import { ActivityTrackingService } from '../../src/domain/services/activity-tracking.service.ts';
 import { AuthService } from '../../src/domain/services/auth.service.ts';
 import { PostService } from '../../src/domain/services/post.service.ts';

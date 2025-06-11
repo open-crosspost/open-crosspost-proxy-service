@@ -1,7 +1,7 @@
 import { ApiErrorCode, errorCodeToStatusCode } from '@crosspost/types';
 import { Context, MiddlewareHandler, Next } from '../../deps.ts';
-import { NearAuthService } from '../infrastructure/security/near-auth-service.ts';
 import { ApiError, createApiError } from '../errors/api-error.ts';
+import { NearAuthService } from '../infrastructure/security/near-auth-service.ts';
 import { createErrorDetail, createErrorResponse } from '../utils/response.utils.ts';
 
 export class AuthMiddleware {

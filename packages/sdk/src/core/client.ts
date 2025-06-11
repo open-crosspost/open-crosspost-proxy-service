@@ -1,4 +1,3 @@
-import type { NearAuthData } from 'near-sign-verify';
 import { ActivityApi } from '../api/activity.ts';
 import { AuthApi } from '../api/auth.ts';
 import { PostApi } from '../api/post.ts';
@@ -25,12 +24,12 @@ export class CrosspostClient {
     const baseUrl = config.baseUrl || DEFAULT_CONFIG.baseUrl; // you can deploy your own
     const timeout = config.timeout || DEFAULT_CONFIG.timeout;
 
-    const nearAuthData = config.nearAuthData;
+    const authToken = config.authToken;
 
     this.options = {
       baseUrl: baseUrl instanceof URL ? baseUrl : new URL(baseUrl),
       timeout,
-      nearAuthData,
+      authToken,
     };
 
     this.auth = new AuthApi(this.options);
@@ -44,53 +43,31 @@ export class CrosspostClient {
    * Required for non-GET requests
    * @param nearAuthData The NEAR authentication data
    */
-  public setAuthentication(nearAuthData: NearAuthData): void {
-    this.options.nearAuthData = nearAuthData;
-    // Also set nearAccount from nearAuthData if not already set
-    if (!this.options.nearAccount) {
-      this.options.nearAccount = nearAuthData.account_id;
-    }
+  public setAuthentication(authToken: string): void {
+    this.options.authToken = authToken;
   }
 
   /**
    * Sets the NEAR account ID for simplified GET request authentication
-   * If not set, will use account_id from nearAuthData
-   * @param nearAccount The NEAR account ID
+   * @param accountId The NEAR account ID
    */
-  public setNearAccount(nearAccount: string): void {
-    this.options.nearAccount = nearAccount;
-  }
-
-  /**
-   * Gets the current NEAR account ID being used for authentication
-   * @returns The NEAR account ID from nearAccount or nearAuthData
-   */
-  public getNearAccount(): string | undefined {
-    return this.options.nearAccount || this.options.nearAuthData?.account_id;
+  public setAccountHeader(accountId: string): void {
+    this.options.accountId = accountId;
   }
 
   /**
    * Checks if authentication data (signature) exists on client
-   * @returns true if nearAuthData is set (required for non-GET requests)
+   * @returns true if authToken is set (required for non-GET requests)
    */
   public isAuthenticated(): boolean {
-    return !!this.options.nearAuthData;
+    return !!this.options.authToken;
   }
-
-  /**
-   * Checks if a NEAR account is set for GET request authentication
-   * @returns true if either nearAccount or nearAuthData.account_id is set
-   */
-  public hasNearAccount(): boolean {
-    return !!(this.options.nearAccount || this.options.nearAuthData?.account_id);
-  }
-
   /**
    * Clears all authentication data from the client
    * This will prevent all requests from working until new authentication is set
    */
   public clear(): void {
-    this.options.nearAuthData = undefined;
-    this.options.nearAccount = undefined;
+    this.options.authToken = undefined;
+    this.options.accountId = undefined;
   }
 }

@@ -1,7 +1,6 @@
 import { ApiErrorCode, PlatformName } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
-import { Env } from '../../config/env.ts';
-import { NearAuthData, parseAuthToken, verify } from '../../deps.ts';
+import { parseAuthToken, verify } from '../../deps.ts';
 import { createApiError } from '../../errors/api-error.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { AuthToken, TokenStorage } from '../storage/auth-token-storage.ts';
@@ -28,10 +27,8 @@ export class NearAuthService {
     }
   }
   constructor(
-    private env: Env,
     private tokenStorage: TokenStorage,
     private nearAuthKvStore: PrefixedKvStore,
-    private tokenAccessLogger?: TokenAccessLogger,
   ) {}
 
   /**
@@ -47,18 +44,25 @@ export class NearAuthService {
       throw createApiError(ApiErrorCode.UNAUTHORIZED, 'Missing or invalid Authorization header');
     }
 
+    const authToken = authHeader.substring(7);
+
     // Extract the token part (after 'Bearer ')
-    const token = parseAuthToken(authHeader.substring(7));
+    const token = parseAuthToken(authToken);
 
-    // Validate signature
-    const result = await verify(token, { requireFullAccessKey: false, nonceMaxAge: 300000 }); // 5 minutes
+    console.log('token', token);
 
-    if (!result.valid) {
-      throw createApiError(ApiErrorCode.UNAUTHORIZED, result.error);
+    try {
+      const result = await verify(authToken, { requireFullAccessKey: false, nonceMaxAge: 300000 }); // 5 minutes
+
+      console.log('result', result);
+      // Return the signerId from the validated token
+      return result.accountId;
+    } catch (e: unknown) {
+      throw createApiError(
+        ApiErrorCode.UNAUTHORIZED,
+        (e instanceof Error) ? e.message : 'Error verifying auth token',
+      );
     }
-
-    // Return the signerId from the validated token
-    return token.account_id;
   }
 
   /**
@@ -81,14 +85,10 @@ export class NearAuthService {
    * @returns Validated NEAR auth data and result
    */
   async extractAndValidateNearAuth(c: Context): Promise<{
-    authData: NearAuthData;
     signerId: string;
   }> {
     // First validate the signature and get the signer ID
     const signerId = await this.validateNearAuthSignature(c);
-
-    // Get the token again to return the full auth data
-    const token = parseAuthToken(c.req.header('Authorization')!.substring(7));
 
     // Check if the NEAR account is authorized (skip check for /auth/authorize/near)
     if (!c.req.path.endsWith('/auth/authorize/near')) {
@@ -99,7 +99,6 @@ export class NearAuthService {
     }
 
     return {
-      authData: token,
       signerId,
     };
   }

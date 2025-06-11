@@ -1,5 +1,3 @@
-import type { NearAuthData } from 'near-sign-verify';
-
 /**
  * Configuration options for the CrosspostClient
  */
@@ -10,9 +8,9 @@ export interface CrosspostClientConfig {
    */
   baseUrl?: string | URL;
   /**
-   * NEAR authentication data obtained from near-sign-verify
+   * Auth token, obtained by near-sign-verify
    */
-  nearAuthData?: NearAuthData;
+  authToken?: string;
   /**
    * Request timeout in milliseconds
    * @default 30000
@@ -23,7 +21,7 @@ export interface CrosspostClientConfig {
 /**
  * Default configuration values for the CrosspostClient
  */
-export const DEFAULT_CONFIG: Required<Omit<CrosspostClientConfig, 'nearAuthData'>> = {
+export const DEFAULT_CONFIG: Required<Omit<CrosspostClientConfig, 'authToken'>> = {
   baseUrl: new URL('https://api.opencrosspost.com/'),
   timeout: 30000,
 };

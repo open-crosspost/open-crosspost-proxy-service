@@ -1,5 +1,4 @@
 import { ApiErrorCode, type ApiResponse, type StatusCode } from '@crosspost/types';
-import { createAuthToken, type NearAuthData } from 'near-sign-verify';
 import {
   createNetworkError,
   CrosspostError,
@@ -16,15 +15,13 @@ export interface RequestOptions {
    */
   baseUrl: URL;
   /**
-   * NEAR authentication data for generating auth tokens
-   * Required for non-GET requests, optional for GET requests
+   * Auth token from near-sign-verify
    */
-  nearAuthData?: NearAuthData;
+  authToken?: string;
   /**
-   * NEAR account ID for simplified GET request authentication
-   * If not provided, will use account_id from nearAuthData
+   * NEAR account ID for simple GET request authentication
    */
-  nearAccount?: string;
+  accountId?: string;
   /**
    * Request timeout in milliseconds
    */
@@ -87,25 +84,26 @@ export async function makeRequest<
 
     // For GET requests, use X-Near-Account header if available
     if (method === 'GET') {
-      const nearAccount = options.nearAccount || options.nearAuthData?.account_id;
-      if (!nearAccount) {
+      const accountId = options.accountId;
+      if (!accountId) {
         throw new CrosspostError(
           'No NEAR account provided for GET request',
           ApiErrorCode.UNAUTHORIZED,
           401,
         );
       }
-      headers['X-Near-Account'] = nearAccount;
+      headers['X-Near-Account'] = accountId;
     } else {
-      // For non-GET requests, require nearAuthData
-      if (!options.nearAuthData) {
+      // For non-GET requests, require authToken
+      if (!options.authToken) {
         throw new CrosspostError(
-          'NEAR authentication data required for non-GET request',
+          'Auth token required for non-GET request',
           ApiErrorCode.UNAUTHORIZED,
           401,
         );
       }
-      headers['Authorization'] = `Bearer ${createAuthToken(options.nearAuthData)}`;
+
+      headers['Authorization'] = `Bearer ${options.authToken}`;
     }
 
     const requestOptions: RequestInit = {

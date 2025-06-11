@@ -1,6 +1,6 @@
 {
   "name": "@crosspost/sdk",
-  "version": "0.2.12",
+  "version": "0.3.0",
   "description": "SDK for interacting with the Crosspost API",
   "type": "module",
   "main": "dist/index.cjs",
@@ -36,8 +36,7 @@
   "author": "crosspost.near",
   "license": "MIT",
   "dependencies": {
-    "@crosspost/types": "^0.2.8",
-    "near-sign-verify": "^0.2.0"
+    "@crosspost/types": "^0.2.8"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",

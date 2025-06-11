@@ -19,7 +19,7 @@
     "@twitter-api-v2/plugin-cache-redis": "npm:@twitter-api-v2/plugin-cache-redis",
     "@upstash/redis": "npm:@upstash/redis",
     "jose": "npm:jose",
-    "near-sign-verify": "npm:near-sign-verify",
+    "near-sign-verify": "npm:near-sign-verify@0.3.6",
     "openapi3-ts": "npm:openapi3-ts",
     "std/uuid": "https://deno.land/std@0.206.0/uuid/mod.ts",
     "std/crypto": "https://deno.land/std@0.206.0/crypto/mod.ts",
