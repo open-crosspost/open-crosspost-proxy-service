@@ -1,6 +1,6 @@
 # @crosspost/sdk
 
-SDK for interacting with the [Crosspost API](./../../README.md).
+SDK for interacting with the [Crosspost Proxy Service](./../../README.md).
 
 This package is designed to be used with
 [near-sign-verify](https://github.com/elliotBraem/near-sign-verify) for authenticating requests via
