@@ -52,7 +52,11 @@ export class NearAuthService {
     console.log('token', token);
 
     try {
-      const result = await verify(authToken, { requireFullAccessKey: false, nonceMaxAge: 300000 }); // 5 minutes
+      const result = await verify(authToken, {
+        expectedRecipient: 'crosspost.near',
+        requireFullAccessKey: false,
+        nonceMaxAge: 300000,
+      }); // 5 minutes
 
       console.log('result', result);
       // Return the signerId from the validated token
