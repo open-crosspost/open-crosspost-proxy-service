@@ -480,7 +480,7 @@ export class AuthController extends BaseController {
   async checkNearAuthorizationStatus(c: Context): Promise<Response> {
     try {
       // Extract and validate NEAR auth data from the header
-      const { signerId } = await this.nearAuthService.extractAndValidateNearAuth(c);
+      const signerId = this.nearAuthService.extractNearAccountHeader(c);
 
       // Check the NEAR account authorization status
       const authStatus = await this.nearAuthService.getNearAuthorizationStatus(signerId);
