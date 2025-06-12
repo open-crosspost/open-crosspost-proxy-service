@@ -196,54 +196,6 @@ export function enrichErrorWithContext(
 }
 
 /**
- * Wrapper for API calls with consistent error handling
- */
-export async function apiWrapper<T>(
-  apiCall: () => Promise<T>,
-  context?: Record<string, unknown>,
-): Promise<T> {
-  try {
-    return await apiCall();
-  } catch (error) {
-    // If it's a Response object, use handleErrorResponse
-    if (error instanceof Response) {
-      try {
-        const errorData = await error.json();
-        throw enrichErrorWithContext(
-          handleErrorResponse(errorData, error.status),
-          context || {},
-        );
-      } catch (jsonError) {
-        // If JSON parsing fails, create a generic error
-        if (jsonError instanceof Error && jsonError.name === 'SyntaxError') {
-          throw enrichErrorWithContext(
-            createError(
-              `API request failed with status ${error.status} and non-JSON response`,
-              ApiErrorCode.NETWORK_ERROR,
-              error.status as StatusCode,
-              { originalResponse: error.statusText },
-            ),
-            context || {},
-          );
-        }
-        throw jsonError;
-      }
-    }
-
-    // If it's already a CrosspostError, just add context
-    if (error instanceof CrosspostError) {
-      throw enrichErrorWithContext(error, context || {});
-    }
-
-    // Otherwise wrap it in a CrosspostError
-    throw enrichErrorWithContext(
-      error instanceof Error ? error : new Error(String(error)),
-      context || {},
-    );
-  }
-}
-
-/**
  * Handles error responses from the API and converts them to appropriate error objects.
  */
 export function handleErrorResponse(

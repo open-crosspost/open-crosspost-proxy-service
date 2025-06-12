@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, it } from 'jsr:@std/testing/bdd';
 import { CrosspostClient } from '../../../packages/sdk/src/core/client.ts';
 import { makeRequest, type RequestOptions } from '../../../packages/sdk/src/core/request.ts';
 import { CrosspostError, isValidationError } from '../../../packages/sdk/src/utils/error.ts';
-import { createMockNearAuthData } from '../../utils/test-utils.ts';
+import { createMockAuthToken } from '../../utils/test-utils.ts';
 import { createTestServer, startTestServer } from '../utils/test-server.ts';
 
 /**
@@ -87,14 +87,14 @@ describe('SDK Validation Error Handling', () => {
     });
 
     // Set proper authentication for both GET and POST requests
-    const mockAuthData = createMockNearAuthData('test.near');
+    const mockAuthData = createMockAuthToken('test.near');
     client.setAuthentication(mockAuthData);
 
     // Create validation test API
     validationApi = new ValidationTestApi({
       baseUrl: serverUrl,
       timeout: 5000,
-      nearAuthData: mockAuthData,
+      authToken: mockAuthData,
     });
   });
 
