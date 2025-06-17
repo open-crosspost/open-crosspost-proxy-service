@@ -349,26 +349,62 @@ export class AuthController extends BaseController {
       const accounts = await this.nearAuthService.getLinkedAccounts(signerId);
 
       // Fetch user profiles for each account
-      const accountsWithProfiles = await Promise.all(
+      const profileFetchResults = await Promise.allSettled(
         accounts.map(async (account) => {
-          // Get the user profile (with automatic refresh if needed)
-          const profile = await this.authService.getUserProfile(account.platform, account.userId);
-
-          return {
-            platform: account.platform,
-            userId: account.userId,
-            connectedAt: account.connectedAt,
-            profile: profile,
-          };
+          try {
+            const profile = await this.authService.getUserProfile(account.platform, account.userId);
+            if (profile === null) {
+              console.warn(
+                `AuthController: Profile fetch for ${account.platform}:${account.userId} (signer: ${signerId}) returned null from AuthService.`,
+              );
+            }
+            return {
+              platform: account.platform,
+              userId: account.userId,
+              connectedAt: account.connectedAt,
+              profile: profile,
+            };
+          } catch (innerError) {
+            console.error(
+              `AuthController: Unexpected error fetching profile for ${account.platform}:${account.userId} (signer: ${signerId}) inside map:`,
+              innerError,
+            );
+            return {
+              platform: account.platform,
+              userId: account.userId,
+              connectedAt: account.connectedAt,
+              profile: null,
+              error: `Failed to process profile: ${innerError instanceof Error ? innerError.message : 'Unknown error'}`,
+            };
+          }
         }),
       );
 
-      // Return the accounts with profiles
+      const accountsWithProfiles = profileFetchResults.map((result, index) => {
+        const originalAccount = accounts[index];
+        if (result.status === 'fulfilled') {
+          return result.value;
+        } else {
+          console.error(
+            `AuthController: Promise for ${originalAccount.platform}:${originalAccount.userId} (signer: ${signerId}) was rejected:`,
+            result.reason,
+          );
+          return {
+            platform: originalAccount.platform,
+            userId: originalAccount.userId,
+            connectedAt: originalAccount.connectedAt,
+            profile: null,
+            error: `Critical error processing profile: ${result.reason instanceof Error ? result.reason.message : 'Unknown rejection'}`,
+          };
+        }
+      });
+
+      // Return the accounts with profiles (some profiles might be null or include an error field)
       return c.json(
         createSuccessResponse<ConnectedAccountsResponse>(c, { accounts: accountsWithProfiles }),
       );
     } catch (error) {
-      console.error('Error listing connected accounts:', error);
+      console.error(`AuthController: Critical error in listConnectedAccounts for signerId ${c.get('signerId') || 'unknown'}:`, error);
       return this.handleError(error, c);
     }
   }
