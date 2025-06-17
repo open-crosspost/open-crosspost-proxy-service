@@ -73,6 +73,7 @@ export const ConnectedAccountSchema = z.object({
   userId: z.string().describe('User ID on the platform'),
   connectedAt: z.string().describe('When the account was connected'),
   profile: UserProfileSchema.nullable().describe('Full user profile data'),
+  error: z.string().optional().describe('Error message if fetching profile failed'),
 }).describe('Connected account');
 
 export const ConnectedAccountsResponseSchema = z.object({
