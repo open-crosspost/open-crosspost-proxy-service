@@ -14,6 +14,12 @@ export interface Env {
   TWITTER_ACCESS_TOKEN: string;
   TWITTER_ACCESS_SECRET: string;
 
+  // Neynar API credentials
+  NEYNAR_API_KEY: string;
+  
+  // Mnemomic for the farcaster account that will post on user's behalf
+  FARCASTER_DEVELOPER_MNEMONIC: string;
+
   // Security
   ENCRYPTION_KEY: string;
   ALLOWED_ORIGINS: string;
@@ -30,7 +36,7 @@ export interface Env {
  * Get environment variables
  * @returns Environment variables
  */
-export function getEnv(): Env {
+export  function getEnv(): Env {
   return {
     TWITTER_CLIENT_ID: Deno.env.get('TWITTER_CLIENT_ID') || '',
     TWITTER_CLIENT_SECRET: Deno.env.get('TWITTER_CLIENT_SECRET') || '',
@@ -38,6 +44,8 @@ export function getEnv(): Env {
     TWITTER_API_SECRET: Deno.env.get('TWITTER_API_SECRET') || '',
     TWITTER_ACCESS_TOKEN: Deno.env.get('TWITTER_ACCESS_TOKEN') || '',
     TWITTER_ACCESS_SECRET: Deno.env.get('TWITTER_ACCESS_SECRET') || '',
+    NEYNAR_API_KEY: Deno.env.get('NEYNAR_API_KEY') || '',
+    FARCASTER_DEVELOPER_MNEMONIC = Deno.env.get('FARCASTER_DEVELOPER_MNEMONIC') || '',
     ENCRYPTION_KEY: Deno.env.get('ENCRYPTION_KEY') || 'default-encryption-key',
     ALLOWED_ORIGINS: Deno.env.get('ALLOWED_ORIGINS') || '',
     ENVIRONMENT: Deno.env.get('ENVIRONMENT') || 'development',

@@ -31,6 +31,7 @@ import { TokenAccessLogger } from './src/infrastructure/security/token-access-lo
 import { TokenStorage } from './src/infrastructure/storage/auth-token-storage.ts';
 import { UserProfileStorage } from './src/infrastructure/storage/user-profile-storage.ts';
 import { PrefixedKvStore } from './src/utils/kv-store.utils.ts';
+import { FarcasterClient } from './src/infrastructure/platform/farcaster/farcaster-client.ts';
 
 /**
  * Initialize all dependencies and controllers
@@ -89,6 +90,10 @@ export function initializeApp() {
   // Create platform rate limit map
   const platformRateLimitMap = new Map<PlatformName, PlatformRateLimit>();
   platformRateLimitMap.set(Platform.TWITTER, twitterRateLimit);
+
+  // Initialize farcaster-specific implementations
+  const farcasterClient = new FarcasterClient(env, nearAuthService);
+  
 
   // Initialize domain services
   const authService = new AuthService(
