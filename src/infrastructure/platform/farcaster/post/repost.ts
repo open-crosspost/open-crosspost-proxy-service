@@ -1,5 +1,5 @@
 import { PostResult } from '@crosspost/types';
-import { TwitterError } from '../twitter-error.ts';
+import { TwitterError } from '../farcaster-error.js';
 import { FarcasterPostBase } from './base.ts';
 
 export class FarcasterRecast extends FarcasterPostBase {

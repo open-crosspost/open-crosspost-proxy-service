@@ -1,4 +1,4 @@
-import { Platform } from '@crosspost/types';
+import { ApiErrorCode, Platform } from '@crosspost/types';
 import { Env } from '../../../config/env.ts';
 import { PrefixedKvStore } from '../../../utils/kv-store.utils.ts';
 import { BasePlatformAuth } from '../abstract/base-platform-auth.ts';
@@ -11,7 +11,7 @@ import { Configuration, NeynarAPIClient } from '@neynar/nodejs-sdk';
 import { mnemonicToAccount } from 'viem/accounts';
 import { ViemLocalEip712Signer } from '@farcaster/hub-nodejs';
 import { bytesToHex, hexToBytes } from 'viem';
-import { ApiError } from '@/errors/api-error.js';
+import { FarcasterError } from './farcaster-error.js';
 
 export const TWITTER_SCOPES: string[] = [
   'tweet.read',
@@ -99,9 +99,10 @@ export class FarcasterAuth extends BasePlatformAuth implements PlatformAuth {
    * @throws PlatformError if the exchange fails
    */
   protected async exchangeCodeForTokens(): Promise<never> {
-    throw new ApiError(
-      ApiErrorCode.UNSUPPORTED_OPERATION,
-      'Farcaster managed signers do not use OAuth code exchange.',
+      throw new FarcasterError(
+        'Farcaster managed signers do not use OAuth code exchange.',
+        ApiErrorCode.INVALID_REQUEST,
+        { operation: 'exchangeCodeForTokens' }
     );
   }
 

@@ -1,37 +1,37 @@
 import { DeleteResult, LikeResult, PostContent, PostResult } from '@crosspost/types';
-import { PlatformPost } from '../abstract/platform-post.interface.ts';
+import { PlatformPost } from '../abstract/platform-post.interface.js';
 import {
-  TwitterCreatePost,
-  TwitterDeletePost,
-  TwitterLikePost,
-  TwitterQuotePost,
-  TwitterReplyPost,
-  TwitterRepost,
-} from './post/index.ts';
-import { TwitterClient } from './farcaster-client.js';
-import { TwitterMedia } from './farcaster-media.js';
+  FarcasterCreatePost,
+  FarcasterDeletePost,
+  FarcasterLikePost,
+  FarcasterQuotePost,
+  FarcasterRecast,
+  FarcasterReplyPost,
+} from './post/index.js';
+import { FarcasterClient } from './farcaster-client.js';
+import { FarcasterMedia } from './farcaster-media.js';
 
-export class TwitterPost implements PlatformPost {
-  private twitterClient: TwitterClient;
-  private twitterMedia: TwitterMedia;
-  private createPostService: TwitterCreatePost;
-  private repostService: TwitterRepost;
-  private quotePostService: TwitterQuotePost;
-  private replyPostService: TwitterReplyPost;
-  private likePostService: TwitterLikePost;
-  private deletePostService: TwitterDeletePost;
+export class FarcasterPost implements PlatformPost {
+  private farcasterClient: FarcasterClient;
+  private farcasterMedia: FarcasterMedia;
+  private createPostService: FarcasterCreatePost;
+  private repostService: FarcasterRecast;
+  private quotePostService: FarcasterQuotePost;
+  private replyPostService: FarcasterReplyPost;
+  private likePostService: FarcasterLikePost;
+  private deletePostService: FarcasterDeletePost;
 
-  constructor(twitterClient: TwitterClient, twitterMedia: TwitterMedia) {
-    this.twitterClient = twitterClient;
-    this.twitterMedia = twitterMedia;
+  constructor(farcasterClient: FarcasterClient, farcasterMedia: FarcasterMedia) {
+    this.farcasterClient = farcasterClient;
+    this.farcasterMedia = farcasterMedia;
 
     // Pass the shared client and media service to each specialized service
-    this.createPostService = new TwitterCreatePost(this.twitterClient, this.twitterMedia);
-    this.repostService = new TwitterRepost(this.twitterClient, this.twitterMedia);
-    this.quotePostService = new TwitterQuotePost(this.twitterClient, this.twitterMedia);
-    this.replyPostService = new TwitterReplyPost(this.twitterClient, this.twitterMedia);
-    this.likePostService = new TwitterLikePost(this.twitterClient, this.twitterMedia);
-    this.deletePostService = new TwitterDeletePost(this.twitterClient, this.twitterMedia);
+    this.createPostService = new FarcasterCreatePost(this.farcasterClient, this.farcasterMedia);
+    this.repostService = new FarcasterRecast(this.farcasterClient, this.farcasterMedia);
+    this.quotePostService = new FarcasterQuotePost(this.farcasterClient, this.farcasterMedia);
+    this.replyPostService = new FarcasterReplyPost(this.farcasterClient, this.farcasterMedia);
+    this.likePostService = new FarcasterLikePost(this.farcasterClient, this.farcasterMedia);
+    this.deletePostService = new FarcasterDeletePost(this.farcasterClient, this.farcasterMedia);
   }
 
   /**

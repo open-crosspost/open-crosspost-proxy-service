@@ -2,7 +2,7 @@ import { RateLimitStatus } from '@crosspost/types';
 import { TwitterApiRateLimitPlugin } from '@twitter-api-v2/plugin-rate-limit';
 import type { TwitterRateLimit as TwitterApiRateLimit } from 'twitter-api-v2';
 import { PlatformRateLimit } from '../abstract/platform-rate-limit.interface.ts';
-import { TwitterError } from './twitter-error.ts';
+import { TwitterError } from './farcaster-error.js';
 
 export class TwitterRateLimit implements PlatformRateLimit {
   private rateLimitPlugin: TwitterApiRateLimitPlugin;

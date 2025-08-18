@@ -1,6 +1,6 @@
 import { ApiErrorCode, Platform, UserProfile } from '@crosspost/types';
 import { TwitterApi } from 'twitter-api-v2';
-import { TwitterError } from './twitter-error.ts';
+import { TwitterError } from './farcaster-error.js';
 import { UserProfileStorage } from '../../storage/user-profile-storage.ts';
 import { PlatformProfile } from '../abstract/platform-profile.interface.ts';
 import { TwitterClient } from './farcaster-client.js';
