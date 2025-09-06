@@ -1,6 +1,6 @@
 import { PostContent, PostResult } from '@crosspost/types';
 import { FarcasterPostBase } from './base.ts';
-import { FarcasterCastParams } from '../types.js';
+import { FarcasterCastParams } from '../types.ts';
 
 export class FarcasterReplyPost extends FarcasterPostBase {
   /**

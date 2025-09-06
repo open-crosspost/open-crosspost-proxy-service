@@ -1,8 +1,8 @@
 import { MediaCache } from '../../../../utils/media-cache.utils.ts';
-import { FarcasterClient } from '../farcaster-client.js';
-import { FarcasterMedia } from '../farcaster-media.js';
+import { FarcasterClient } from '../farcaster-client.ts';
+import { FarcasterMedia } from '../farcaster-media.ts';
 import { MediaContent } from '@crosspost/types';
-import { FarcasterCastParams, FarcasterEmbed } from '../types.js';
+import { FarcasterCastParams, FarcasterEmbed } from '../types.ts';
 
 
 export abstract class FarcasterPostBase {

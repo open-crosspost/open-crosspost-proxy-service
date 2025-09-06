@@ -1,5 +1,5 @@
 import { DeleteResult, LikeResult, PostContent, PostResult } from '@crosspost/types';
-import { PlatformPost } from '../abstract/platform-post.interface.js';
+import { PlatformPost } from '../abstract/platform-post.interface.ts';
 import {
   FarcasterCreatePost,
   FarcasterDeletePost,
@@ -7,9 +7,9 @@ import {
   FarcasterQuotePost,
   FarcasterRecast,
   FarcasterReplyPost,
-} from './post/index.js';
-import { FarcasterClient } from './farcaster-client.js';
-import { FarcasterMedia } from './farcaster-media.js';
+} from './post/index.ts';
+import { FarcasterClient } from './farcaster-client.ts';
+import { FarcasterMedia } from './farcaster-media.ts';
 
 export class FarcasterPost implements PlatformPost {
   private farcasterClient: FarcasterClient;

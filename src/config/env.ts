@@ -45,7 +45,7 @@ export  function getEnv(): Env {
     TWITTER_ACCESS_TOKEN: Deno.env.get('TWITTER_ACCESS_TOKEN') || '',
     TWITTER_ACCESS_SECRET: Deno.env.get('TWITTER_ACCESS_SECRET') || '',
     NEYNAR_API_KEY: Deno.env.get('NEYNAR_API_KEY') || '',
-    FARCASTER_DEVELOPER_MNEMONIC = Deno.env.get('FARCASTER_DEVELOPER_MNEMONIC') || '',
+    FARCASTER_DEVELOPER_MNEMONIC: Deno.env.get('FARCASTER_DEVELOPER_MNEMONIC') || '',
     ENCRYPTION_KEY: Deno.env.get('ENCRYPTION_KEY') || 'default-encryption-key',
     ALLOWED_ORIGINS: Deno.env.get('ALLOWED_ORIGINS') || '',
     ENVIRONMENT: Deno.env.get('ENVIRONMENT') || 'development',

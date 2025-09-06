@@ -1,10 +1,10 @@
 // src/infrastructure/platforms/farcaster/farcaster-client.ts
 import { ApiErrorCode, Platform } from '@crosspost/types';
-import { Env } from '../../../config/env.js';
-import { BasePlatformClient } from '../abstract/base-platform-client.js';
-import { PlatformClient } from '../abstract/platform-client.interface.js';
-import { NearAuthService } from '../../security/near-auth-service.js';
-import { ApiError } from '../../../errors/api-error.js';
+import { Env } from '../../../config/env.ts';
+import { BasePlatformClient } from '../abstract/base-platform-client.ts';
+import { PlatformClient } from '../abstract/platform-client.interface.ts';
+import { NearAuthService } from '../../security/near-auth-service.ts';
+import { ApiError } from '../../../errors/api-error.ts';
 
 import {
   Configuration,

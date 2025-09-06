@@ -1,12 +1,14 @@
 // farcaster-media.ts
 import { MediaContent } from '@crosspost/types';
-import { convertToBuffer, detectMimeType } from '../../../utils/media.utils.js';
+import { convertToBuffer, detectMimeType } from '../../../utils/media.utils.ts';
 import {
   MediaStatusResult,
   MediaUploadResult,
   PlatformMedia,
-} from '../abstract/platform-media.interface.js';
-import { MediaStorage } from '@/infrastructure/storage/media-storage.js';
+} from '../abstract/platform-media.interface.ts';
+import { MediaStorage } from '../../storage/media-storage.ts';
+import { Env } from '../../../config/env.ts';
+import { PinataSDK } from "pinata";
 
 type Limits = {
   MAX_IMAGE_SIZE_MB: number;
@@ -45,13 +47,24 @@ function isVideo(mime?: string) {
 export class FarcasterMedia implements PlatformMedia {
   // Note: Farcaster (via Neynar) doesn’t store media; this class only handles storage (Pinata/IPFS)
   // and “status” (gateway availability). Your cast creation step should embed the returned gateway URLs.
+
+  private storage: MediaStorage;
+
   constructor(
-    private storage: MediaStorage,
+    env: Env,
     private options: {
       limits?: Partial<Limits>;
       gatewayBaseUrl?: string; // if different from MediaStorage’s default
     } = {},
-  ) {}
+  ) {
+    
+    const pinata = new PinataSDK({
+      pinataJwt: process.env.PINATA_JWT!,
+      pinataGateway: "example-gateway.mypinata.cloud",
+    });
+
+    this.storage = new MediaStorage()
+  }
 
   private get limits(): Limits {
     return { ...DEFAULT_LIMITS, ...(this.options.limits ?? {}) };

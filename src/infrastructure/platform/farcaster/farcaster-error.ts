@@ -1,7 +1,7 @@
 // src/infrastructure/platforms/farcaster/farcaster-error.ts
 import { ApiErrorCode, ErrorDetails, Platform } from '@crosspost/types';
-import { PlatformError } from '../../../errors/platform-error.js';
-import { sanitizeErrorDetails } from '../../../utils/error-sanitizer.utils.js';
+import { PlatformError } from '../../../errors/platform-error.ts';
+import { sanitizeErrorDetails } from '../../../utils/error-sanitizer.utils.ts';
 
 /**
  * Farcaster/Neynar error wrapper.

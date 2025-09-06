@@ -1,5 +1,5 @@
 import { PostResult } from '@crosspost/types';
-import { TwitterError } from '../farcaster-error.js';
+import { FarcasterError } from '../farcaster-error.ts';
 import { FarcasterPostBase } from './base.ts';
 
 export class FarcasterRecast extends FarcasterPostBase {
@@ -23,7 +23,7 @@ export class FarcasterRecast extends FarcasterPostBase {
       };
     } catch (error) {
       console.error('Error reposting:', error);
-      throw TwitterError.fromTwitterApiError(error);
+      throw FarcasterError.fromNeynarError(error);
     }
   }
 }

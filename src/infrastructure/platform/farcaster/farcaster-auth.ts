@@ -4,14 +4,14 @@ import { PrefixedKvStore } from '../../../utils/kv-store.utils.ts';
 import { BasePlatformAuth } from '../abstract/base-platform-auth.ts';
 import { PlatformAuth } from '../abstract/platform-auth.interface.ts';
 import { PlatformClient } from '../abstract/platform-client.interface.ts';
-import { TwitterProfile } from './twitter-profile.ts';
 import { NearAuthService } from '../../security/near-auth-service.ts';
-import { FarcasterClient } from './farcaster-client.js';
+import { FarcasterProfile } from './farcaster-profile.ts';
+import { FarcasterClient } from './farcaster-client.ts';
 import { Configuration, NeynarAPIClient } from '@neynar/nodejs-sdk';
 import { mnemonicToAccount } from 'viem/accounts';
 import { ViemLocalEip712Signer } from '@farcaster/hub-nodejs';
 import { bytesToHex, hexToBytes } from 'viem';
-import { FarcasterError } from './farcaster-error.js';
+import { FarcasterError } from './farcaster-error.ts';
 
 export const TWITTER_SCOPES: string[] = [
   'tweet.read',
@@ -28,7 +28,7 @@ export class FarcasterAuth extends BasePlatformAuth implements PlatformAuth {
     nearAuthService: NearAuthService,
     kvStore: PrefixedKvStore,
     private farcasterClient: FarcasterClient,
-    private twitterProfile: TwitterProfile,
+    private farcasterProfile: FarcasterProfile,
   ) {
     super(env, Platform.FARCASTER, nearAuthService, kvStore);
   }

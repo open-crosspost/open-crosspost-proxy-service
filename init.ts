@@ -32,6 +32,12 @@ import { TokenStorage } from './src/infrastructure/storage/auth-token-storage.ts
 import { UserProfileStorage } from './src/infrastructure/storage/user-profile-storage.ts';
 import { PrefixedKvStore } from './src/utils/kv-store.utils.ts';
 import { FarcasterClient } from './src/infrastructure/platform/farcaster/farcaster-client.ts';
+import { FarcasterAuth } from './src/infrastructure/platform/farcaster/farcaster-auth.ts';
+import { FarcasterMedia } from './src/infrastructure/platform/farcaster/farcaster-media.ts';
+import { FarcasterRateLimit } from './src/infrastructure/platform/farcaster/farcaster-rate-limit.ts';
+import { FarcasterProfile } from './src/infrastructure/platform/farcaster/farcaster-profile.ts';
+import { FarcasterPost } from './src/infrastructure/platform/farcaster/farcaster-post.ts';
+
 
 /**
  * Initialize all dependencies and controllers
@@ -67,6 +73,14 @@ export function initializeApp() {
   const twitterPost = new TwitterPost(twitterClient, twitterMedia);
   const twitterProfile = new TwitterProfile(twitterClient, userProfileStorage);
 
+
+  // Initialize platform-specific implementations
+  const farcasterClient = new FarcasterClient(env, nearAuthService);
+  const farcasterMedia = new FarcasterMedia(env);
+  const farcasterRateLimit = new FarcasterRateLimit();
+  const farcasterPost = new FarcasterPost(farcasterClient, farcasterMedia);
+  const farcasterProfile = new FarcasterProfile(farcasterClient, userProfileStorage);
+
   // Create platform auth map with Twitter auth
   const twitterAuth = new TwitterAuth(
     env,
@@ -76,24 +90,33 @@ export function initializeApp() {
     twitterProfile,
   );
 
+  // Create platform auth map with Twitter auth
+  const farcasterAuth = new FarcasterAuth(
+    env,
+    nearAuthService,
+    authStateKvStore,
+    farcasterClient,
+    farcasterProfile,
+  );
+
   const platformAuthMap = new Map<PlatformName, PlatformAuth>();
   platformAuthMap.set(Platform.TWITTER, twitterAuth);
+  platformAuthMap.set(Platform.FARCASTER, farcasterAuth);
 
   // Create platform profile map with Twitter profile
   const platformProfileMap = new Map<PlatformName, PlatformProfile>();
   platformProfileMap.set(Platform.TWITTER, twitterProfile);
+  platformProfileMap.set(Platform.FARCASTER, farcasterProfile);
 
   // Create platform post map
   const platformPostMap = new Map<PlatformName, PlatformPost>();
   platformPostMap.set(Platform.TWITTER, twitterPost);
+  platformPostMap.set(Platform.FARCASTER, farcasterPost);
 
   // Create platform rate limit map
   const platformRateLimitMap = new Map<PlatformName, PlatformRateLimit>();
   platformRateLimitMap.set(Platform.TWITTER, twitterRateLimit);
-
-  // Initialize farcaster-specific implementations
-  const farcasterClient = new FarcasterClient(env, nearAuthService);
-  
+  platformRateLimitMap.set(Platform.FARCASTER, farcasterRateLimit);
 
   // Initialize domain services
   const authService = new AuthService(
