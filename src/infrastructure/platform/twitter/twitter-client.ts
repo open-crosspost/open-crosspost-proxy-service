@@ -79,16 +79,25 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
             await this.nearAuthService.saveTokens(userId, Platform.TWITTER, newToken);
             console.log(`TwitterClient: Successfully refreshed and saved token for user ${userId}`);
           } catch (saveError) {
-            console.error(`TwitterClient: Failed to save refreshed token for user ${userId}:`, saveError);
+            console.error(
+              `TwitterClient: Failed to save refreshed token for user ${userId}:`,
+              saveError,
+            );
           }
         },
         onTokenRefreshError: async (error) => {
-          console.error(`TwitterClient: Token refresh error for user ${userId} inside plugin:`, error);
+          console.error(
+            `TwitterClient: Token refresh error for user ${userId} inside plugin:`,
+            error,
+          );
           try {
             await this.nearAuthService.deleteTokens(userId, Platform.TWITTER);
             console.warn(`TwitterClient: Deleted tokens for user ${userId} due to refresh error.`);
           } catch (deleteError) {
-            console.error(`TwitterClient: Failed to delete tokens for user ${userId} after refresh error:`, deleteError);
+            console.error(
+              `TwitterClient: Failed to delete tokens for user ${userId} after refresh error:`,
+              deleteError,
+            );
           }
         },
       });
@@ -103,28 +112,42 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
       try {
         await client.v2.me({ 'user.fields': ['id'] });
       } catch (error) {
-          console.warn(`TwitterClient: Post-client-creation validation failed for user ${userId}:`, error);
-          const validationError = TwitterError.fromTwitterApiError(error);
+        console.warn(
+          `TwitterClient: Post-client-creation validation failed for user ${userId}:`,
+          error,
+        );
+        const validationError = TwitterError.fromTwitterApiError(error);
 
-          if (validationError.code === ApiErrorCode.UNAUTHORIZED) {
-            console.warn(`TwitterClient: Authentication error detected (code: ${validationError.code}) for user ${userId}. Deleting tokens.`);
-            await this.nearAuthService.deleteTokens(userId, Platform.TWITTER);
-            return null; // Indicate client is not usable
-          }
-          // For other errors, rethrow to be caught by the outer catch if they are unexpected
-          throw validationError; 
+        if (validationError.code === ApiErrorCode.UNAUTHORIZED) {
+          console.warn(
+            `TwitterClient: Authentication error detected (code: ${validationError.code}) for user ${userId}. Deleting tokens.`,
+          );
+          await this.nearAuthService.deleteTokens(userId, Platform.TWITTER);
+          return null; // Indicate client is not usable
+        }
+        // For other errors, rethrow to be caught by the outer catch if they are unexpected
+        throw validationError;
       }
 
       return client;
-
     } catch (error: unknown) {
-      console.error(`TwitterClient: Error getting Twitter client for user ${userId} (outer catch):`, error);
-      const processedError = (error instanceof ApiError) ? error : TwitterError.fromTwitterApiError(error);
+      console.error(
+        `TwitterClient: Error getting Twitter client for user ${userId} (outer catch):`,
+        error,
+      );
+      const processedError = (error instanceof ApiError)
+        ? error
+        : TwitterError.fromTwitterApiError(error);
 
-      if (processedError.code === ApiErrorCode.NOT_FOUND || processedError.code === ApiErrorCode.UNAUTHORIZED) {
-         // This means tokens were not found or were invalid from the start (e.g. expired with no refresh by NearAuthService, or a direct auth error caught here)
-         console.warn(`TwitterClient: No valid client due to error (code: ${processedError.code}) for user ${userId}.`);
-         return null;
+      if (
+        processedError.code === ApiErrorCode.NOT_FOUND ||
+        processedError.code === ApiErrorCode.UNAUTHORIZED
+      ) {
+        // This means tokens were not found or were invalid from the start (e.g. expired with no refresh by NearAuthService, or a direct auth error caught here)
+        console.warn(
+          `TwitterClient: No valid client due to error (code: ${processedError.code}) for user ${userId}.`,
+        );
+        return null;
       }
 
       return null;
@@ -138,12 +161,19 @@ export class TwitterClient extends BasePlatformClient implements PlatformClient 
    * @param userId The user ID whose tokens should be deleted.
    */
   async deleteTokensOnAuthError(userId: string): Promise<void> {
-    console.warn(`TwitterClient: Deleting tokens for user ${userId} due to an authentication error.`);
+    console.warn(
+      `TwitterClient: Deleting tokens for user ${userId} due to an authentication error.`,
+    );
     try {
       await this.nearAuthService.deleteTokens(userId, Platform.TWITTER);
-      console.log(`TwitterClient: Successfully deleted tokens for user ${userId} due to auth error.`);
+      console.log(
+        `TwitterClient: Successfully deleted tokens for user ${userId} due to auth error.`,
+      );
     } catch (deleteError) {
-      console.error(`TwitterClient: Failed to delete tokens for user ${userId} after auth error:`, deleteError);
+      console.error(
+        `TwitterClient: Failed to delete tokens for user ${userId} after auth error:`,
+        deleteError,
+      );
     }
   }
 

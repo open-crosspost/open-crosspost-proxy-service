@@ -57,7 +57,7 @@ export class FarcasterReplyPost extends FarcasterPostBase {
     userId: string,
     postId: string,
     contentArray: PostContent[],
-): Promise<PostResult> {
+  ): Promise<PostResult> {
     try {
       const client = await this.farcasterClient.getClientForUser();
       const threadIds: string[] = [];

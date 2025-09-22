@@ -6,10 +6,7 @@ import { PlatformClient } from '../abstract/platform-client.interface.ts';
 import { NearAuthService } from '../../security/near-auth-service.ts';
 import { ApiError } from '../../../errors/api-error.ts';
 
-import {
-  Configuration,
-  NeynarAPIClient,
-} from '@neynar/nodejs-sdk';
+import { Configuration, NeynarAPIClient } from '@neynar/nodejs-sdk';
 import { ViemLocalEip712Signer } from '@farcaster/hub-nodejs';
 import { bytesToHex, hexToBytes } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';

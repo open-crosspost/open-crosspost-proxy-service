@@ -6,7 +6,7 @@ import { z } from 'zod';
 export enum Platform {
   UNKNOWN = 'unknown',
   TWITTER = 'twitter',
-  FARCASTER = 'farcaster'
+  FARCASTER = 'farcaster',
   // Add more platforms as they're implemented
   // LINKEDIN = 'linkedin',
   // FACEBOOK = 'facebook',
@@ -26,7 +26,7 @@ export const PlatformSchema = z.nativeEnum(Platform)
  */
 export const SUPPORTED_PLATFORMS = [
   Platform.TWITTER,
-  Platform.FARCASTER
+  Platform.FARCASTER,
   // Add more platforms here as they're implemented
 ] as const;
 

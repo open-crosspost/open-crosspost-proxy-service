@@ -101,8 +101,8 @@ export class FarcasterLikePost extends FarcasterPostBase {
 
   /** Accepts a hash or a Warpcast URL and returns the target to send to Neynar */
   private resolveTarget(input: string): string {
-    if (/^https?:\/\//i.test(input)) return input;      // URL targets are allowed
-    const m = input.match(/0x[0-9a-fA-F]+/);            // cast hash
+    if (/^https?:\/\//i.test(input)) return input; // URL targets are allowed
+    const m = input.match(/0x[0-9a-fA-F]+/); // cast hash
     return m ? m[0] : input;
   }
 }

@@ -4,7 +4,6 @@ import { FarcasterMedia } from '../farcaster-media.ts';
 import { MediaContent } from '@crosspost/types';
 import { FarcasterCastParams, FarcasterEmbed } from '../types.ts';
 
-
 export abstract class FarcasterPostBase {
   protected farcasterClient: FarcasterClient;
   protected farcasterMedia: FarcasterMedia;
@@ -13,7 +12,7 @@ export abstract class FarcasterPostBase {
   constructor(
     farcasterClient: FarcasterClient,
     farcasterMedia: FarcasterMedia,
-    gatewayBaseUrl = 'https://gateway.pinata.cloud/ipfs'
+    gatewayBaseUrl = 'https://gateway.pinata.cloud/ipfs',
   ) {
     this.farcasterClient = farcasterClient;
     this.farcasterMedia = farcasterMedia;
@@ -27,7 +26,10 @@ export abstract class FarcasterPostBase {
 
     for (const media of mediaFiles) {
       const cached = await cache.getCachedMediaId(userId, media);
-      if (cached) { ids.push(cached); continue; }
+      if (cached) {
+        ids.push(cached);
+        continue;
+      }
 
       const { mediaId } = await this.farcasterMedia.uploadMedia(userId, media);
       await cache.cacheMediaId(userId, media, mediaId);
@@ -44,18 +46,16 @@ export abstract class FarcasterPostBase {
     const existing = (cast.embeds ? [...cast.embeds] : []) as FarcasterEmbed[];
 
     // dedupe against existing URL embeds
-    const existingUrls = new Set(existing.flatMap(e => ('url' in e ? [e.url] : [])));
+    const existingUrls = new Set(existing.flatMap((e) => ('url' in e ? [e.url] : [])));
 
     const newEmbeds = cids
-      .map(cid => ({ url: `${this.gatewayBaseUrl}/${cid}` } as FarcasterEmbed))
-      .filter(e => 'url' in e && !existingUrls.has(e.url));
+      .map((cid) => ({ url: `${this.gatewayBaseUrl}/${cid}` } as FarcasterEmbed))
+      .filter((e) => 'url' in e && !existingUrls.has(e.url));
 
     const merged = existing.concat(newEmbeds).slice(0, max);
 
     if (merged.length === 0) return;
-    cast.embeds = (merged.length === 1
-      ? [merged[0]]
-      : [merged[0], merged[1]]) as FarcasterCastParams['embeds'];
+    cast.embeds =
+      (merged.length === 1 ? [merged[0]] : [merged[0], merged[1]]) as FarcasterCastParams['embeds'];
   }
-
 }

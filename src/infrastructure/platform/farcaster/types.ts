@@ -2,7 +2,7 @@
 export type FarcasterEmbed =
   | { url: string }
   | { cast_id: { hash: string; fid: number } }
-  | { castId:  { hash: string; fid: number } };
+  | { castId: { hash: string; fid: number } };
 
 /** Cast request params (matches POST /v2/farcaster/cast) */
 export interface FarcasterCastParams {
@@ -29,5 +29,9 @@ export interface FarcasterCastParams {
 }
 
 /** Helper: turn IPFS CIDs into URL embeds */
-export const cidEmbeds = (cids: string[], gateway = 'https://gateway.pinata.cloud/ipfs'): FarcasterCastParams['embeds'] =>
-  (cids.slice(0, 2).map(cid => ({ url: `${gateway}/${cid}` })) as FarcasterCastParams['embeds']);
+export const cidEmbeds = (
+  cids: string[],
+  gateway = 'https://gateway.pinata.cloud/ipfs',
+): FarcasterCastParams['embeds'] => (cids.slice(0, 2).map((cid) => ({
+  url: `${gateway}/${cid}`,
+})) as FarcasterCastParams['embeds']);

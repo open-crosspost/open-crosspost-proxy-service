@@ -10,16 +10,14 @@ export class FarcasterRateLimit implements PlatformRateLimit {
   private readonly actionEndpointMap: Record<string, { endpoint: string; version?: string }>;
 
   constructor(actionEndpointMap?: Record<string, { endpoint: string; version?: string }>) {
-
     // Map common actions to their corresponding endpoints
-    this.actionEndpointMap =
-      actionEndpointMap ?? {
-        post: { endpoint: '/casts' },
-        like: { endpoint: '/reactions' },
-        recast: { endpoint: '/recasts' },
-        user: { endpoint: '/users' },
-        feed: { endpoint: '/feed' },
-      };
+    this.actionEndpointMap = actionEndpointMap ?? {
+      post: { endpoint: '/casts' },
+      like: { endpoint: '/reactions' },
+      recast: { endpoint: '/recasts' },
+      user: { endpoint: '/users' },
+      feed: { endpoint: '/feed' },
+    };
   }
 
   /**

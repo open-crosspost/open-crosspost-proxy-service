@@ -10,7 +10,7 @@ export class FarcasterProfile implements PlatformProfile {
   constructor(
     private farcasterClient: FarcasterClient,
     private profileStorage: UserProfileStorage,
-  ) { }
+  ) {}
 
   /**
    * Get a user's profile, fetching from the API if needed
@@ -58,31 +58,38 @@ export class FarcasterProfile implements PlatformProfile {
 
       // If client is null, it means token refresh failed or no valid tokens were found.
       if (!client) {
-        console.warn(`FarcasterProfile: Could not obtain a valid Farcaster client for user ${userId}. Profile fetch aborted.`);
+        console.warn(
+          `FarcasterProfile: Could not obtain a valid Farcaster client for user ${userId}. Profile fetch aborted.`,
+        );
         return null;
       }
 
       const users = await client.fetchBulkUsers({
-        fids: [parseInt(userId)]
+        fids: [parseInt(userId)],
       });
 
       const profile = this.createUserProfile(users[0]);
       await this.profileStorage.saveProfile(profile);
       return profile;
-
     } catch (error: unknown) {
-      console.error(`FarcasterProfile: Error fetching user profile for ${userId} (outer catch):`, error);
+      console.error(
+        `FarcasterProfile: Error fetching user profile for ${userId} (outer catch):`,
+        error,
+      );
       // It's possible an error from client.v2.user() could land here if not an API error in `errors` field.
       const processedError = FarcasterError.fromNeynarError(error);
 
       if (processedError.code === ApiErrorCode.UNAUTHORIZED) {
         console.warn(
-          `FarcasterProfile: Caught auth-related error (code: ${processedError.code}) for ${userId}. Deleting tokens via FarcasterClient.`
+          `FarcasterProfile: Caught auth-related error (code: ${processedError.code}) for ${userId}. Deleting tokens via FarcasterClient.`,
         );
         try {
           await this.farcasterClient.deleteTokensOnAuthError(userId);
         } catch (deleteErr) {
-          console.error(`FarcasterProfile: Error calling deleteTokensOnAuthError for ${userId}:`, deleteErr);
+          console.error(
+            `FarcasterProfile: Error calling deleteTokensOnAuthError for ${userId}:`,
+            deleteErr,
+          );
         }
       }
       return null;
