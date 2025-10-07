@@ -36,7 +36,7 @@ export interface Env {
  * Get environment variables
  * @returns Environment variables
  */
-export function getEnv(): Env {
+export  function getEnv(): Env {
   return {
     TWITTER_CLIENT_ID: Deno.env.get('TWITTER_CLIENT_ID') || '',
     TWITTER_CLIENT_SECRET: Deno.env.get('TWITTER_CLIENT_SECRET') || '',
