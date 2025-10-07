@@ -16,7 +16,7 @@ export interface Env {
 
   // Neynar API credentials
   NEYNAR_API_KEY: string;
-  
+
   // Mnemomic for the farcaster account that will post on user's behalf
   FARCASTER_DEVELOPER_MNEMONIC: string;
 

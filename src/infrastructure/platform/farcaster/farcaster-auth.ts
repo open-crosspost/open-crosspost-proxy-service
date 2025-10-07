@@ -66,7 +66,7 @@ export class FarcasterAuth extends BasePlatformAuth implements PlatformAuth {
       const { deadline, signature, appFid } = await this.generateKeyRequestSignature(
         created.public_key as `0x${string}`,
         mnemonic,
-        neynarClient
+        neynarClient,
       );
 
       // 3) Register the signer -> returns Warpcast deeplink to approve
@@ -80,7 +80,7 @@ export class FarcasterAuth extends BasePlatformAuth implements PlatformAuth {
       // Return an "authUrl" so the controller can respond with { url } like other platforms.
       // We use signer_uuid as "state" so AuthService can KV-store it uniformly.
       return {
-        authUrl: registered.signer_approval_url || "",
+        authUrl: registered.signer_approval_url || '',
         state: created.signer_uuid,
         // no PKCE in managed-signer flow
       };
@@ -99,10 +99,10 @@ export class FarcasterAuth extends BasePlatformAuth implements PlatformAuth {
    * @throws PlatformError if the exchange fails
    */
   protected async exchangeCodeForTokens(): Promise<never> {
-      throw new FarcasterError(
-        'Farcaster managed signers do not use OAuth code exchange.',
-        ApiErrorCode.INVALID_REQUEST,
-        { operation: 'exchangeCodeForTokens' }
+    throw new FarcasterError(
+      'Farcaster managed signers do not use OAuth code exchange.',
+      ApiErrorCode.INVALID_REQUEST,
+      { operation: 'exchangeCodeForTokens' },
     );
   }
 
@@ -120,7 +120,7 @@ export class FarcasterAuth extends BasePlatformAuth implements PlatformAuth {
   private async generateKeyRequestSignature(
     publicKey: `0x${string}`,
     mnemonic: string,
-    client: NeynarAPIClient
+    client: NeynarAPIClient,
   ): Promise<{ deadline: number; signature: `0x${string}`; appFid: number }> {
     const appFid = await this.getAppFid(mnemonic, client);
     const account = mnemonicToAccount(mnemonic);

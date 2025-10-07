@@ -14,7 +14,11 @@ export class FarcasterRecast extends FarcasterPostBase {
       const client = await this.farcasterClient.getClientForUser();
 
       // Retweet the tweet
-      const result = await client.publishReaction({ signerUuid: userId, reactionType: "recast", target: postId });
+      const result = await client.publishReaction({
+        signerUuid: userId,
+        reactionType: 'recast',
+        target: postId,
+      });
 
       return {
         id: result.success ? postId : '',

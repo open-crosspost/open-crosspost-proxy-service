@@ -38,7 +38,6 @@ import { FarcasterRateLimit } from './src/infrastructure/platform/farcaster/farc
 import { FarcasterProfile } from './src/infrastructure/platform/farcaster/farcaster-profile.ts';
 import { FarcasterPost } from './src/infrastructure/platform/farcaster/farcaster-post.ts';
 
-
 /**
  * Initialize all dependencies and controllers
  * @returns Initialized controllers
@@ -72,7 +71,6 @@ export function initializeApp() {
   const twitterRateLimit = new TwitterRateLimit();
   const twitterPost = new TwitterPost(twitterClient, twitterMedia);
   const twitterProfile = new TwitterProfile(twitterClient, userProfileStorage);
-
 
   // Initialize platform-specific implementations
   const farcasterClient = new FarcasterClient(env, nearAuthService);

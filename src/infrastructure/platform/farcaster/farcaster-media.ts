@@ -8,7 +8,7 @@ import {
 } from '../abstract/platform-media.interface.ts';
 import { MediaStorage } from '../../storage/media-storage.ts';
 import { Env } from '../../../config/env.ts';
-import { PinataSDK } from "pinata";
+import { PinataSDK } from 'pinata';
 
 type Limits = {
   MAX_IMAGE_SIZE_MB: number;
@@ -18,8 +18,8 @@ type Limits = {
 };
 
 const DEFAULT_LIMITS: Limits = {
-  MAX_IMAGE_SIZE_MB: 25,      // tune as you wish
-  MAX_VIDEO_SIZE_MB: 512,     // generous; adjust per your plan
+  MAX_IMAGE_SIZE_MB: 25, // tune as you wish
+  MAX_VIDEO_SIZE_MB: 512, // generous; adjust per your plan
   ALLOW_UNDETECTED_MIME: false,
   CHECK_GATEWAY_AFTER_UPLOAD: false, // enable to HEAD-check after upload
 };
@@ -57,13 +57,12 @@ export class FarcasterMedia implements PlatformMedia {
       gatewayBaseUrl?: string; // if different from MediaStorage’s default
     } = {},
   ) {
-    
     const pinata = new PinataSDK({
       pinataJwt: process.env.PINATA_JWT!,
-      pinataGateway: "example-gateway.mypinata.cloud",
+      pinataGateway: 'example-gateway.mypinata.cloud',
     });
 
-    this.storage = new MediaStorage()
+    this.storage = new MediaStorage();
   }
 
   private get limits(): Limits {
@@ -100,8 +99,7 @@ export class FarcasterMedia implements PlatformMedia {
         throw new Error(`Image size exceeds maximum of ${this.limits.MAX_IMAGE_SIZE_MB}MB`);
       }
 
-      const filename =
-        media.filename ??
+      const filename = media.filename ??
         `media-${Date.now()}-${Math.random().toString(16).slice(2)}.${guessExtension(detected)}`;
 
       const file = new File([buffer], filename, { type: detected || 'application/octet-stream' });
@@ -159,12 +157,10 @@ export class FarcasterMedia implements PlatformMedia {
         state: ok ? 'succeeded' : 'pending',
         processingComplete: ok,
         progressPercent: ok ? 100 : 80, // heuristic; IPFS propagation isn’t strictly measurable
-        error: ok
-          ? undefined
-          : {
-              code: res.status,
-              message: `Gateway not ready (HTTP ${res.status})`,
-            },
+        error: ok ? undefined : {
+          code: res.status,
+          message: `Gateway not ready (HTTP ${res.status})`,
+        },
       };
     } catch (e) {
       return {
@@ -172,10 +168,9 @@ export class FarcasterMedia implements PlatformMedia {
         state: 'pending',
         processingComplete: false,
         progressPercent: 50,
-        error:
-          e instanceof Error
-            ? { code: -1, message: e.message }
-            : { code: -1, message: 'Gateway probe failed' },
+        error: e instanceof Error
+          ? { code: -1, message: e.message }
+          : { code: -1, message: 'Gateway probe failed' },
       };
     }
   }

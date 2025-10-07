@@ -146,16 +146,16 @@ export class FarcasterError extends PlatformError {
     const method = req?.method ?? e?.method;
 
     const retryAfterHeader = headers?.['retry-after'] ?? headers?.['Retry-After'];
-    const retryAfter =
-      typeof retryAfterHeader === 'string' ? parseInt(retryAfterHeader, 10) : undefined;
+    const retryAfter = typeof retryAfterHeader === 'string'
+      ? parseInt(retryAfterHeader, 10)
+      : undefined;
 
     // fetch/node errors
     const name = e?.name;
     const code = e?.code;
     const msg = e?.message || resp?.statusText || 'Unknown error';
 
-    const isNetwork =
-      e?.type === 'system' ||
+    const isNetwork = e?.type === 'system' ||
       code === 'ECONNREFUSED' ||
       code === 'ETIMEDOUT' ||
       code === 'ENOTFOUND' ||
@@ -164,6 +164,15 @@ export class FarcasterError extends PlatformError {
       msg?.toLowerCase?.().includes('network') ||
       msg?.toLowerCase?.().includes('fetch failed');
 
-    return { status: typeof status === 'number' ? status : undefined, message: msg, data, headers, url, method, isNetwork, retryAfter };
+    return {
+      status: typeof status === 'number' ? status : undefined,
+      message: msg,
+      data,
+      headers,
+      url,
+      method,
+      isNetwork,
+      retryAfter,
+    };
   }
 }
