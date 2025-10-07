@@ -1,13 +1,14 @@
 import { ApiErrorCode, Platform, UserProfile } from '@crosspost/types';
-import { TwitterApi } from 'twitter-api-v2';
-import { TwitterError } from './twitter-error.ts';
+import { FarcasterError } from './farcaster-error.ts';
 import { UserProfileStorage } from '../../storage/user-profile-storage.ts';
 import { PlatformProfile } from '../abstract/platform-profile.interface.ts';
-import { TwitterClient } from './twitter-client.ts';
+import { FarcasterClient } from './farcaster-client.ts';
+import { NeynarAPIClient } from '@neynar/nodejs-sdk';
+import { User } from '@neynar/nodejs-sdk/build/api/index.ts';
 
-export class TwitterProfile implements PlatformProfile {
+export class FarcasterProfile implements PlatformProfile {
   constructor(
-    private twitterClient: TwitterClient,
+    private farcasterClient: FarcasterClient,
     private profileStorage: UserProfileStorage,
   ) {}
 
@@ -20,7 +21,7 @@ export class TwitterProfile implements PlatformProfile {
   async getUserProfile(userId: string, forceRefresh = false): Promise<UserProfile | null> {
     try {
       // Get the profile from storage
-      const profile = await this.profileStorage.getProfile(userId, Platform.TWITTER);
+      const profile = await this.profileStorage.getProfile(userId, Platform.FARCASTER);
 
       // Check if we need to refresh the profile
       if (forceRefresh || this.profileStorage.needsRefresh(profile)) {
@@ -44,58 +45,49 @@ export class TwitterProfile implements PlatformProfile {
   async fetchUserProfile(
     userId: string,
     isInitialAuth = false,
-    providedClient?: TwitterApi,
+    providedClient?: NeynarAPIClient,
   ): Promise<UserProfile | null> {
     try {
-      let client: TwitterApi | null;
+      let client: NeynarAPIClient | null;
 
       if (isInitialAuth && providedClient) {
         client = providedClient;
       } else {
-        client = await this.twitterClient.getClientForUser(userId);
+        client = await this.farcasterClient.getClientForUser();
       }
 
       // If client is null, it means token refresh failed or no valid tokens were found.
       if (!client) {
         console.warn(
-          `TwitterProfile: Could not obtain a valid Twitter client for user ${userId}. Profile fetch aborted.`,
+          `FarcasterProfile: Could not obtain a valid Farcaster client for user ${userId}. Profile fetch aborted.`,
         );
         return null;
       }
 
-      const { data: user, errors } = await client.v2.user(userId, {
-        'user.fields': 'profile_image_url,username,url,verified',
+      const users = await client.fetchBulkUsers({
+        fids: [parseInt(userId)],
       });
 
-      if (errors || !user) {
-        console.error(
-          `TwitterProfile: Twitter API returned errors or no user data for ${userId}:`,
-          errors,
-        );
-
-        return null;
-      }
-
-      const profile = this.createUserProfile(user);
+      const profile = this.createUserProfile(users[0]);
       await this.profileStorage.saveProfile(profile);
       return profile;
     } catch (error: unknown) {
       console.error(
-        `TwitterProfile: Error fetching user profile for ${userId} (outer catch):`,
+        `FarcasterProfile: Error fetching user profile for ${userId} (outer catch):`,
         error,
       );
       // It's possible an error from client.v2.user() could land here if not an API error in `errors` field.
-      const processedError = TwitterError.fromTwitterApiError(error);
+      const processedError = FarcasterError.fromNeynarError(error);
 
       if (processedError.code === ApiErrorCode.UNAUTHORIZED) {
         console.warn(
-          `TwitterProfile: Caught auth-related error (code: ${processedError.code}) for ${userId}. Deleting tokens via TwitterClient.`,
+          `FarcasterProfile: Caught auth-related error (code: ${processedError.code}) for ${userId}. Deleting tokens via FarcasterClient.`,
         );
         try {
-          await this.twitterClient.deleteTokensOnAuthError(userId);
+          await this.farcasterClient.deleteTokensOnAuthError(userId);
         } catch (deleteErr) {
           console.error(
-            `TwitterProfile: Error calling deleteTokensOnAuthError for ${userId}:`,
+            `FarcasterProfile: Error calling deleteTokensOnAuthError for ${userId}:`,
             deleteErr,
           );
         }
@@ -109,21 +101,19 @@ export class TwitterProfile implements PlatformProfile {
    * @param user Twitter API user data
    * @returns User profile object
    */
-  private createUserProfile(user: any): UserProfile {
+  private createUserProfile(user: User): UserProfile {
     const profile: UserProfile = {
-      userId: user.id,
+      userId: String(user.fid),
       username: user.username,
-      profileImageUrl: user.profile_image_url || '',
-      isPremium: user.verified || false, // Use verified as a proxy for premium status
-      platform: Platform.TWITTER,
+      profileImageUrl: user.pfp_url || '',
+      isPremium: false, // Use verified as a proxy for premium status
+      platform: Platform.FARCASTER,
       lastUpdated: Date.now(),
     };
 
     // Add URL if provided, otherwise generate it for Twitter
-    if (user.url) {
-      profile.url = user.url;
-    } else {
-      profile.url = `https://x.com/${user.username}`;
+    if (user) {
+      profile.url = `https://farcaster.xyz/${user.username}`;
     }
 
     return profile;

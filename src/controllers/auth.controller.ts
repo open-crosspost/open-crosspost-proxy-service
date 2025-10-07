@@ -374,7 +374,9 @@ export class AuthController extends BaseController {
               userId: account.userId,
               connectedAt: account.connectedAt,
               profile: null,
-              error: `Failed to process profile: ${innerError instanceof Error ? innerError.message : 'Unknown error'}`,
+              error: `Failed to process profile: ${
+                innerError instanceof Error ? innerError.message : 'Unknown error'
+              }`,
             };
           }
         }),
@@ -394,7 +396,9 @@ export class AuthController extends BaseController {
             userId: originalAccount.userId,
             connectedAt: originalAccount.connectedAt,
             profile: null,
-            error: `Critical error processing profile: ${result.reason instanceof Error ? result.reason.message : 'Unknown rejection'}`,
+            error: `Critical error processing profile: ${
+              result.reason instanceof Error ? result.reason.message : 'Unknown rejection'
+            }`,
           };
         }
       });
@@ -404,7 +408,12 @@ export class AuthController extends BaseController {
         createSuccessResponse<ConnectedAccountsResponse>(c, { accounts: accountsWithProfiles }),
       );
     } catch (error) {
-      console.error(`AuthController: Critical error in listConnectedAccounts for signerId ${c.get('signerId') || 'unknown'}:`, error);
+      console.error(
+        `AuthController: Critical error in listConnectedAccounts for signerId ${
+          c.get('signerId') || 'unknown'
+        }:`,
+        error,
+      );
       return this.handleError(error, c);
     }
   }
