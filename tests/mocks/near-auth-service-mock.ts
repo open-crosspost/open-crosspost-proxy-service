@@ -3,6 +3,7 @@ import { Context } from '../../deps.ts';
 import { NearAuthService } from '../../src/infrastructure/security/near-auth-service.ts';
 import { AuthToken } from '../../src/infrastructure/storage/auth-token-storage.ts';
 import { mockKvStore } from './kv-store-mock.ts';
+import { createMockAuthToken } from '../utils/test-utils.ts';
 
 /**
  * Mock implementation of the NearAuthService for testing
@@ -16,21 +17,10 @@ export const mockToken = {
   tokenType: 'oauth2',
 };
 
-// Mock NEAR auth data
-export const mockNearAuthData = {
-  account_id: 'test.near',
-  public_key: 'ed25519:mock-public-key',
-  signature: 'mock-signature',
-  message: 'mock-message',
-  nonce: 'mock-nonce',
-  recipient: 'crosspost.near',
-};
-
 // Mock NearAuthService
 export class MockNearAuthService extends NearAuthService {
-  constructor(private mockEnv: any = {}) {
+  constructor() {
     super(
-      mockEnv,
       {} as any,
       mockKvStore,
     );
@@ -55,7 +45,7 @@ export class MockNearAuthService extends NearAuthService {
     signerId: string;
   }> {
     return {
-      authData: mockNearAuthData,
+      authData: createMockAuthToken(),
       signerId: 'test.near',
     };
   }

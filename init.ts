@@ -53,10 +53,8 @@ export function initializeApp() {
   const tokenStorage = new TokenStorage(env.ENCRYPTION_KEY, tokenKvStore, tokenAccessLogger);
 
   const nearAuthService = new NearAuthService(
-    env,
     tokenStorage,
     nearAuthKvStore,
-    tokenAccessLogger,
   );
 
   const userProfileStorage = new UserProfileStorage(profileKvStore);

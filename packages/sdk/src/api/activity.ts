@@ -10,44 +10,6 @@ import type {
 import { makeRequest, type RequestOptions } from '../core/request.ts';
 
 /**
- * Creates a modified query object with filter properties flattened
- * @param query The original query object
- * @returns A new query object with filter properties flattened
- */
-function createFilterQuery<T>(query?: T): Record<string, unknown> {
-  if (!query) return {};
-
-  const queryObj = query as Record<string, any>;
-  const result: Record<string, unknown> = {};
-
-  // Copy non-filter properties
-  Object.keys(queryObj).forEach((key) => {
-    if (key !== 'filter') {
-      result[key] = queryObj[key];
-    }
-  });
-
-  // Extract and flatten filter properties if they exist
-  if (queryObj.filter) {
-    const filter = queryObj.filter;
-
-    if (filter.platforms && Array.isArray(filter.platforms)) {
-      result.platforms = filter.platforms.join(',');
-    }
-
-    if (filter.types && Array.isArray(filter.types)) {
-      result.types = filter.types.join(',');
-    }
-
-    if (filter.timeframe) {
-      result.timeframe = filter.timeframe;
-    }
-  }
-
-  return result;
-}
-
-/**
  * Activity-related API operations
  */
 export class ActivityApi {
@@ -74,7 +36,7 @@ export class ActivityApi {
       '/api/activity',
       this.options,
       undefined,
-      createFilterQuery(query),
+      query,
     );
   }
 
@@ -93,7 +55,7 @@ export class ActivityApi {
       `/api/activity/${signerId}`,
       this.options,
       undefined,
-      createFilterQuery(query),
+      query,
     );
   }
 
@@ -112,7 +74,7 @@ export class ActivityApi {
       `/api/activity/${signerId}/posts`,
       this.options,
       undefined,
-      createFilterQuery(query),
+      query,
     );
   }
 }
