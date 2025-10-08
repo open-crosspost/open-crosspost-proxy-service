@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import TemplatePlugin from "../../index";
 
 const TEST_REGISTRY: PluginRegistry = {
-  "@every-plugin/template": {
+  "crosspost": {
     remoteUrl: "http://localhost:3000/remoteEntry.js",
     version: "1.0.0",
     description: "Template plugin for integration testing",
@@ -12,7 +12,7 @@ const TEST_REGISTRY: PluginRegistry = {
 };
 
 const TEST_PLUGIN_MAP = {
-  "@every-plugin/template": TemplatePlugin,
+  "crosspost": TemplatePlugin,
 } as const;
 
 const TEST_CONFIG = {
@@ -35,14 +35,14 @@ describe("Template Plugin Integration Tests", () => {
   );
 
   beforeAll(async () => {
-    const { initialized } = await runtime.usePlugin("@every-plugin/template", TEST_CONFIG);
+    const { initialized } = await runtime.usePlugin("crosspost", TEST_CONFIG);
     expect(initialized).toBeDefined();
-    expect(initialized.plugin.id).toBe("@every-plugin/template");
+    expect(initialized.plugin.id).toBe("crosspost");
   });
 
   describe("getById procedure", () => {
     it("should fetch item successfully", async () => {
-      const { client } = await runtime.usePlugin("@every-plugin/template", TEST_CONFIG);
+      const { client } = await runtime.usePlugin("crosspost", TEST_CONFIG);
 
       const result = await client.getById({ id: "test-123" });
 
@@ -54,7 +54,7 @@ describe("Template Plugin Integration Tests", () => {
     });
 
     it("should handle not found error", async () => {
-      const { client } = await runtime.usePlugin("@every-plugin/template", TEST_CONFIG);
+      const { client } = await runtime.usePlugin("crosspost", TEST_CONFIG);
 
       await expect(
         client.getById({ id: "not-found" })
@@ -64,7 +64,7 @@ describe("Template Plugin Integration Tests", () => {
 
   describe("search procedure", () => {
     it("should stream search results", async () => {
-      const { client } = await runtime.usePlugin("@every-plugin/template", TEST_CONFIG);
+      const { client } = await runtime.usePlugin("crosspost", TEST_CONFIG);
 
       const stream = await client.search({ query: "test-query", limit: 3 });
 
@@ -87,7 +87,7 @@ describe("Template Plugin Integration Tests", () => {
     });
 
     it("should respect limit parameter", async () => {
-      const { client } = await runtime.usePlugin("@every-plugin/template", TEST_CONFIG);
+      const { client } = await runtime.usePlugin("crosspost", TEST_CONFIG);
 
       const stream = await client.search({ query: "limited", limit: 2 });
 
@@ -102,7 +102,7 @@ describe("Template Plugin Integration Tests", () => {
 
   describe("ping procedure", () => {
     it("should return healthy status", async () => {
-      const { client } = await runtime.usePlugin("@every-plugin/template", TEST_CONFIG);
+      const { client } = await runtime.usePlugin("crosspost", TEST_CONFIG);
 
       const result = await client.ping();
 

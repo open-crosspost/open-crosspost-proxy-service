@@ -14,7 +14,7 @@ import { TemplateService } from "./service";
  * - Handle errors with CommonPluginErrors
  */
 export default createPlugin({
-  id: "@every-plugin/template",
+  id: "crosspost",
 
   variables: z.object({
     baseUrl: z.string().url().default("https://api.example.com"),

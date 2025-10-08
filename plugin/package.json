@@ -1,5 +1,5 @@
 {
-  "name": "@every-plugin/template",
+  "name": "crosspost",
   "version": "0.0.1",
   "description": "Template plugin for every-plugin framework",
   "main": "./dist/index.js",
