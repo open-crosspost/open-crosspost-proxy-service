@@ -241,7 +241,7 @@ export class CrosspostService {
             throw mapToCrosspostError(responseData, response.status);
           }
 
-          return responseData.data as T;
+          return (responseData.data || responseData) as T;
         } finally {
           clearTimeout(timeoutId);
         }

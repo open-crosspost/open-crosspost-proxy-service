@@ -24,10 +24,7 @@ export const contract = oc.router({
         platform: Types.PlatformSchema,
         options: Types.AuthInitRequestSchema.optional()
       }))
-      .output(z.union([
-        Types.AuthCallbackResponseSchema,
-        Types.AuthUrlResponseSchema
-      ]))
+      .output(Types.AuthUrlResponseSchema)
       .errors(CommonPluginErrors),
     
     refreshToken: oc

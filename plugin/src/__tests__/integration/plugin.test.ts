@@ -30,7 +30,7 @@ const TEST_CONFIG = {
       public_key: "ed25519:test",
       signature: "test-signature",
       message: "test-message",
-      nonce: [1, 2, 3],
+      nonce: new Array(32).fill(0).map((_, i) => i),
       recipient: "crosspost.near",
     }),
   },
