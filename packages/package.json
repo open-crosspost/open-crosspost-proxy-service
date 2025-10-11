@@ -1,6 +1,10 @@
 {
   "name": "@crosspost/monorepo",
+<<<<<<< HEAD
   "version": "0.3.1",
+=======
+  "version": "0.2.8",
+>>>>>>> feat/plugin-migration
   "private": true,
   "description": "Crosspost API SDK monorepo",
   "workspaces": [

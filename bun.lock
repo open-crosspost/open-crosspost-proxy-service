@@ -9,9 +9,16 @@
     },
     "packages/sdk": {
       "name": "@crosspost/sdk",
+<<<<<<< HEAD
       "version": "0.3.1",
       "dependencies": {
         "@crosspost/types": "^0.2.8",
+=======
+      "version": "0.2.8",
+      "dependencies": {
+        "@crosspost/types": "^0.2.4",
+        "near-sign-verify": "^0.2.0",
+>>>>>>> feat/plugin-migration
       },
       "devDependencies": {
         "@types/node": "^20.10.5",
@@ -23,7 +30,11 @@
     },
     "packages/types": {
       "name": "@crosspost/types",
+<<<<<<< HEAD
       "version": "0.3.1",
+=======
+      "version": "0.2.8",
+>>>>>>> feat/plugin-migration
       "dependencies": {
         "hono": "^4.7.6",
         "zod": "^3.24.2",
@@ -477,6 +488,11 @@
 
     "natural-compare": ["natural-compare@1.4.0", "", {}, "sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw=="],
 
+<<<<<<< HEAD
+=======
+    "near-sign-verify": ["near-sign-verify@0.2.0", "", { "dependencies": { "borsh": "^2.0.0", "bs58": "^5.0.0", "tweetnacl": "^1.0.3", "zod": "^3.24.2" } }, "sha512-IlTPT41+Kt5B3NUysuTEIzoVi3yKOQ2xS0z9R7M4fqxajaxvFL266SsEczy42wVBY1gK7oRvjM1MSVbWRbfDEw=="],
+
+>>>>>>> feat/plugin-migration
     "nice-try": ["nice-try@1.0.5", "", {}, "sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ=="],
 
     "normalize-package-data": ["normalize-package-data@2.5.0", "", { "dependencies": { "hosted-git-info": "^2.1.4", "resolve": "^1.10.0", "semver": "2 || 3 || 4 || 5", "validate-npm-package-license": "^3.0.1" } }, "sha512-/5CMN3T0R4XTj4DcGaexo+roZSdSFW/0AOOTROrjxzCG1wrWXEsGbRKevjlIL+ZDE4sZlJr5ED4YW0yqmkK+eA=="],
