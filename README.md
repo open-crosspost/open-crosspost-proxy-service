@@ -38,7 +38,9 @@ bun run test
 
 ## Integration
 
-This project provides two packages to help you integrate with the Crosspost API:
+This project provides packages to help you integrate with the Crosspost API:
+
+> **🔄 Migration Notice**: The SDK has been migrated to a plugin-based architecture using the every-plugin framework. The plugin provides the same functionality with better modularity and remote loading capabilities.
 
 ### @crosspost/types
 
@@ -54,25 +56,28 @@ const request: CreatePostRequest = {
 };
 ```
 
-### @crosspost/sdk
+### @crosspost/plugin
 
-A client SDK that simplifies interaction with the API, handling authentication, requests, and error
-management. See the [SDK Documentation](./packages/sdk/README.md) for detailed usage instructions.
+A plugin for the every-plugin framework that provides the same functionality as the SDK with better modularity and remote loading capabilities. See the [Plugin Documentation](./plugin/README.md) for detailed usage instructions.
 
 ```typescript
-import { CrosspostClient } from '@crosspost/sdk';
+import { createPluginRuntime } from 'every-plugin/runtime';
 
-const client = new CrosspostClient({
-  nearAuthData: {
-    accountId: 'your-account.near',
-    publicKey: 'ed25519:...',
-    signature: '...',
-    message: '...',
-  },
+const runtime = createPluginRuntime({
+  registry: {
+    "@crosspost/plugin": {
+      remoteUrl: "https://cdn.crosspost.near/plugin/remoteEntry.js"
+    }
+  }
+});
+
+const { client } = await runtime.usePlugin("@crosspost/plugin", {
+  variables: { baseUrl: "https://api.crosspost.near" },
+  secrets: { nearAuthData: JSON.stringify(authData) }
 });
 
 // Create a post on Twitter
-await client.post.createPost({
+await client.post.create({
   targets: [{ platform: 'twitter', userId: 'your-twitter-id' }],
   content: [{ text: 'Hello from Crosspost!' }],
 });
