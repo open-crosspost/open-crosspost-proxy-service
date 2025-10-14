@@ -18,7 +18,7 @@ describe("CrosspostService", () => {
   };
 
   const service = new CrosspostService(
-    "https://api.crosspost.near",
+    "https://api.opencrosspost.com",
     mockNearAuthData,
     5000
   );

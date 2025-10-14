@@ -126,7 +126,7 @@ async function testRealAPI() {
     };
     
     const service = new RealCrosspostService(
-      'https://api.crosspost.near',  // REAL API endpoint
+      'https://api.opencrosspost.com',  // REAL API endpoint
       realAuthData,
       10000
     );

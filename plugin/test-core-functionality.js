@@ -83,7 +83,7 @@ async function testCoreFunctionality() {
     };
     
     const service = new CrosspostService(
-      'https://api.crosspost.near',
+      'https://api.opencrosspost.com',
       mockAuthData,
       5000
     );

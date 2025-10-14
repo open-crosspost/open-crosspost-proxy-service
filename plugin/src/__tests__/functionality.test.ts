@@ -18,7 +18,7 @@ describe("Crosspost Plugin Functionality Tests", () => {
   };
 
   const service = new CrosspostService(
-    "https://api.crosspost.near",
+    "https://api.opencrosspost.com",
     mockNearAuthData,
     5000
   );
@@ -159,7 +159,7 @@ describe("Crosspost Plugin Functionality Tests", () => {
     await service.getHealthStatus();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("https://api.crosspost.near/health"),
+      expect.stringContaining("https://api.opencrosspost.com/health"),
       expect.objectContaining({
         method: "GET",
         headers: expect.objectContaining({

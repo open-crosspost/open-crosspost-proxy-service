@@ -154,7 +154,7 @@ async function testRealPluginFunctionality() {
     console.log('\n2️⃣ Configuring plugin...');
     const config = {
       variables: {
-        baseUrl: 'https://api.crosspost.near',
+        baseUrl: 'https://api.opencrosspost.com',
         timeout: 10000
       },
       secrets: {

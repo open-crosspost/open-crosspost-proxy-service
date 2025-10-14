@@ -145,7 +145,7 @@ const runtime = createPluginRuntime({
 });
 
 const { client } = await runtime.usePlugin("@crosspost/plugin", {
-  variables: { baseUrl: "https://api.crosspost.near" },
+  variables: { baseUrl: "https://api.opencrosspost.com" },
   secrets: { nearAuthData: JSON.stringify(authData) }
 });
 

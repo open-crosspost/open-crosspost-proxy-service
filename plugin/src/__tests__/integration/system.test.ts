@@ -20,7 +20,7 @@ describe("System Integration Tests", () => {
 
   const config = {
     variables: {
-      baseUrl: "https://api.crosspost.near",
+      baseUrl: "https://api.opencrosspost.com",
       timeout: 5000,
     },
     secrets: {

@@ -16,7 +16,7 @@ export default createPlugin({
   id: "@crosspost/plugin",
 
   variables: z.object({
-    baseUrl: z.string().url().default("https://api.crosspost.near"),
+    baseUrl: z.string().url().default("https://api.opencrosspost.com"),
     timeout: z.number().min(1000).max(60000).default(10000),
   }),
 

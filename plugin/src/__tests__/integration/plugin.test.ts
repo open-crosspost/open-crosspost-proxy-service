@@ -21,7 +21,7 @@ const TEST_PLUGIN_MAP = {
 
 const TEST_CONFIG = {
   variables: {
-    baseUrl: "https://api.crosspost.near",
+    baseUrl: "https://api.opencrosspost.com",
     timeout: 5000,
   },
   secrets: {
