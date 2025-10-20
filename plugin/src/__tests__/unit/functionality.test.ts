@@ -1,42 +1,42 @@
 // Test actual functionality of the Crosspost plugin
-import { describe, expect, it, vi } from "vitest";
-import { Effect } from "every-plugin/effect";
-import { CrosspostService } from "../../service";
-import type { NearAuthData } from "../../types/auth";
+import { describe, expect, it, vi } from 'vitest';
+import { Effect } from 'every-plugin/effect';
+import { CrosspostService } from '../../service';
+import type { NearAuthData } from '../../types/auth';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-describe("Crosspost Plugin Functionality Tests", () => {
+describe('Crosspost Plugin Functionality Tests', () => {
   const mockNearAuthData: NearAuthData = {
-    account_id: "test.near",
-    public_key: "ed25519:test",
-    signature: "test-signature",
-    message: "test-message",
+    account_id: 'test.near',
+    public_key: 'ed25519:test',
+    signature: 'test-signature',
+    message: 'test-message',
     nonce: new Array(32).fill(0).map((_, i) => i),
-    recipient: "crosspost.near",
+    recipient: 'crosspost.near',
   };
 
   const service = new CrosspostService(
-    "https://api.opencrosspost.com",
+    'https://api.opencrosspost.com',
     mockNearAuthData,
-    5000
+    5000,
   );
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("should create service instance successfully", () => {
+  it('should create service instance successfully', () => {
     expect(service).toBeDefined();
     expect(service).toBeInstanceOf(CrosspostService);
   });
 
-  it("should handle health check", async () => {
+  it('should handle health check', async () => {
     const mockResponse = {
-      status: "ok",
-      timestamp: "2023-01-01T00:00:00Z",
+      status: 'ok',
+      timestamp: '2023-01-01T00:00:00Z',
     };
 
     mockFetch.mockResolvedValueOnce({
@@ -49,9 +49,9 @@ describe("Crosspost Plugin Functionality Tests", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("should handle NEAR authorization", async () => {
+  it('should handle NEAR authorization', async () => {
     const mockResponse = {
-      signerId: "test.near",
+      signerId: 'test.near',
       isAuthorized: true,
     };
 
@@ -65,13 +65,13 @@ describe("Crosspost Plugin Functionality Tests", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("should handle getting connected accounts", async () => {
+  it('should handle getting connected accounts', async () => {
     const mockResponse = {
       accounts: [
         {
-          platform: "twitter",
-          userId: "123456",
-          connectedAt: "2023-01-01T00:00:00Z",
+          platform: 'twitter',
+          userId: '123456',
+          connectedAt: '2023-01-01T00:00:00Z',
           profile: null,
         },
       ],
@@ -87,14 +87,14 @@ describe("Crosspost Plugin Functionality Tests", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("should handle post creation", async () => {
+  it('should handle post creation', async () => {
     const mockResponse = {
       summary: { total: 1, succeeded: 1, failed: 0 },
       results: [
         {
-          platform: "twitter",
-          userId: "123456",
-          details: { id: "post-123", success: true },
+          platform: 'twitter',
+          userId: '123456',
+          details: { id: 'post-123', success: true },
         },
       ],
     };
@@ -105,19 +105,19 @@ describe("Crosspost Plugin Functionality Tests", () => {
     });
 
     const result = await Effect.runPromise(service.createPost({
-      targets: [{ platform: "twitter", userId: "123456" }],
-      content: [{ text: "Hello from Crosspost!" }],
+      targets: [{ platform: 'twitter', userId: '123456' }],
+      content: [{ text: 'Hello from Crosspost!' }],
     }));
     expect(result).toEqual(mockResponse);
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("should handle rate limits", async () => {
+  it('should handle rate limits', async () => {
     const mockResponse = {
       limits: {
         post: {
           remaining: 100,
-          reset: "2023-01-01T00:00:00Z",
+          reset: '2023-01-01T00:00:00Z',
         },
       },
     };
@@ -132,25 +132,26 @@ describe("Crosspost Plugin Functionality Tests", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("should handle API errors gracefully", async () => {
+  it('should handle API errors gracefully', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 401,
-      json: () => Promise.resolve({
-        errors: [{ message: "Authentication failed", code: "AUTH_ERROR" }],
-      }),
+      json: () =>
+        Promise.resolve({
+          errors: [{ message: 'Authentication failed', code: 'AUTH_ERROR' }],
+        }),
     });
 
     await expect(Effect.runPromise(service.authorizeNearAccount())).rejects.toThrow();
   });
 
-  it("should handle network errors gracefully", async () => {
-    mockFetch.mockRejectedValueOnce(new Error("Network error"));
+  it('should handle network errors gracefully', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-    await expect(Effect.runPromise(service.getHealthStatus())).rejects.toThrow("Network error");
+    await expect(Effect.runPromise(service.getHealthStatus())).rejects.toThrow('Network error');
   });
 
-  it("should make correct HTTP requests", async () => {
+  it('should make correct HTTP requests', async () => {
     const mockResponse = { success: true };
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -160,14 +161,14 @@ describe("Crosspost Plugin Functionality Tests", () => {
     await Effect.runPromise(service.getHealthStatus());
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("https://api.opencrosspost.com/health"),
+      expect.stringContaining('https://api.opencrosspost.com/health'),
       expect.objectContaining({
-        method: "GET",
+        method: 'GET',
         headers: expect.objectContaining({
-          "Content-Type": "application/json",
-          "Accept": "application/json",
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         }),
-      })
+      }),
     );
   });
 });

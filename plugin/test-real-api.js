@@ -11,7 +11,7 @@ class RealCrosspostService {
 
   async makeRequest(method, path, data, query) {
     const url = new URL(path, this.baseUrl);
-    
+
     if (query) {
       Object.entries(query).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -39,7 +39,7 @@ class RealCrosspostService {
     try {
       console.log(`🌐 [REAL API CALL] ${method} ${url.toString()}`);
       console.log(`📋 [REAL HEADERS]`, headers);
-      
+
       const response = await fetch(url, {
         method,
         headers,
@@ -48,14 +48,16 @@ class RealCrosspostService {
       });
 
       clearTimeout(timeoutId);
-      
+
       console.log(`📊 [REAL RESPONSE] Status: ${response.status}`);
-      
+
       const responseData = await response.json();
       console.log(`📄 [REAL DATA]`, responseData);
 
       if (!response.ok) {
-        throw new Error(`Real API Error: ${response.status} - ${responseData.message || 'Unknown error'}`);
+        throw new Error(
+          `Real API Error: ${response.status} - ${responseData.message || 'Unknown error'}`,
+        );
       }
 
       return responseData.data || responseData;
@@ -72,9 +74,9 @@ class RealCrosspostService {
       signature: this.nearAuthData.signature,
       message: this.nearAuthData.message,
       nonce: this.nearAuthData.nonce,
-      recipient: this.nearAuthData.recipient
+      recipient: this.nearAuthData.recipient,
     };
-    
+
     // Base64 encode the auth data
     return Buffer.from(JSON.stringify(authData)).toString('base64');
   }
@@ -107,12 +109,12 @@ class RealCrosspostService {
 
 async function testRealAPI() {
   console.log('🚀 TESTING REAL CROSSPOST API - NO MOCKS!\n');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log('⚠️  This will make REAL HTTP calls to actual APIs');
   console.log('⚠️  This will use REAL authentication data');
   console.log('⚠️  This will interact with REAL services');
-  console.log('=' .repeat(60));
-  
+  console.log('='.repeat(60));
+
   try {
     // 1. Create service with REAL configuration
     console.log('\n1️⃣ Creating service with REAL configuration...');
@@ -122,16 +124,16 @@ async function testRealAPI() {
       signature: 'test-signature',
       message: 'test-message',
       nonce: new Array(32).fill(0).map((_, i) => i),
-      recipient: 'crosspost.near'
+      recipient: 'crosspost.near',
     };
-    
+
     const service = new RealCrosspostService(
-      'https://api.opencrosspost.com',  // REAL API endpoint
+      'https://api.opencrosspost.com', // REAL API endpoint
       realAuthData,
-      10000
+      10000,
     );
     console.log('✅ Service created with REAL configuration');
-    
+
     // 2. Test REAL health check
     console.log('\n2️⃣ Testing REAL health check...');
     try {
@@ -141,7 +143,7 @@ async function testRealAPI() {
       console.log('❌ REAL health check failed:', error.message);
       console.log('   This is expected if the API server is not running');
     }
-    
+
     // 3. Test REAL NEAR authorization
     console.log('\n3️⃣ Testing REAL NEAR authorization...');
     try {
@@ -151,7 +153,7 @@ async function testRealAPI() {
       console.log('❌ REAL authorization failed:', error.message);
       console.log('   This is expected if the API server is not running');
     }
-    
+
     // 4. Test REAL connected accounts
     console.log('\n4️⃣ Testing REAL connected accounts...');
     try {
@@ -161,20 +163,20 @@ async function testRealAPI() {
       console.log('❌ REAL connected accounts failed:', error.message);
       console.log('   This is expected if the API server is not running');
     }
-    
+
     // 5. Test REAL post creation
     console.log('\n5️⃣ Testing REAL post creation...');
     try {
       const postResult = await service.createPost({
         targets: [{ platform: 'twitter', userId: '123456789' }],
-        content: [{ text: 'Hello from REAL Crosspost API! 🚀' }]
+        content: [{ text: 'Hello from REAL Crosspost API! 🚀' }],
       });
       console.log('✅ REAL post creation result:', postResult);
     } catch (error) {
       console.log('❌ REAL post creation failed:', error.message);
       console.log('   This is expected if the API server is not running');
     }
-    
+
     // 6. Test REAL activity data
     console.log('\n6️⃣ Testing REAL activity data...');
     try {
@@ -184,7 +186,7 @@ async function testRealAPI() {
       console.log('❌ REAL activity data failed:', error.message);
       console.log('   This is expected if the API server is not running');
     }
-    
+
     // 7. Test REAL rate limits
     console.log('\n7️⃣ Testing REAL rate limits...');
     try {
@@ -194,8 +196,8 @@ async function testRealAPI() {
       console.log('❌ REAL rate limits failed:', error.message);
       console.log('   This is expected if the API server is not running');
     }
-    
-    console.log('\n' + '=' .repeat(60));
+
+    console.log('\n' + '='.repeat(60));
     console.log('🎯 REAL API TEST COMPLETED');
     console.log('📊 Results:');
     console.log('   - If you see ✅: API server is running and responding');
@@ -203,13 +205,12 @@ async function testRealAPI() {
     console.log('   - All HTTP calls were REAL (no mocks)');
     console.log('   - All authentication was REAL (no mocks)');
     console.log('   - All data was REAL (no mocks)');
-    console.log('=' .repeat(60));
-    
+    console.log('='.repeat(60));
   } catch (error) {
     console.error('\n❌ REAL API TEST FAILED:');
     console.error('Error:', error.message);
     console.error('Stack:', error.stack);
-    console.log('\n' + '=' .repeat(60));
+    console.log('\n' + '='.repeat(60));
   }
 }
 

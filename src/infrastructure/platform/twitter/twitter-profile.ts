@@ -9,7 +9,7 @@ export class TwitterProfile implements PlatformProfile {
   constructor(
     private twitterClient: TwitterClient,
     private profileStorage: UserProfileStorage,
-  ) { }
+  ) {}
 
   /**
    * Get a user's profile, fetching from the API if needed
@@ -57,7 +57,9 @@ export class TwitterProfile implements PlatformProfile {
 
       // If client is null, it means token refresh failed or no valid tokens were found.
       if (!client) {
-        console.warn(`TwitterProfile: Could not obtain a valid Twitter client for user ${userId}. Profile fetch aborted.`);
+        console.warn(
+          `TwitterProfile: Could not obtain a valid Twitter client for user ${userId}. Profile fetch aborted.`,
+        );
         return null;
       }
 
@@ -66,7 +68,10 @@ export class TwitterProfile implements PlatformProfile {
       });
 
       if (errors || !user) {
-        console.error(`TwitterProfile: Twitter API returned errors or no user data for ${userId}:`, errors);
+        console.error(
+          `TwitterProfile: Twitter API returned errors or no user data for ${userId}:`,
+          errors,
+        );
 
         return null;
       }
@@ -74,18 +79,25 @@ export class TwitterProfile implements PlatformProfile {
       const profile = this.createUserProfile(user);
       await this.profileStorage.saveProfile(profile);
       return profile;
-
     } catch (error: unknown) {
-      console.error(`TwitterProfile: Error fetching user profile for ${userId} (outer catch):`, error);
+      console.error(
+        `TwitterProfile: Error fetching user profile for ${userId} (outer catch):`,
+        error,
+      );
       // It's possible an error from client.v2.user() could land here if not an API error in `errors` field.
       const processedError = TwitterError.fromTwitterApiError(error);
 
       if (processedError.code === ApiErrorCode.UNAUTHORIZED) {
-        console.warn(`TwitterProfile: Caught auth-related error (code: ${processedError.code}) for ${userId}. Deleting tokens via TwitterClient.`);
+        console.warn(
+          `TwitterProfile: Caught auth-related error (code: ${processedError.code}) for ${userId}. Deleting tokens via TwitterClient.`,
+        );
         try {
           await this.twitterClient.deleteTokensOnAuthError(userId);
         } catch (deleteErr) {
-          console.error(`TwitterProfile: Error calling deleteTokensOnAuthError for ${userId}:`, deleteErr);
+          console.error(
+            `TwitterProfile: Error calling deleteTokensOnAuthError for ${userId}:`,
+            deleteErr,
+          );
         }
       }
       return null;

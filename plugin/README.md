@@ -1,6 +1,7 @@
 # @crosspost/plugin
 
-Crosspost plugin for social media cross-posting with NEAR authentication. Provides secure social media operations using NEAR wallet authentication instead of traditional OAuth tokens.
+Crosspost plugin for social media cross-posting with NEAR authentication. Provides secure social
+media operations using NEAR wallet authentication instead of traditional OAuth tokens.
 
 ## Features
 
@@ -24,27 +25,27 @@ import { createPluginRuntime } from 'every-plugin/runtime';
 
 const runtime = createPluginRuntime({
   registry: {
-    "@crosspost/plugin": {
-      remoteUrl: "https://cdn.crosspost.near/plugin/remoteEntry.js"
-    }
-  }
+    '@crosspost/plugin': {
+      remoteUrl: 'https://cdn.crosspost.near/plugin/remoteEntry.js',
+    },
+  },
 });
 
-const { client } = await runtime.usePlugin("@crosspost/plugin", {
-  variables: { 
-    baseUrl: "https://api.opencrosspost.com",
-    timeout: 10000 
+const { client } = await runtime.usePlugin('@crosspost/plugin', {
+  variables: {
+    baseUrl: 'https://api.opencrosspost.com',
+    timeout: 10000,
   },
-  secrets: { 
+  secrets: {
     nearAuthData: JSON.stringify({
-      account_id: "your-account.near",
-      public_key: "ed25519:...",
-      signature: "...",
-      message: "...",
+      account_id: 'your-account.near',
+      public_key: 'ed25519:...',
+      signature: '...',
+      message: '...',
       nonce: [1, 2, 3],
-      recipient: "crosspost.near"
-    })
-  }
+      recipient: 'crosspost.near',
+    }),
+  },
 });
 
 // Authorize your NEAR account
@@ -52,8 +53,8 @@ await client.auth.authorizeNearAccount();
 
 // Create a post
 await client.post.create({
-  targets: [{ platform: "twitter", userId: "your-twitter-id" }],
-  content: [{ text: "Hello from Crosspost!" }]
+  targets: [{ platform: 'twitter', userId: 'your-twitter-id' }],
+  content: [{ text: 'Hello from Crosspost!' }],
 });
 ```
 
@@ -69,7 +70,7 @@ await client.auth.authorizeNearAccount();
 await client.auth.getNearAuthorizationStatus();
 
 // Login to platform (Twitter, etc.)
-await client.auth.loginToPlatform("twitter", { redirect: false });
+await client.auth.loginToPlatform('twitter', { redirect: false });
 
 // Get connected accounts
 const accounts = await client.auth.getConnectedAccounts();
@@ -80,44 +81,44 @@ const accounts = await client.auth.getConnectedAccounts();
 ```typescript
 // Create a post
 await client.post.create({
-  targets: [{ platform: "twitter", userId: "123456" }],
-  content: [{ text: "Hello world!" }]
+  targets: [{ platform: 'twitter', userId: '123456' }],
+  content: [{ text: 'Hello world!' }],
 });
 
 // Like a post
 await client.post.like({
-  targets: [{ platform: "twitter", userId: "123456" }],
-  platform: "twitter",
-  postId: "post-123"
+  targets: [{ platform: 'twitter', userId: '123456' }],
+  platform: 'twitter',
+  postId: 'post-123',
 });
 
 // Repost
 await client.post.repost({
-  targets: [{ platform: "twitter", userId: "123456" }],
-  platform: "twitter",
-  postId: "post-123"
+  targets: [{ platform: 'twitter', userId: '123456' }],
+  platform: 'twitter',
+  postId: 'post-123',
 });
 
 // Quote post
 await client.post.quote({
-  targets: [{ platform: "twitter", userId: "123456" }],
-  platform: "twitter",
-  postId: "post-123",
-  content: [{ text: "Great post!" }]
+  targets: [{ platform: 'twitter', userId: '123456' }],
+  platform: 'twitter',
+  postId: 'post-123',
+  content: [{ text: 'Great post!' }],
 });
 
 // Reply to post
 await client.post.reply({
-  targets: [{ platform: "twitter", userId: "123456" }],
-  platform: "twitter",
-  postId: "post-123",
-  content: [{ text: "Thanks for sharing!" }]
+  targets: [{ platform: 'twitter', userId: '123456' }],
+  platform: 'twitter',
+  postId: 'post-123',
+  content: [{ text: 'Thanks for sharing!' }],
 });
 
 // Delete post
 await client.post.delete({
-  targets: [{ platform: "twitter", userId: "123456" }],
-  posts: [{ platform: "twitter", userId: "123456", postId: "post-123" }]
+  targets: [{ platform: 'twitter', userId: '123456' }],
+  posts: [{ platform: 'twitter', userId: '123456', postId: 'post-123' }],
 });
 ```
 
@@ -126,20 +127,20 @@ await client.post.delete({
 ```typescript
 // Get leaderboard
 const leaderboard = await client.activity.getLeaderboard({
-  timeframe: "week",
-  limit: 10
+  timeframe: 'week',
+  limit: 10,
 });
 
 // Get account activity
 const activity = await client.activity.getAccountActivity({
-  signerId: "user.near",
-  query: { timeframe: "month" }
+  signerId: 'user.near',
+  query: { timeframe: 'month' },
 });
 
 // Get account posts
 const posts = await client.activity.getAccountPosts({
-  signerId: "user.near",
-  query: { limit: 20, offset: 0 }
+  signerId: 'user.near',
+  query: { limit: 20, offset: 0 },
 });
 ```
 
@@ -153,7 +154,7 @@ const health = await client.system.getHealthStatus();
 const rateLimits = await client.system.getRateLimits();
 
 // Get endpoint rate limit
-const postLimit = await client.system.getEndpointRateLimit("post");
+const postLimit = await client.system.getEndpointRateLimit('post');
 ```
 
 ## Configuration

@@ -40,7 +40,9 @@ bun run test
 
 This project provides packages to help you integrate with the Crosspost API:
 
-> **🔄 Migration Notice**: The SDK has been migrated to a plugin-based architecture using the every-plugin framework. The plugin provides the same functionality with better modularity and remote loading capabilities.
+> **🔄 Migration Notice**: The SDK has been migrated to a plugin-based architecture using the
+> every-plugin framework. The plugin provides the same functionality with better modularity and
+> remote loading capabilities.
 
 ### @crosspost/types
 
@@ -58,7 +60,9 @@ const request: CreatePostRequest = {
 
 ### @crosspost/plugin
 
-A plugin for the every-plugin framework that provides the same functionality as the SDK with better modularity and remote loading capabilities. See the [Plugin Documentation](./plugin/README.md) for detailed usage instructions.
+A plugin for the every-plugin framework that provides the same functionality as the SDK with better
+modularity and remote loading capabilities. See the [Plugin Documentation](./plugin/README.md) for
+detailed usage instructions.
 
 ```typescript
 <<<<<<< HEAD

@@ -18,6 +18,11 @@ export interface Env {
   ENCRYPTION_KEY: string;
   ALLOWED_ORIGINS: string;
 
+  // NEAR Authentication
+  NEAR_EXPECTED_RECIPIENT: string;
+  NEAR_NONCE_MAX_AGE_MS: string;
+  NEAR_REQUIRE_FULL_ACCESS_KEY: string;
+
   // Environment
   ENVIRONMENT: string;
 
@@ -40,6 +45,9 @@ export function getEnv(): Env {
     TWITTER_ACCESS_SECRET: Deno.env.get('TWITTER_ACCESS_SECRET') || '',
     ENCRYPTION_KEY: Deno.env.get('ENCRYPTION_KEY') || 'default-encryption-key',
     ALLOWED_ORIGINS: Deno.env.get('ALLOWED_ORIGINS') || '',
+    NEAR_EXPECTED_RECIPIENT: Deno.env.get('NEAR_EXPECTED_RECIPIENT') || 'crosspost.near',
+    NEAR_NONCE_MAX_AGE_MS: Deno.env.get('NEAR_NONCE_MAX_AGE_MS') || '300000',
+    NEAR_REQUIRE_FULL_ACCESS_KEY: Deno.env.get('NEAR_REQUIRE_FULL_ACCESS_KEY') || 'false',
     ENVIRONMENT: Deno.env.get('ENVIRONMENT') || 'development',
     UPSTASH_REDIS_REST_URL: Deno.env.get('UPSTASH_REDIS_REST_URL'),
     UPSTASH_REDIS_REST_TOKEN: Deno.env.get('UPSTASH_REDIS_REST_TOKEN'),
@@ -126,6 +134,24 @@ export function validateSecurityConfig(env: Env): {
   // Check allowed origins
   if (!env.ALLOWED_ORIGINS && (isProduction() || isStaging())) {
     errors.push('No ALLOWED_ORIGINS specified in production/staging environment');
+  }
+
+  // Check NEAR configuration
+  if (!env.NEAR_EXPECTED_RECIPIENT) {
+    errors.push('NEAR_EXPECTED_RECIPIENT must be specified');
+  }
+
+  const nonceMaxAge = Number(env.NEAR_NONCE_MAX_AGE_MS);
+  if (isNaN(nonceMaxAge) || nonceMaxAge < 0) {
+    errors.push('NEAR_NONCE_MAX_AGE_MS must be a valid positive number');
+  } else if (nonceMaxAge < 60000 && (isProduction() || isStaging())) {
+    warnings.push(
+      'NEAR_NONCE_MAX_AGE_MS is less than 60 seconds - tokens will expire very quickly',
+    );
+  } else if (nonceMaxAge > 600000) {
+    warnings.push(
+      'NEAR_NONCE_MAX_AGE_MS is greater than 10 minutes - consider shorter expiry for security',
+    );
   }
 
   return {

@@ -3,6 +3,7 @@
 ## 🗑️ What Gets DELETED
 
 ### Complete Folder Deletions:
+
 ```
 packages/sdk/                          # DELETE ENTIRE FOLDER
 ├── src/
@@ -33,6 +34,7 @@ tests/integration/sdk/                # DELETE (replaced by plugin integration t
 ```
 
 ### Files to Keep (In packages/types):
+
 ```
 packages/types/                       # KEEP - Contract definitions
 ├── src/
@@ -97,10 +99,10 @@ plugin/
 
 ```typescript
 // Structure:
-import { CommonPluginErrors } from "every-plugin";
-import { oc } from "every-plugin/orpc";
-import { z } from "every-plugin/zod";
-import * as Types from "@crosspost/types";
+import { CommonPluginErrors } from 'every-plugin';
+import { oc } from 'every-plugin/orpc';
+import { z } from 'every-plugin/zod';
+import * as Types from '@crosspost/types';
 
 export const contract = oc.router({
   // AUTH DOMAIN (from packages/sdk/src/api/auth.ts)
@@ -110,24 +112,23 @@ export const contract = oc.router({
       .input(Types.NearAuthorizationRequestSchema)
       .output(Types.NearAuthorizationResponseSchema)
       .errors(CommonPluginErrors),
-    
+
     getNearAuthorizationStatus: oc
       .route({ method: 'GET', path: '/auth/authorize/near/status' })
       .output(Types.NearAuthorizationStatusResponseSchema)
       .errors(CommonPluginErrors),
-    
+
     loginToPlatform: oc
       .route({ method: 'POST', path: '/auth/{platform}/login' })
       .input(z.object({
         platform: Types.PlatformSchema,
-        options: Types.AuthInitRequestSchema.optional()
+        options: Types.AuthInitRequestSchema.optional(),
       }))
       .output(z.union([
         Types.AuthCallbackResponseSchema,
-        Types.AuthUrlResponseSchema
+        Types.AuthUrlResponseSchema,
       ]))
       .errors(CommonPluginErrors),
-    
     // ... 6 more auth methods
   }),
 
@@ -138,13 +139,12 @@ export const contract = oc.router({
       .input(Types.CreatePostRequestSchema)
       .output(z.object({ data: Types.MultiStatusDataSchema }))
       .errors(CommonPluginErrors),
-    
+
     delete: oc
       .route({ method: 'DELETE', path: '/api/post' })
       .input(Types.DeletePostRequestSchema)
       .output(z.object({ data: Types.MultiStatusDataSchema }))
       .errors(CommonPluginErrors),
-    
     // ... 5 more post methods
   }),
 
@@ -155,7 +155,6 @@ export const contract = oc.router({
       .input(Types.ActivityLeaderboardQuerySchema.optional())
       .output(Types.ActivityLeaderboardResponseSchema)
       .errors(CommonPluginErrors),
-    
     // ... 2 more activity methods
   }),
 
@@ -165,7 +164,6 @@ export const contract = oc.router({
       .route({ method: 'GET', path: '/api/rate-limit' })
       .output(Types.RateLimitResponseSchema)
       .errors(CommonPluginErrors),
-    
     // ... 2 more system methods
   }),
 });
@@ -182,33 +180,33 @@ export type Contract = typeof contract;
 **Maps from:** `packages/sdk/src/core/request.ts` + API method implementations
 
 ```typescript
-import { Effect } from "every-plugin/effect";
-import { createAuthToken, type NearAuthData } from "near-sign-verify";
-import type * as Types from "@crosspost/types";
-import { mapToCrosspostError } from "./errors/error-mapping";
+import { Effect } from 'every-plugin/effect';
+import { createAuthToken, type NearAuthData } from 'near-sign-verify';
+import type * as Types from '@crosspost/types';
+import { mapToCrosspostError } from './errors/error-mapping';
 
 export class CrosspostService {
   constructor(
     private readonly baseUrl: string,
     private readonly nearAuthData: NearAuthData,
-    private readonly timeout: number
+    private readonly timeout: number,
   ) {}
 
   // ============ AUTH METHODS ============
   // From packages/sdk/src/api/auth.ts
-  
+
   authorizeNearAccount() {
     return this.makeRequest<Types.NearAuthorizationResponse>(
       'POST',
       '/auth/authorize/near',
-      {}
+      {},
     );
   }
 
   getNearAuthorizationStatus() {
     return this.makeRequest<Types.NearAuthorizationResponse>(
       'GET',
-      '/auth/authorize/near/status'
+      '/auth/authorize/near/status',
     );
   }
 
@@ -216,7 +214,7 @@ export class CrosspostService {
     return this.makeRequest<Types.AuthUrlResponse | Types.AuthCallbackResponse>(
       'POST',
       `/auth/${platform}/login`,
-      options || { redirect: false }
+      options || { redirect: false },
     );
   }
 
@@ -224,12 +222,12 @@ export class CrosspostService {
 
   // ============ POST METHODS ============
   // From packages/sdk/src/api/post.ts
-  
+
   createPost(request: Types.CreatePostRequest) {
     return this.makeRequest<Types.MultiStatusData>(
       'POST',
       '/api/post',
-      request
+      request,
     );
   }
 
@@ -237,7 +235,7 @@ export class CrosspostService {
     return this.makeRequest<Types.MultiStatusData>(
       'DELETE',
       '/api/post',
-      request
+      request,
     );
   }
 
@@ -245,13 +243,13 @@ export class CrosspostService {
 
   // ============ ACTIVITY METHODS ============
   // From packages/sdk/src/api/activity.ts
-  
+
   getLeaderboard(query?: Types.ActivityLeaderboardQuery) {
     return this.makeRequest<Types.ActivityLeaderboardResponse>(
       'GET',
       '/api/activity',
       undefined,
-      query
+      query,
     );
   }
 
@@ -259,11 +257,11 @@ export class CrosspostService {
 
   // ============ SYSTEM METHODS ============
   // From packages/sdk/src/api/system.ts
-  
+
   getRateLimits() {
     return this.makeRequest<Types.RateLimitResponse>(
       'GET',
-      '/api/rate-limit'
+      '/api/rate-limit',
     );
   }
 
@@ -271,17 +269,17 @@ export class CrosspostService {
 
   // ============ PRIVATE HELPERS ============
   // Adapted from packages/sdk/src/core/request.ts
-  
+
   private makeRequest<T>(
     method: string,
     path: string,
     data?: unknown,
-    query?: Record<string, unknown>
+    query?: Record<string, unknown>,
   ) {
     return Effect.tryPromise({
       try: async () => {
         const url = new URL(path, this.baseUrl);
-        
+
         // Add query parameters
         if (query) {
           Object.entries(query).forEach(([key, value]) => {
@@ -332,7 +330,7 @@ export class CrosspostService {
           return error;
         }
         return new Error(String(error));
-      }
+      },
     });
   }
 }
@@ -345,99 +343,95 @@ export class CrosspostService {
 **Maps from:** `packages/sdk/src/index.ts` + `packages/sdk/src/core/client.ts`
 
 ```typescript
-import { createPlugin } from "every-plugin";
-import { Effect } from "every-plugin/effect";
-import { implement } from "every-plugin/orpc";
-import { z } from "every-plugin/zod";
-import { contract } from "./contract";
-import { CrosspostService } from "./service";
-import { NearAuthDataSchema } from "./types/auth";
+import { createPlugin } from 'every-plugin';
+import { Effect } from 'every-plugin/effect';
+import { implement } from 'every-plugin/orpc';
+import { z } from 'every-plugin/zod';
+import { contract } from './contract';
+import { CrosspostService } from './service';
+import { NearAuthDataSchema } from './types/auth';
 
 export default createPlugin({
-  id: "@crosspost/plugin",
-  
+  id: '@crosspost/plugin',
+
   variables: z.object({
-    baseUrl: z.string().url().default("https://api.opencrosspost.com"),
+    baseUrl: z.string().url().default('https://api.opencrosspost.com'),
     timeout: z.number().min(1000).max(60000).default(10000),
   }),
-  
+
   secrets: z.object({
     // Store as JSON string, parse into NearAuthData
     nearAuthData: z.string()
       .transform((str) => JSON.parse(str))
       .pipe(NearAuthDataSchema),
   }),
-  
+
   contract,
-  
+
   initialize: (config) =>
     Effect.gen(function* () {
       const service = new CrosspostService(
         config.variables.baseUrl,
         config.secrets.nearAuthData,
-        config.variables.timeout
+        config.variables.timeout,
       );
-      
+
       // Test connection
       yield* service.getRateLimits();
-      
+
       return { service };
     }),
-  
+
   shutdown: () => Effect.void,
-  
+
   createRouter: (context) => {
     const { service } = context;
     const os = implement(contract);
-    
+
     // AUTH HANDLERS
     const authRouter = os.auth.router({
       authorizeNearAccount: os.auth.authorizeNearAccount.handler(async () => {
         return await Effect.runPromise(service.authorizeNearAccount());
       }),
-      
+
       getNearAuthorizationStatus: os.auth.getNearAuthorizationStatus.handler(async () => {
         return await Effect.runPromise(service.getNearAuthorizationStatus());
       }),
-      
       // ... +7 more auth handlers
     });
-    
+
     // POST HANDLERS
     const postRouter = os.post.router({
       create: os.post.create.handler(async ({ input }) => {
         const data = await Effect.runPromise(service.createPost(input));
         return { data };
       }),
-      
       // ... +6 more post handlers
     });
-    
+
     // ACTIVITY HANDLERS
     const activityRouter = os.activity.router({
       getLeaderboard: os.activity.getLeaderboard.handler(async ({ input }) => {
         return await Effect.runPromise(service.getLeaderboard(input));
       }),
-      
       // ... +2 more activity handlers
     });
-    
+
     // SYSTEM HANDLERS
     const systemRouter = os.system.router({
       getRateLimits: os.system.getRateLimits.handler(async () => {
         return await Effect.runPromise(service.getRateLimits());
       }),
-      
       // ... +2 more system handlers
     });
-    
+
     return os.router({
       auth: authRouter,
       post: postRouter,
       activity: activityRouter,
       system: systemRouter,
     });
-  }
+  },
 });
 ```
 
@@ -448,7 +442,7 @@ export default createPlugin({
 **Maps from:** `packages/sdk/src/utils/error.ts`
 
 ```typescript
-import { ApiErrorCode } from "@crosspost/types";
+import { ApiErrorCode } from '@crosspost/types';
 
 /**
  * Maps CrosspostError codes to appropriate error messages
@@ -456,21 +450,21 @@ import { ApiErrorCode } from "@crosspost/types";
  */
 export function mapToCrosspostError(
   responseData: any,
-  statusCode: number
+  statusCode: number,
 ): Error {
   const errors = responseData.errors || [];
   const primaryError = errors[0] || {};
-  
+
   const message = primaryError.message || `Request failed with status ${statusCode}`;
   const code = primaryError.code || ApiErrorCode.UNKNOWN_ERROR;
-  
+
   // Create Error with additional context
   const error = new Error(message);
   (error as any).code = code;
   (error as any).statusCode = statusCode;
   (error as any).details = primaryError.details;
   (error as any).recoverable = primaryError.recoverable;
-  
+
   return error;
 }
 ```
@@ -480,10 +474,10 @@ export function mapToCrosspostError(
 ### 5. **types/auth.ts** - Plugin-Specific Types
 
 ```typescript
-import { z } from "every-plugin/zod";
+import { z } from 'every-plugin/zod';
 
 // Re-export from near-sign-verify for convenience
-export type { NearAuthData } from "near-sign-verify";
+export type { NearAuthData } from 'near-sign-verify';
 
 // Zod schema for validation
 export const NearAuthDataSchema = z.object({
@@ -504,65 +498,67 @@ export const NearAuthDataSchema = z.object({
 ### Unit Tests (`plugin/src/__tests__/unit/`)
 
 **service.test.ts** - Test each service method
+
 ```typescript
-describe("CrosspostService", () => {
-  describe("Auth Methods", () => {
-    it("should authorize NEAR account")
-    it("should get authorization status")
-    it("should login to platform")
+describe('CrosspostService', () => {
+  describe('Auth Methods', () => {
+    it('should authorize NEAR account');
+    it('should get authorization status');
+    it('should login to platform');
     // ... +6 auth tests
-  })
-  
-  describe("Post Methods", () => {
-    it("should create post")
-    it("should delete post")
+  });
+
+  describe('Post Methods', () => {
+    it('should create post');
+    it('should delete post');
     // ... +5 post tests
-  })
-  
-  describe("Activity Methods", () => {
-    it("should get leaderboard")
+  });
+
+  describe('Activity Methods', () => {
+    it('should get leaderboard');
     // ... +2 activity tests
-  })
-  
-  describe("System Methods", () => {
-    it("should get rate limits")
+  });
+
+  describe('System Methods', () => {
+    it('should get rate limits');
     // ... +2 system tests
-  })
-})
+  });
+});
 ```
 
 **error-mapping.test.ts** - Test error transformations
+
 ```typescript
-describe("Error Mapping", () => {
-  it("should map API errors correctly")
-  it("should preserve error details")
-  it("should set recoverable flag")
-})
+describe('Error Mapping', () => {
+  it('should map API errors correctly');
+  it('should preserve error details');
+  it('should set recoverable flag');
+});
 ```
 
 **auth-helpers.test.ts** - Test auth utilities
+
 ```typescript
-describe("Auth Helpers", () => {
-  it("should generate auth tokens")
-  it("should handle signature validation")
-})
+describe('Auth Helpers', () => {
+  it('should generate auth tokens');
+  it('should handle signature validation');
+});
 ```
 
 ### Integration Tests (`plugin/src/__tests__/integration/`)
 
 **plugin.test.ts** - Overall plugin functionality
+
 ```typescript
-describe("Crosspost Plugin Integration", () => {
-  it("should initialize successfully")
-  it("should handle authentication")
-  it("should shutdown cleanly")
-})
+describe('Crosspost Plugin Integration', () => {
+  it('should initialize successfully');
+  it('should handle authentication');
+  it('should shutdown cleanly');
+});
 ```
 
-**auth.test.ts** - Auth endpoints (9 tests)
-**post.test.ts** - Post endpoints (7 tests)
-**activity.test.ts** - Activity endpoints (3 tests)
-**system.test.ts** - System endpoints (3 tests)
+**auth.test.ts** - Auth endpoints (9 tests) **post.test.ts** - Post endpoints (7 tests)
+**activity.test.ts** - Activity endpoints (3 tests) **system.test.ts** - System endpoints (3 tests)
 
 **Total Tests:** ~35-40 tests (10 unit + 25-30 integration)
 
@@ -570,16 +566,16 @@ describe("Crosspost Plugin Integration", () => {
 
 ## 📊 Summary Table
 
-| Current Location | New Location | Action |
-|-----------------|--------------|--------|
-| `packages/sdk/src/api/*.ts` | `plugin/src/contract.ts` | Migrate → Delete |
-| `packages/sdk/src/core/request.ts` | `plugin/src/service.ts` | Migrate → Delete |
-| `packages/sdk/src/core/client.ts` | `plugin/src/index.ts` | Migrate → Delete |
-| `packages/sdk/src/utils/error.ts` | `plugin/src/errors/error-mapping.ts` | Migrate → Delete |
-| `packages/sdk/src/utils/popup.ts` | Decision needed | Keep or Delete |
-| `packages/types/src/*` | Keep as-is | **KEEP** |
-| `tests/sdk/*` | `plugin/src/__tests__/` | Migrate → Delete |
-| Entire `packages/sdk/` folder | N/A | **DELETE** |
+| Current Location                   | New Location                         | Action           |
+| ---------------------------------- | ------------------------------------ | ---------------- |
+| `packages/sdk/src/api/*.ts`        | `plugin/src/contract.ts`             | Migrate → Delete |
+| `packages/sdk/src/core/request.ts` | `plugin/src/service.ts`              | Migrate → Delete |
+| `packages/sdk/src/core/client.ts`  | `plugin/src/index.ts`                | Migrate → Delete |
+| `packages/sdk/src/utils/error.ts`  | `plugin/src/errors/error-mapping.ts` | Migrate → Delete |
+| `packages/sdk/src/utils/popup.ts`  | Decision needed                      | Keep or Delete   |
+| `packages/types/src/*`             | Keep as-is                           | **KEEP**         |
+| `tests/sdk/*`                      | `plugin/src/__tests__/`              | Migrate → Delete |
+| Entire `packages/sdk/` folder      | N/A                                  | **DELETE**       |
 
 ---
 

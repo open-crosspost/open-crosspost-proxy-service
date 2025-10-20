@@ -16,13 +16,9 @@ export interface RequestOptions {
    */
   baseUrl: URL;
   /**
-   * Auth token from near-sign-verify
+   * Auth token from near-sign-verify (required for all requests)
    */
-  authToken?: string;
-  /**
-   * NEAR account ID for simple GET request authentication
-   */
-  accountId?: string;
+  authToken: string;
   /**
    * Request timeout in milliseconds
    */
@@ -85,28 +81,16 @@ export async function makeRequest<
           'Accept': 'application/json',
         };
 
-        // For GET requests, use X-Near-Account header if available
-        if (method === 'GET') {
-          const accountId = options.accountId;
-          if (!accountId) {
-            throw new CrosspostError(
-              'No NEAR account provided for GET request',
-              ApiErrorCode.UNAUTHORIZED,
-              401,
-            );
-          }
-          headers['X-Near-Account'] = accountId;
-        } else {
-          // For non-GET requests, require authToken
-          if (!options.authToken) {
-            throw new CrosspostError(
-              'Auth token required for non-GET request',
-              ApiErrorCode.UNAUTHORIZED,
-              401,
-            );
-          }
-          headers['Authorization'] = `Bearer ${options.authToken}`;
+        // Always require authToken for enhanced security
+        // All requests now require proper NEAR signature verification
+        if (!options.authToken) {
+          throw new CrosspostError(
+            'Auth token required for all requests',
+            ApiErrorCode.UNAUTHORIZED,
+            401,
+          );
         }
+        headers['Authorization'] = `Bearer ${options.authToken}`;
 
         const requestOptions: RequestInit = {
           method,

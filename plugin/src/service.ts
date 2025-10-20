@@ -1,8 +1,8 @@
-import { Effect } from "every-plugin/effect";
-import type * as Types from "@crosspost/types";
-import { createAuthHeaders, isValidNearAuthData } from "./utils/auth-helpers";
-import { mapToCrosspostError, getStatusErrorMessage } from "./errors/error-mapping";
-import type { NearAuthData } from "./types/auth";
+import { Effect } from 'every-plugin/effect';
+import type * as Types from '@crosspost/types';
+import { createAuthHeaders, isValidNearAuthData } from './utils/auth-helpers';
+import { getStatusErrorMessage, mapToCrosspostError } from './errors/error-mapping';
+import type { NearAuthData } from './types/auth';
 
 /**
  * CrosspostService - HTTP client for Crosspost API with NEAR authentication
@@ -11,27 +11,27 @@ export class CrosspostService {
   constructor(
     private readonly baseUrl: string,
     private readonly nearAuthData: NearAuthData,
-    private readonly timeout: number
+    private readonly timeout: number,
   ) {
     if (!isValidNearAuthData(nearAuthData)) {
-      throw new Error("Invalid NEAR authentication data");
+      throw new Error('Invalid NEAR authentication data');
     }
   }
 
   // ============ AUTH METHODS ============
-  
+
   authorizeNearAccount() {
     return this.makeRequest<Types.NearAuthorizationResponse>(
       'POST',
       '/auth/authorize/near',
-      {}
+      {},
     );
   }
 
   getNearAuthorizationStatus() {
     return this.makeRequest<Types.NearAuthorizationResponse>(
       'GET',
-      '/auth/authorize/near/status'
+      '/auth/authorize/near/status',
     );
   }
 
@@ -39,7 +39,7 @@ export class CrosspostService {
     return this.makeRequest<Types.AuthUrlResponse | Types.AuthCallbackResponse>(
       'POST',
       `/auth/${platform}/login`,
-      options || { redirect: false }
+      options || { redirect: false },
     );
   }
 
@@ -47,7 +47,7 @@ export class CrosspostService {
     return this.makeRequest<Types.AuthCallbackResponse>(
       'POST',
       `/auth/${platform}/refresh`,
-      { userId }
+      { userId },
     );
   }
 
@@ -55,14 +55,14 @@ export class CrosspostService {
     return this.makeRequest<Types.ConnectedAccount>(
       'POST',
       `/auth/${platform}/refresh-profile`,
-      { userId }
+      { userId },
     );
   }
 
   getAuthStatus(platform: Types.Platform, userId: string) {
     return this.makeRequest<Types.AuthStatusResponse>(
       'GET',
-      `/auth/${platform}/status/${userId}`
+      `/auth/${platform}/status/${userId}`,
     );
   }
 
@@ -70,7 +70,7 @@ export class CrosspostService {
     return this.makeRequest<Types.NearUnauthorizationResponse>(
       'DELETE',
       '/auth/unauthorize/near',
-      {}
+      {},
     );
   }
 
@@ -78,24 +78,24 @@ export class CrosspostService {
     return this.makeRequest<Types.AuthRevokeResponse>(
       'DELETE',
       `/auth/${platform}/revoke`,
-      { userId }
+      { userId },
     );
   }
 
   getConnectedAccounts() {
     return this.makeRequest<Types.ConnectedAccountsResponse>(
       'GET',
-      '/auth/accounts'
+      '/auth/accounts',
     );
   }
 
   // ============ POST METHODS ============
-  
+
   createPost(request: Types.CreatePostRequest) {
     return this.makeRequest<Types.MultiStatusData>(
       'POST',
       '/api/post',
-      request
+      request,
     );
   }
 
@@ -103,7 +103,7 @@ export class CrosspostService {
     return this.makeRequest<Types.MultiStatusData>(
       'DELETE',
       '/api/post',
-      request
+      request,
     );
   }
 
@@ -111,7 +111,7 @@ export class CrosspostService {
     return this.makeRequest<Types.MultiStatusData>(
       'POST',
       '/api/post/repost',
-      request
+      request,
     );
   }
 
@@ -119,7 +119,7 @@ export class CrosspostService {
     return this.makeRequest<Types.MultiStatusData>(
       'POST',
       '/api/post/quote',
-      request
+      request,
     );
   }
 
@@ -127,7 +127,7 @@ export class CrosspostService {
     return this.makeRequest<Types.MultiStatusData>(
       'POST',
       '/api/post/reply',
-      request
+      request,
     );
   }
 
@@ -135,7 +135,7 @@ export class CrosspostService {
     return this.makeRequest<Types.MultiStatusData>(
       'POST',
       '/api/post/like',
-      request
+      request,
     );
   }
 
@@ -143,18 +143,18 @@ export class CrosspostService {
     return this.makeRequest<Types.MultiStatusData>(
       'DELETE',
       '/api/post/like',
-      request
+      request,
     );
   }
 
   // ============ ACTIVITY METHODS ============
-  
+
   getLeaderboard(query?: Types.ActivityLeaderboardQuery) {
     return this.makeRequest<Types.ActivityLeaderboardResponse>(
       'GET',
       '/api/activity',
       undefined,
-      query
+      query,
     );
   }
 
@@ -163,7 +163,7 @@ export class CrosspostService {
       'GET',
       `/api/activity/${signerId}`,
       undefined,
-      query
+      query,
     );
   }
 
@@ -172,45 +172,45 @@ export class CrosspostService {
       'GET',
       `/api/activity/${signerId}/posts`,
       undefined,
-      query
+      query,
     );
   }
 
   // ============ SYSTEM METHODS ============
-  
+
   getRateLimits() {
     return this.makeRequest<Types.RateLimitResponse>(
       'GET',
-      '/api/rate-limit'
+      '/api/rate-limit',
     );
   }
 
   getEndpointRateLimit(endpoint: string) {
     return this.makeRequest<Types.EndpointRateLimitResponse>(
       'GET',
-      `/api/rate-limit/${endpoint}`
+      `/api/rate-limit/${endpoint}`,
     );
   }
 
   getHealthStatus() {
     return this.makeRequest<Types.HealthStatus>(
       'GET',
-      '/health'
+      '/health',
     );
   }
 
   // ============ PRIVATE HELPERS ============
-  
+
   private makeRequest<T>(
     method: string,
     path: string,
     data?: unknown,
-    query?: Record<string, unknown>
+    query?: Record<string, unknown>,
   ) {
     return Effect.tryPromise({
       try: async () => {
         const url = new URL(path, this.baseUrl);
-        
+
         // Add query parameters
         if (query) {
           Object.entries(query).forEach(([key, value]) => {
@@ -251,7 +251,7 @@ export class CrosspostService {
           return error;
         }
         return new Error(String(error));
-      }
+      },
     });
   }
 }

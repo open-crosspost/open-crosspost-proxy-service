@@ -2,10 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "emitDeclarationOnly": true,
-    "noEmit": false,
+    "noEmit": false
   },
   "exclude": [
     "node_modules",
-    "dist", 
+    "dist"
   ]
 }

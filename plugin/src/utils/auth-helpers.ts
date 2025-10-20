@@ -1,5 +1,5 @@
-import { createAuthToken } from "near-sign-verify";
-import type { NearAuthData } from "./types/auth";
+import { createAuthToken } from 'near-sign-verify';
+import type { NearAuthData } from './types/auth';
 
 /**
  * Generates a fresh authentication token for API requests
@@ -16,7 +16,10 @@ export function generateAuthToken(nearAuthData: NearAuthData): string {
  * @param nearAuthData NEAR authentication data
  * @returns Headers object for the request
  */
-export function createAuthHeaders(method: string, nearAuthData: NearAuthData): Record<string, string> {
+export function createAuthHeaders(
+  method: string,
+  nearAuthData: NearAuthData,
+): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

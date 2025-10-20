@@ -18,18 +18,22 @@ export class CrosspostClient {
 
   /**
    * Creates an instance of CrosspostClient.
-   * @param config Configuration options for the client.
+   * @param config Configuration options for the client (authToken is required).
    */
-  constructor(config: CrosspostClientConfig = {}) {
+  constructor(config: CrosspostClientConfig) {
     const baseUrl = config.baseUrl || DEFAULT_CONFIG.baseUrl; // you can deploy your own
     const timeout = config.timeout || DEFAULT_CONFIG.timeout;
 
-    const authToken = config.authToken;
+    if (!config.authToken) {
+      throw new Error(
+        'authToken is required for CrosspostClient. All requests now require NEAR signature verification.',
+      );
+    }
 
     this.options = {
       baseUrl: baseUrl instanceof URL ? baseUrl : new URL(baseUrl),
       timeout,
-      authToken,
+      authToken: config.authToken,
     };
 
     this.auth = new AuthApi(this.options);
@@ -40,7 +44,7 @@ export class CrosspostClient {
 
   /**
    * Sets the authentication data (signature) for the client
-   * Required for non-GET requests
+   * Required for all requests
    * @param authToken The NEAR authentication data
    */
   public setAuthentication(authToken: string): void {
@@ -48,26 +52,18 @@ export class CrosspostClient {
   }
 
   /**
-   * Sets the NEAR account ID for simplified GET request authentication
-   * @param accountId The NEAR account ID
-   */
-  public setAccountHeader(accountId: string): void {
-    this.options.accountId = accountId;
-  }
-
-  /**
    * Checks if authentication data (signature) exists on client
-   * @returns true if authToken is set (required for non-GET requests)
+   * @returns true if authToken is set (required for all requests)
    */
   public isAuthenticated(): boolean {
     return !!this.options.authToken;
   }
   /**
-   * Clears all authentication data from the client
+   * Clears the authentication token from the client
    * This will prevent all requests from working until new authentication is set
    */
   public clear(): void {
-    this.options.authToken = undefined;
-    this.options.accountId = undefined;
+    // Note: Setting to empty string instead of undefined to maintain type safety
+    this.options.authToken = '';
   }
 }
