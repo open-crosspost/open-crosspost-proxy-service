@@ -36,10 +36,10 @@ export class CrosspostService {
   }
 
   loginToPlatform(platform: Types.Platform, options?: Types.AuthInitRequest) {
-    return this.makeRequest<Types.AuthUrlResponse | Types.AuthCallbackResponse>(
+    return this.makeRequest<Types.AuthUrlResponse>(
       'POST',
       `/auth/${platform}/login`,
-      options || { redirect: false }
+      options || { redirect: true }
     );
   }
 

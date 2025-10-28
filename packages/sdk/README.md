@@ -120,8 +120,8 @@ try {
   Unauthorizes NEAR account
 - `client.auth.getNearAuthorizationStatus(): Promise<ApiResponse<NearAuthorizationResponse>>` -
   Checks authorization status for authenticated account
-- `client.auth.loginToPlatform(platform, options?): Promise<AuthCallbackResponse | ApiResponse<AuthUrlResponse>>` -
-  Opens popup to initiate OAuth flow with platform
+- `client.auth.loginToPlatform(platform, options?): Promise<ApiResponse<AuthUrlResponse>>` -
+  Initiates OAuth redirect flow with platform (returns auth URL for manual redirect)
 - `client.auth.refreshToken(platform): Promise<ApiResponse<AuthCallbackResponse>>` - Refreshes
   platform token
 - `client.auth.refreshProfile(platform): Promise<ApiResponse<ConnectedAccount>>` - Refreshes user

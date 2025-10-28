@@ -1,6 +1,7 @@
 import { ApiErrorCode, PlatformName } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { parseAuthToken, verify } from '../../deps.ts';
+import { Env } from '../../config/env.ts';
 import { createApiError } from '../../errors/api-error.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { AuthToken, TokenStorage } from '../storage/auth-token-storage.ts';
@@ -27,6 +28,7 @@ export class NearAuthService {
     }
   }
   constructor(
+    private env: Env,
     private tokenStorage: TokenStorage,
     private nearAuthKvStore: PrefixedKvStore,
   ) {}
@@ -53,10 +55,10 @@ export class NearAuthService {
 
     try {
       const result = await verify(authToken, {
-        expectedRecipient: 'crosspost.near',
-        requireFullAccessKey: false,
-        nonceMaxAge: 300000,
-      }); // 5 minutes
+        expectedRecipient: this.env.NEAR_EXPECTED_RECIPIENT,
+        requireFullAccessKey: this.env.NEAR_REQUIRE_FULL_ACCESS_KEY === 'true',
+        nonceMaxAge: Number(this.env.NEAR_NONCE_MAX_AGE_MS),
+      });
 
       console.log('result', result);
       // Return the signerId from the validated token

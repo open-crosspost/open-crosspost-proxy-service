@@ -68,8 +68,9 @@ await client.auth.authorizeNearAccount();
 // Check authorization status
 await client.auth.getNearAuthorizationStatus();
 
-// Login to platform (Twitter, etc.)
-await client.auth.loginToPlatform("twitter", { redirect: false });
+// Login to platform (Twitter, etc.) - returns auth URL for redirect
+const authResponse = await client.auth.loginToPlatform("twitter");
+// Use authResponse.data.url to redirect user to OAuth flow
 
 // Get connected accounts
 const accounts = await client.auth.getConnectedAccounts();
