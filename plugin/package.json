@@ -1,0 +1,37 @@
+{
+  "name": "@crosspost/plugin",
+  "version": "1.0.0",
+  "description": "Crosspost plugin for social media cross-posting with NEAR authentication",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "peerDependencies": {
+    "every-plugin": "^0.1.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@crosspost/types": "^0.2.8",
+    "near-sign-verify": "^0.3.6"
+  },
+  "devDependencies": {
+    "@effect/language-service": "^0.41.1",
+    "@module-federation/node": "^2.7.17",
+    "@rspack/cli": "^1.5.2",
+    "@rspack/core": "^1.5.2",
+    "@types/node": "^24.6.0",
+    "dotenv": "^17.2.2",
+    "every-plugin": "0.2.0",
+    "msw": "^2.3.0",
+    "sirv": "^3.0.2",
+    "vitest": "^3.2.4"
+  },
+  "scripts": {
+    "build": "rspack build",
+    "type-check": "tsc -p tsconfig.build.json",
+    "dev": "rspack serve",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest --config vitest.integration.config.ts",
+    "coverage": "vitest run --coverage"
+  }
+}

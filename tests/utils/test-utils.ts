@@ -12,13 +12,17 @@ import { nearAuthServiceMock } from '../mocks/near-auth-service-mock.ts';
  * @returns Mock auth token
  */
 export function createMockAuthToken(accountId: string = 'test.near'): string {
+  // Create a properly formatted NEAR auth token for testing
+  // This matches the NEP-413 format expected by near-sign-verify
   return JSON.stringify({
-    account_id: accountId,
-    public_key: 'ed25519:mock-public-key',
-    signature: 'mock-signature',
-    message: 'mock-message',
-    nonce: new Uint8Array(32), // 32-byte nonce
+    accountId: accountId,
+    publicKey: 'ed25519:HjCG9RhsMW36N4bM8FZJJmRd6cMUEg4XjmfDhsYgTMqr',
+    signature:
+      'ed25519:3KzcGsZRJaXfKhJKd7nJj3Jz8gYJJmYVN9kQxCJx7YvF3QKF7F8YjKjJ5J9kQxCJx7YvF3QKF7F8YjKjJ5J',
+    message: 'Login to OpenCrosspost',
+    nonce: Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64'),
     recipient: 'crosspost.near',
+    callbackUrl: 'http://localhost:8000/auth/callback',
   });
 }
 
@@ -37,14 +41,8 @@ export function createMockContext(options: {
   // Create default Authorization header with NEAR signature if signerId is provided
   const defaultHeaders: Record<string, string> = {};
   if (options.signerId) {
-    const authToken = JSON.stringify({
-      account_id: options.signerId,
-      public_key: 'ed25519:mock-public-key',
-      signature: 'mock-signature',
-      message: 'mock-message',
-      nonce: 'mock-nonce',
-      recipient: 'crosspost.near',
-    });
+    // Create a mock signed token using the helper function
+    const authToken = createMockAuthToken(options.signerId);
     defaultHeaders['Authorization'] = `Bearer ${authToken}`;
   }
 

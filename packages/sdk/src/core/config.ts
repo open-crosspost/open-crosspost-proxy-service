@@ -8,9 +8,10 @@ export interface CrosspostClientConfig {
    */
   baseUrl?: string | URL;
   /**
-   * Auth token, obtained by near-sign-verify
+   * Auth token, obtained by near-sign-verify (required)
+   * This token must be signed by the NEAR wallet for all API requests
    */
-  authToken?: string;
+  authToken: string;
   /**
    * Request timeout in milliseconds
    * @default 30000

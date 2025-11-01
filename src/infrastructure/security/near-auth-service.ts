@@ -2,6 +2,7 @@ import { ApiErrorCode, PlatformName } from '@crosspost/types';
 import { Context } from '../../../deps.ts';
 import { parseAuthToken, verify } from '../../deps.ts';
 import { createApiError } from '../../errors/api-error.ts';
+import { getSecureEnv, isProduction } from '../../config/env.ts';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.ts';
 import { AuthToken, TokenStorage } from '../storage/auth-token-storage.ts';
 import { TokenAccessLogger } from './token-access-logger.ts';
@@ -11,6 +12,7 @@ import { TokenAccessLogger } from './token-access-logger.ts';
  * Centralized manager for NEAR authentication and token operations
  */
 export class NearAuthService {
+  private env = getSecureEnv(isProduction());
   /**
    * Get all platform accounts linked to a NEAR account
    * @param signerId NEAR account ID
@@ -49,22 +51,37 @@ export class NearAuthService {
     // Extract the token part (after 'Bearer ')
     const token = parseAuthToken(authToken);
 
-    console.log('token', token);
+    if (!isProduction()) {
+      console.log('NEAR auth token parsed:', {
+        accountId: token.accountId,
+        recipient: token.recipient,
+        hasSignature: !!token.signature,
+      });
+    }
 
     try {
       const result = await verify(authToken, {
-        expectedRecipient: 'crosspost.near',
-        requireFullAccessKey: false,
-        nonceMaxAge: 300000,
-      }); // 5 minutes
+        expectedRecipient: this.env.NEAR_EXPECTED_RECIPIENT,
+        requireFullAccessKey: this.env.NEAR_REQUIRE_FULL_ACCESS_KEY === 'true',
+        nonceMaxAge: Number(this.env.NEAR_NONCE_MAX_AGE_MS),
+      });
 
-      console.log('result', result);
+      if (!isProduction()) {
+        console.log('NEAR auth verification successful:', {
+          accountId: result.accountId,
+          publicKey: result.publicKey,
+        });
+      }
+
       // Return the signerId from the validated token
       return result.accountId;
     } catch (e: unknown) {
+      const errorMessage = (e instanceof Error) ? e.message : 'Error verifying auth token';
+      console.error('NEAR auth verification failed:', errorMessage);
       throw createApiError(
         ApiErrorCode.UNAUTHORIZED,
-        (e instanceof Error) ? e.message : 'Error verifying auth token',
+        errorMessage,
+        { recipient: this.env.NEAR_EXPECTED_RECIPIENT },
       );
     }
   }

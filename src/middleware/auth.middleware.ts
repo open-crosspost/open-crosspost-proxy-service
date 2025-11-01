@@ -27,17 +27,10 @@ export class AuthMiddleware {
           throw createApiError(ApiErrorCode.INTERNAL_ERROR, 'NearAuthService not initialized');
         }
 
-        let signerId: string;
-
-        // For GET requests, only require X-Near-Account header
-        if (c.req.method === 'GET') {
-          signerId = AuthMiddleware.nearAuthService.extractNearAccountHeader(c);
-        } else {
-          // For other requests, require full NEAR auth validation
-          const { signerId: validatedSignerId } = await AuthMiddleware.nearAuthService
-            .extractAndValidateNearAuth(c);
-          signerId = validatedSignerId;
-        }
+        // Always require full NEAR auth validation for enhanced security
+        // This ensures all requests are properly signed and verified
+        const { signerId } = await AuthMiddleware.nearAuthService
+          .extractAndValidateNearAuth(c);
 
         // Set the NEAR account ID in the context for use in controllers
         c.set('signerId', signerId);
