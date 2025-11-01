@@ -33,3 +33,19 @@ export * as jose from 'jose';
 
 // OpenAPI
 export * as openapi from 'openapi3-ts';
+
+// FormData utilities
+export type { FileLike } from "formdata-node";
+
+// Pinata SDK
+export { PinataSDK } from "pinata";
+
+// Farcaster SDK
+export * as Farcaster from "@farcaster/hub-nodejs";
+
+// viem (Ethereum client)
+export * as viem from "viem";
+
+// Neynar SDK
+export * as Neynar from "@neynar/nodejs-sdk";
+

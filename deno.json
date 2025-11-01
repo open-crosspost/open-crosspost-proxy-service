@@ -26,7 +26,12 @@
     "std/http": "https://deno.land/std@0.206.0/http/mod.ts",
     "std/assert": "https://deno.land/std@0.206.0/assert/mod.ts",
     "@crosspost/types": "./packages/types/mod.ts",
-    "@crosspost/sdk": "./packages/sdk/mod.ts"
+    "@crosspost/sdk": "./packages/sdk/mod.ts",
+    "formdata-node": "npm:formdata-node@6.0.2",
+    "pinata": "npm:pinata",
+    "@farcaster/hub-nodejs": "npm:@farcaster/hub-nodejs@0.15.5",
+    "viem": "npm:viem@2.33.3",
+    "@neynar/nodejs-sdk": "npm:@neynar/nodejs-sdk@latest"
   },
   "fmt": {
     "indentWidth": 2,
