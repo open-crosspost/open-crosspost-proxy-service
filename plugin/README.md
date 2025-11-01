@@ -1,114 +1,204 @@
-# Template Plugin
+# @crosspost/plugin
 
-A minimal, well-documented template for building every-plugin plugins. Use this as a starting point for integrating external APIs, libraries, or services.
+Crosspost plugin for social media cross-posting with NEAR authentication. Provides secure social media operations using NEAR wallet authentication instead of traditional OAuth tokens.
 
-## What's Included
+## Features
+
+- 🔐 **NEAR Wallet Authentication** - Use your NEAR wallet to sign requests
+- 🌐 **Multi-Platform Support** - Currently supports Twitter, designed to be extensible
+- 📱 **Social Media Operations** - Create, delete, like, repost, quote, reply to posts
+- 📊 **Activity Tracking** - Leaderboards, account activity, and post history
+- ⚡ **Rate Limiting** - Built-in usage limits and platform rate limit handling
+- 🛡️ **Secure** - Platform tokens stored safely on server, never exposed to client
+
+## Installation
 
 ```bash
-src/
-├── contract.ts    # oRPC contract (3 procedures: getById, search, ping)
-├── service.ts     # Plain TypeScript class with Effect error handling
-├── index.ts       # Plugin implementation with createPlugin
-└── LLM.txt        # Comprehensive guide for building plugins
+npm install @crosspost/plugin
 ```
 
 ## Quick Start
 
-> **📖 For a comprehensive guide with code examples and patterns, see [LLM.txt](./LLM.txt)**
-
-1. **Copy the template:**
-
-   ```bash
-   npx degit near-everything/every-plugin/plugins/template my-plugin
-   cd my-plugin
-   ```
-
-2. **Update `contract.ts`:**
-   - Define your API procedures
-   - Create Zod schemas for inputs/outputs
-
-3. **Update `service.ts`:**
-   - Replace constructor params with your config needs
-   - Implement methods to call your external API
-   - Use `Effect.tryPromise` for error handling
-
-4. **Update `index.ts`:**
-   - Change plugin `id` to `@your-org/your-plugin`
-   - Update `variables` and `secrets` schemas
-   - Pass config to service constructor
-
-5. **Test locally:**
-
-   ```typescript
-   import { createLocalPluginRuntime } from "every-plugin/runtime";
-   import YourPlugin from "./src/index";
-
-   const runtime = createLocalPluginRuntime(
-     { registry: {} },
-     { "your-plugin": YourPlugin }
-   );
-
-   const { client } = await runtime.usePlugin("your-plugin", {
-     variables: { baseUrl: "https://api.example.com", timeout: 10000 },
-     secrets: { apiKey: "your-key" }
-   });
-
-   const result = await client.getById({ id: "123" });
-   ```
-
-## Documentation
-
-**👉 Read [LLM.txt](./LLM.txt) for the complete guide** - it includes:
-
-- Step-by-step plugin building tutorial
-- Advanced patterns (background processing, webhooks, pagination)
-- Error handling with CommonPluginErrors
-- Copy-paste code templates
-- Best practices and common pitfalls
-- Full working examples
-
-The LLM.txt file is designed to be used with AI coding assistants to help you build plugins quickly.
-
-## Example: The Template in Action
-
 ```typescript
-// After building and deploying
+import { createPluginRuntime } from 'every-plugin/runtime';
+
 const runtime = createPluginRuntime({
   registry: {
-    "template": {
-      remoteUrl: "https://cdn.example.com/template/remoteEntry.js",
-      version: "1.0.0"
+    "@crosspost/plugin": {
+      remoteUrl: "https://cdn.crosspost.near/plugin/remoteEntry.js"
     }
-  },
-  secrets: { API_KEY: process.env.API_KEY }
+  }
 });
 
-const { client } = await runtime.usePlugin("template", {
+const { client } = await runtime.usePlugin("@crosspost/plugin", {
   variables: { 
-    baseUrl: "https://api.example.com",
-    timeout: 5000 
+    baseUrl: "https://api.opencrosspost.com",
+    timeout: 10000 
   },
-  secrets: { apiKey: "{{API_KEY}}" }
+  secrets: { 
+    nearAuthData: JSON.stringify({
+      account_id: "your-account.near",
+      public_key: "ed25519:...",
+      signature: "...",
+      message: "...",
+      nonce: [1, 2, 3],
+      recipient: "crosspost.near"
+    })
+  }
 });
 
-// Single fetch
-const item = await client.getById({ id: "item-123" });
-console.log(item.title);
+// Authorize your NEAR account
+await client.auth.authorizeNearAccount();
 
-// Streaming
-const stream = await client.search({ query: "typescript", limit: 10 });
-for await (const result of stream) {
-  console.log(`${result.score}: ${result.item.title}`);
-}
-
-// Health check
-const ping = await client.ping();
-console.log(ping.status); // "ok"
+// Create a post
+await client.post.create({
+  targets: [{ platform: "twitter", userId: "your-twitter-id" }],
+  content: [{ text: "Hello from Crosspost!" }]
+});
 ```
 
-## Related Examples
+## API Reference
 
-- **[test-plugin](../../packages/core/__tests__/test-plugin/)** - Testing patterns
+### Authentication
+
+```typescript
+// Authorize NEAR account
+await client.auth.authorizeNearAccount();
+
+// Check authorization status
+await client.auth.getNearAuthorizationStatus();
+
+// Login to platform (Twitter, etc.) - returns auth URL for redirect
+const authResponse = await client.auth.loginToPlatform("twitter");
+// Use authResponse.data.url to redirect user to OAuth flow
+
+// Get connected accounts
+const accounts = await client.auth.getConnectedAccounts();
+```
+
+### Posts
+
+```typescript
+// Create a post
+await client.post.create({
+  targets: [{ platform: "twitter", userId: "123456" }],
+  content: [{ text: "Hello world!" }]
+});
+
+// Like a post
+await client.post.like({
+  targets: [{ platform: "twitter", userId: "123456" }],
+  platform: "twitter",
+  postId: "post-123"
+});
+
+// Repost
+await client.post.repost({
+  targets: [{ platform: "twitter", userId: "123456" }],
+  platform: "twitter",
+  postId: "post-123"
+});
+
+// Quote post
+await client.post.quote({
+  targets: [{ platform: "twitter", userId: "123456" }],
+  platform: "twitter",
+  postId: "post-123",
+  content: [{ text: "Great post!" }]
+});
+
+// Reply to post
+await client.post.reply({
+  targets: [{ platform: "twitter", userId: "123456" }],
+  platform: "twitter",
+  postId: "post-123",
+  content: [{ text: "Thanks for sharing!" }]
+});
+
+// Delete post
+await client.post.delete({
+  targets: [{ platform: "twitter", userId: "123456" }],
+  posts: [{ platform: "twitter", userId: "123456", postId: "post-123" }]
+});
+```
+
+### Activity
+
+```typescript
+// Get leaderboard
+const leaderboard = await client.activity.getLeaderboard({
+  timeframe: "week",
+  limit: 10
+});
+
+// Get account activity
+const activity = await client.activity.getAccountActivity({
+  signerId: "user.near",
+  query: { timeframe: "month" }
+});
+
+// Get account posts
+const posts = await client.activity.getAccountPosts({
+  signerId: "user.near",
+  query: { limit: 20, offset: 0 }
+});
+```
+
+### System
+
+```typescript
+// Get health status
+const health = await client.system.getHealthStatus();
+
+// Get rate limits
+const rateLimits = await client.system.getRateLimits();
+
+// Get endpoint rate limit
+const postLimit = await client.system.getEndpointRateLimit("post");
+```
+
+## Configuration
+
+### Variables
+
+- `baseUrl` (string): API base URL (default: "https://api.opencrosspost.com")
+- `timeout` (number): Request timeout in milliseconds (default: 10000)
+
+### Secrets
+
+- `nearAuthData` (string): JSON string containing NEAR authentication data
+
+## Error Handling
+
+The plugin uses the every-plugin error system with CommonPluginErrors:
+
+```typescript
+try {
+  await client.post.create({...});
+} catch (error) {
+  if (error.code === 'AUTH_ERROR') {
+    // Handle authentication errors
+  } else if (error.code === 'RATE_LIMIT_ERROR') {
+    // Handle rate limit errors
+  }
+}
+```
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Run integration tests
+npm run test:integration
+
+# Build plugin
+npm run build
+```
 
 ## License
 

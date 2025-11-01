@@ -17,6 +17,7 @@ export enum TimePeriod {
   MONTHLY = 'month',
   WEEKLY = 'week',
   DAILY = 'day',
+  CUSTOM = 'custom',
 }
 
 /**
@@ -58,12 +59,17 @@ export const FilterSchema = z.object({
       z.array(z.nativeEnum(ActivityType)).optional(),
     )
     .describe('Filter by activity types (comma-separated list, optional)'),
-  timeframe: z.nativeEnum(TimePeriod).optional().transform((val) => {
-    if (!val) return TimePeriod.ALL;
-    return val;
-  }).describe(
+  timeframe: z.nativeEnum(TimePeriod).optional().describe(
     'Timeframe for filtering (optional)',
   ),
+  startDate: z.string().datetime().optional()
+    .describe(
+      'Start date for custom timeframe (ISO 8601 format, optional - defaults to beginning when timeframe=custom)',
+    ),
+  endDate: z.string().datetime().optional()
+    .describe(
+      'End date for custom timeframe (ISO 8601 format, optional - defaults to now when timeframe=custom)',
+    ),
 }).describe('Filter parameters');
 
 /**
@@ -83,9 +89,9 @@ export const PaginationSchema = z.object({
 /**
  * Query schema for leaderboard endpoints
  */
-export const ActivityLeaderboardQuerySchema = z.object({
-  filter: FilterSchema.optional(),
-}).describe('Account leaderboard query').merge(PaginationSchema);
+export const ActivityLeaderboardQuerySchema = FilterSchema.merge(PaginationSchema).describe(
+  'Account leaderboard query',
+);
 
 export const AccountActivityEntrySchema = z.object({
   signerId: z.string().describe('NEAR account ID'),
@@ -114,9 +120,9 @@ export const AccountActivityParamsSchema = z.object({
 /**
  * Query schema for account activity endpoints
  */
-export const AccountActivityQuerySchema = z.object({
-  filter: FilterSchema.optional(),
-}).describe('Account activity query').merge(PaginationSchema);
+export const AccountActivityQuerySchema = FilterSchema.merge(PaginationSchema).describe(
+  'Account activity query',
+);
 
 export const PlatformActivitySchema = z.object({
   platform: PlatformSchema,
@@ -150,9 +156,9 @@ export const AccountPostsParamsSchema = z.object({
 /**
  * Query schema for account posts endpoints
  */
-export const AccountPostsQuerySchema = z.object({
-  filter: FilterSchema.optional(),
-}).describe('Account posts query').merge(PaginationSchema);
+export const AccountPostsQuerySchema = FilterSchema.merge(PaginationSchema).describe(
+  'Account posts query',
+);
 
 export const AccountPostSchema = z.object({
   id: z.string().describe('Post ID'),

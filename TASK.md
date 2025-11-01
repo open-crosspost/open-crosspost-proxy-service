@@ -77,7 +77,7 @@ plugin/src/
 ### Plugin Configuration Schema
 ```typescript
 variables: z.object({
-  baseUrl: z.string().url().default("https://api.crosspost.near"),
+  baseUrl: z.string().url().default("https://api.opencrosspost.com"),
   timeout: z.number().default(10000),
 }),
 secrets: z.object({
@@ -114,7 +114,7 @@ const runtime = createPluginRuntime({
 });
 
 const { client } = await runtime.usePlugin("@crosspost/plugin", {
-  variables: { baseUrl: "https://api.crosspost.near" },
+  variables: { baseUrl: "https://api.opencrosspost.com" },
   secrets: { nearAuthData: JSON.stringify(authData) }
 });
 

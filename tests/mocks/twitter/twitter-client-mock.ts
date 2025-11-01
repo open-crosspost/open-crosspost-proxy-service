@@ -20,7 +20,7 @@ export class TwitterClientMock extends TwitterClient {
    */
   constructor(env: any, errorScenario?: string) {
     // Create a mock NearAuthService instance
-    const mockNearAuthService = new MockNearAuthService(env);
+    const mockNearAuthService = new MockNearAuthService();
     super(env, mockNearAuthService as any);
 
     this.mockNearAuthService = mockNearAuthService;

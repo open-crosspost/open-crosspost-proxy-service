@@ -56,7 +56,6 @@ export function initializeApp() {
     env,
     tokenStorage,
     nearAuthKvStore,
-    tokenAccessLogger,
   );
 
   const userProfileStorage = new UserProfileStorage(profileKvStore);

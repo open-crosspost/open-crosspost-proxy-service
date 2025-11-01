@@ -15,7 +15,6 @@ import type {
   Platform,
 } from '@crosspost/types';
 import { makeRequest, type RequestOptions } from '../core/request.ts';
-import { openAuthPopup } from '../utils/popup.ts';
 
 /**
  * Authentication-related API operations
@@ -32,7 +31,7 @@ export class AuthApi {
   }
 
   /**
-   * Authorizes the NEAR account associated with the provided nearAuthData with the Crosspost service.
+   * Authorizes the NEAR account associated with the provided authToken with the Crosspost service.
    * @returns A promise resolving with the authorization response.
    */
   async authorizeNearAccount(): Promise<ApiResponse<NearAuthorizationResponse>> {
@@ -57,18 +56,27 @@ export class AuthApi {
   }
 
   /**
-   * Initiates the login process for a specific platform using a popup window.
+   * Initiates the login process for a specific platform using OAuth redirect flow.
    * @param platform The target platform.
-   * @param options Optional success and error redirect URLs.
-   * @returns Promise that resolves with the authentication result when the popup completes.
-   * @throws Error if popups are blocked or if running in a non-browser environment.
+   * @param options Optional configuration including success and error redirect URLs.
+   * @returns Promise that resolves with the authentication URL response.
+   * @example
+   * ```typescript
+   * const response = await client.auth.loginToPlatform('twitter', {
+   *   redirect: true,
+   *   successRedirect: 'https://myapp.com/auth/success',
+   *   errorRedirect: 'https://myapp.com/auth/error'
+   * });
+   * // Redirect user to response.data.url
+   * window.location.href = response.data.url;
+   * ```
    */
   async loginToPlatform(
     platform: Platform,
     options?: AuthInitRequest,
-  ): Promise<AuthCallbackResponse | ApiResponse<AuthUrlResponse>> {
-    // Use provided options or default to redirect: false
-    const requestOptions = options || { redirect: false };
+  ): Promise<ApiResponse<AuthUrlResponse>> {
+    // Use provided options or default to redirect: true (redirect-only flow)
+    const requestOptions = options || { redirect: true };
 
     // Make POST request to get auth URL
     const response = await makeRequest<AuthUrlResponse, AuthInitRequest>(
@@ -78,29 +86,7 @@ export class AuthApi {
       requestOptions,
     );
 
-    // If redirect is true, return the auth URL response directly
-    if (requestOptions.redirect) {
-      return response; // Return the full ApiResponse<AuthUrlResponse>
-    }
-
-    // Check if response.data exists and has the url property
-    if (!response.data || !('url' in response.data)) {
-      throw new Error('Invalid authentication URL response');
-    }
-
-    // Otherwise, continue with popup flow
-    const result = await openAuthPopup(response.data.url);
-
-    if (!result.success || !result.userId) {
-      throw new Error(result.error || 'Authentication failed');
-    }
-
-    // Return the result in the expected format
-    return {
-      platform,
-      userId: result.userId,
-      status: result.status,
-    };
+    return response;
   }
 
   /**

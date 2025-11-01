@@ -4,27 +4,21 @@
   "private": true,
   "description": "Crosspost API SDK monorepo",
   "workspaces": [
-    "types",
-    "sdk"
+    "types"
   ],
   "scripts": {
     "build": "bun run build:node",
-    "build:node": "bun run build:node:types && bun run build:node:sdk",
+    "build:node": "bun run build:node:types",
     "build:node:types": "cd types && bun run build:node",
-    "build:node:sdk": "cd sdk && bun run build:node",
-    "clean": "bun run clean:types && bun run clean:sdk",
+    "clean": "bun run clean:types",
     "clean:types": "cd types && bun run clean",
-    "clean:sdk": "cd sdk && bun run clean",
     "dev": "bun run dev:types",
     "dev:types": "cd types && bun run dev",
-    "dev:sdk": "cd sdk && bun run dev",
-    "lint": "bun run lint:types && bun run lint:sdk",
+    "lint": "bun run lint:types",
     "lint:types": "cd types && bun run lint",
-    "lint:sdk": "cd sdk && bun run lint",
-    "typecheck": "bun run typecheck:types && bun run typecheck:sdk",
+    "typecheck": "bun run typecheck:types",
     "typecheck:types": "cd types && bun run typecheck",
-    "typecheck:sdk": "cd sdk && bun run typecheck",
-    "prepublishOnly": "bun run clean && bun run build:all"
+    "prepublishOnly": "bun run clean && bun run build"
   },
   "keywords": [
     "crosspost",

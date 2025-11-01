@@ -5,13 +5,7 @@ export * as http from 'std/http';
 export * as assert from 'std/assert';
 
 // NEAR signature verification
-export {
-  createAuthToken,
-  generateNonce,
-  type NearAuthData,
-  parseAuthToken,
-  verify,
-} from 'near-sign-verify';
+export { parseAuthToken, verify } from 'near-sign-verify';
 
 // Hono framework
 export { Hono } from 'npm:hono';

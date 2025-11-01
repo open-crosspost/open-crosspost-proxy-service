@@ -1,8 +1,10 @@
 import { Platform, PlatformName } from '@crosspost/types';
 import { Context } from '../../deps.ts';
+import { Env } from '../../src/config/env.ts';
 import { NearAuthService } from '../../src/infrastructure/security/near-auth-service.ts';
 import { AuthToken } from '../../src/infrastructure/storage/auth-token-storage.ts';
 import { mockKvStore } from './kv-store-mock.ts';
+import { createMockAuthToken } from '../utils/test-utils.ts';
 
 /**
  * Mock implementation of the NearAuthService for testing
@@ -16,19 +18,25 @@ export const mockToken = {
   tokenType: 'oauth2',
 };
 
-// Mock NEAR auth data
-export const mockNearAuthData = {
-  account_id: 'test.near',
-  public_key: 'ed25519:mock-public-key',
-  signature: 'mock-signature',
-  message: 'mock-message',
-  nonce: 'mock-nonce',
-  recipient: 'crosspost.near',
+// Mock environment configuration
+const mockEnv: Env = {
+  TWITTER_CLIENT_ID: 'mock-client-id',
+  TWITTER_CLIENT_SECRET: 'mock-client-secret',
+  TWITTER_API_KEY: 'mock-api-key',
+  TWITTER_API_SECRET: 'mock-api-secret',
+  TWITTER_ACCESS_TOKEN: 'mock-access-token',
+  TWITTER_ACCESS_SECRET: 'mock-access-secret',
+  ENCRYPTION_KEY: 'mock-encryption-key-1234567890',
+  ALLOWED_ORIGINS: '*',
+  NEAR_EXPECTED_RECIPIENT: 'crosspost.near',
+  NEAR_REQUIRE_FULL_ACCESS_KEY: 'false',
+  NEAR_NONCE_MAX_AGE_MS: '300000',
+  ENVIRONMENT: 'test',
 };
 
 // Mock NearAuthService
 export class MockNearAuthService extends NearAuthService {
-  constructor(private mockEnv: any = {}) {
+  constructor() {
     super(
       mockEnv,
       {} as any,
@@ -55,7 +63,7 @@ export class MockNearAuthService extends NearAuthService {
     signerId: string;
   }> {
     return {
-      authData: mockNearAuthData,
+      authData: createMockAuthToken(),
       signerId: 'test.near',
     };
   }

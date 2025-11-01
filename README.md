@@ -38,7 +38,9 @@ bun run test
 
 ## Integration
 
-This project provides two packages to help you integrate with the Crosspost API:
+This project provides packages to help you integrate with the Crosspost API:
+
+> **🔄 Migration Notice**: The SDK has been migrated to a plugin-based architecture using the every-plugin framework. The plugin provides the same functionality with better modularity and remote loading capabilities.
 
 ### @crosspost/types
 
@@ -54,28 +56,105 @@ const request: CreatePostRequest = {
 };
 ```
 
-### @crosspost/sdk
+### @crosspost/plugin
 
-A client SDK that simplifies interaction with the API, handling authentication, requests, and error
-management. See the [SDK Documentation](./packages/sdk/README.md) for detailed usage instructions.
+A plugin for the every-plugin framework that provides the same functionality as the SDK with better modularity and remote loading capabilities. See the [Plugin Documentation](./plugin/README.md) for detailed usage instructions.
 
 ```typescript
+<<<<<<< HEAD
+import * as near from "fastintear";
+import { sign } from "near-sign-verify";
 import { CrosspostClient } from '@crosspost/sdk';
+import type { CreatePostRequest } from "@crosspost/sdk";
 
-const client = new CrosspostClient({
-  nearAuthData: {
-    accountId: 'your-account.near',
-    publicKey: 'ed25519:...',
-    signature: '...',
-    message: '...',
-  },
+const client = new CrosspostClient();
+const authToken = await sign({ signer: near, recipient: "crosspost.near", message: "createPost" });
+
+client.setAuthentication(authToken);
+client.setAccountHeader(near.accountId());
+
+const connectedAccounts: ApiResponse<ConnectedAccountsResponse> = await client.auth.getConnectedAccounts():
+
+try {
+  const response = await await client.post.createPost({
+    targets: [
+      {
+        userId: connectedAccounts[0].userId,
+        platform: connectedAccounts[0].platform
+      }
+    ],
+    content: [{
+      text: "hello world",
+      media: {
+        data: imageBlob,
+        mimeType: 'image/jpeg',
+        altText: 'a beautiful sunset',
+      }
+    }]
+  } as CreatePostRequest);
+
+  console.log('Post created successfully');
+  console.log('Post ID:', response.id);
+  console.log('Platform:', response.platform);
+  console.log('URL:', response.url);
+  console.log('Created at:', response.createdAt);
+
+} catch (error) {
+  // Check if it's an authentication error
+  if (isAuthError(error)) {
+    console.error('Authentication required. Attempting to authorize...');
+    // The account must be authorized with the backend
+    const authorized = await client.auth.authorizeNearAccount();
+    if (authorized) {
+      // Retry the operation
+      return createPost();
+    }
+  } else {
+    // Handle other error types
+    console.error('Error creating post:', error);
+    if (error instanceof CrosspostError) {
+      // Use error utility functions to handle specific cases
+      if (isPlatformError(error)) {
+        console.error('Platform:', error.platform);
+        console.error('Error code:', error.code);
+        console.error('Details:', error.details);
+      } else if (isRateLimitError(error)) {
+        console.error('Rate limited until:', error.details?.rateLimit?.reset);
+      } else if (isValidationError(error)) {
+        console.error('Validation errors:', error.details?.validationErrors);
+      }
+      // Check if error is recoverable
+      if (error.recoverable) {
+        console.log('This error is recoverable - retry may succeed');
+      }
+    } else if (error instanceof Error) {
+      // Handle non-API errors (network issues, etc)
+      console.error('Unexpected error:', error.message);
+    }
+  } 
+}
+=======
+import { createPluginRuntime } from 'every-plugin/runtime';
+
+const runtime = createPluginRuntime({
+  registry: {
+    "@crosspost/plugin": {
+      remoteUrl: "https://cdn.crosspost.near/plugin/remoteEntry.js"
+    }
+  }
+});
+
+const { client } = await runtime.usePlugin("@crosspost/plugin", {
+  variables: { baseUrl: "https://api.opencrosspost.com" },
+  secrets: { nearAuthData: JSON.stringify(authData) }
 });
 
 // Create a post on Twitter
-await client.post.createPost({
+await client.post.create({
   targets: [{ platform: 'twitter', userId: 'your-twitter-id' }],
   content: [{ text: 'Hello from Crosspost!' }],
 });
+>>>>>>> feat/plugin-migration
 ```
 
 ## Architecture

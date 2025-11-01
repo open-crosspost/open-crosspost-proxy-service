@@ -18,6 +18,11 @@ export interface Env {
   ENCRYPTION_KEY: string;
   ALLOWED_ORIGINS: string;
 
+  // NEAR Authentication
+  NEAR_EXPECTED_RECIPIENT: string;
+  NEAR_REQUIRE_FULL_ACCESS_KEY: string;
+  NEAR_NONCE_MAX_AGE_MS: string;
+
   // Environment
   ENVIRONMENT: string;
 
@@ -40,6 +45,9 @@ export function getEnv(): Env {
     TWITTER_ACCESS_SECRET: Deno.env.get('TWITTER_ACCESS_SECRET') || '',
     ENCRYPTION_KEY: Deno.env.get('ENCRYPTION_KEY') || 'default-encryption-key',
     ALLOWED_ORIGINS: Deno.env.get('ALLOWED_ORIGINS') || '',
+    NEAR_EXPECTED_RECIPIENT: Deno.env.get('NEAR_EXPECTED_RECIPIENT') || 'crosspost.near',
+    NEAR_REQUIRE_FULL_ACCESS_KEY: Deno.env.get('NEAR_REQUIRE_FULL_ACCESS_KEY') || 'false',
+    NEAR_NONCE_MAX_AGE_MS: Deno.env.get('NEAR_NONCE_MAX_AGE_MS') || '300000',
     ENVIRONMENT: Deno.env.get('ENVIRONMENT') || 'development',
     UPSTASH_REDIS_REST_URL: Deno.env.get('UPSTASH_REDIS_REST_URL'),
     UPSTASH_REDIS_REST_TOKEN: Deno.env.get('UPSTASH_REDIS_REST_TOKEN'),

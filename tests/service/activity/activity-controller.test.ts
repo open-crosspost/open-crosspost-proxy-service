@@ -74,10 +74,8 @@ describe('Activity Controller', () => {
       signerId: 'test.near',
 
       validatedQuery: {
-        filter: {
-          platforms: [Platform.TWITTER],
-          timeframe: TimePeriod.ALL,
-        },
+        platforms: [Platform.TWITTER],
+        timeframe: TimePeriod.ALL,
         limit: 10,
         offset: 0,
       },
@@ -131,9 +129,7 @@ describe('Activity Controller', () => {
       signerId: 'test.near',
 
       validatedQuery: {
-        filter: {
-          timeframe: TimePeriod.WEEKLY,
-        },
+        timeframe: TimePeriod.WEEKLY,
         limit: '10',
         offset: '0',
       },
@@ -289,10 +285,8 @@ describe('Activity Controller', () => {
     const context = createMockContext({
       signerId: 'test.near',
       validatedQuery: {
-        filter: {
-          platforms: [Platform.TWITTER],
-          timeframe: TimePeriod.ALL,
-        },
+        platforms: [Platform.TWITTER],
+        timeframe: TimePeriod.ALL,
       },
     });
 
@@ -369,10 +363,8 @@ describe('Activity Controller', () => {
       signerId: 'test.near',
 
       validatedQuery: {
-        filter: {
-          platforms: [Platform.TWITTER],
-          timeframe: TimePeriod.ALL,
-        },
+        platforms: [Platform.TWITTER],
+        timeframe: TimePeriod.ALL,
         limit: 10,
         offset: 0,
       },
@@ -498,10 +490,8 @@ describe('Activity Controller', () => {
       signerId: 'test.near',
 
       validatedQuery: {
-        filter: {
-          platforms: [Platform.TWITTER],
-          timeframe: TimePeriod.ALL,
-        },
+        platforms: [Platform.TWITTER],
+        timeframe: TimePeriod.ALL,
       },
     });
 

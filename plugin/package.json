@@ -1,13 +1,17 @@
 {
-  "name": "crosspost",
-  "version": "0.0.1",
-  "description": "Template plugin for every-plugin framework",
+  "name": "@crosspost/plugin",
+  "version": "1.0.0",
+  "description": "Crosspost plugin for social media cross-posting with NEAR authentication",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "type": "module",
   "peerDependencies": {
     "every-plugin": "^0.1.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@crosspost/types": "^0.2.8",
+    "near-sign-verify": "^0.3.6"
   },
   "devDependencies": {
     "@effect/language-service": "^0.41.1",
@@ -19,8 +23,7 @@
     "every-plugin": "0.2.0",
     "msw": "^2.3.0",
     "sirv": "^3.0.2",
-    "vitest": "^3.2.4",
-    "zephyr-rspack-plugin": "link:zephyr-rspack-plugin"
+    "vitest": "^3.2.4"
   },
   "scripts": {
     "build": "rspack build",
@@ -30,8 +33,5 @@
     "test:watch": "vitest",
     "test:integration": "vitest --config vitest.integration.config.ts",
     "coverage": "vitest run --coverage"
-  },
-  "dependencies": {
-    "telegraf": "^4.16.3"
   }
 }
