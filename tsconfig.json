@@ -19,7 +19,6 @@
     "sourceMap": true,
     "declaration": true,
     "removeComments": false,
-    "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     },
