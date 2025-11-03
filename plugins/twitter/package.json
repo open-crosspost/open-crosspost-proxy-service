@@ -1,0 +1,39 @@
+{
+	"name": "@crosspost/twitter",
+	"version": "0.0.1",
+	"description": "Twitter platform plugin for crosspost",
+	"main": "./dist/index.js",
+	"types": "./src/index.ts",
+	"type": "module",
+	"dependencies": {
+		"twitter-api-v2": "^1.27.0",
+		"@twitter-api-v2/plugin-rate-limit": "^1.1.0"
+	},
+	"peerDependencies": {
+		"every-plugin": "^0.3.0",
+		"typescript": "^5.9.3"
+	},
+	"devDependencies": {
+		"@effect/language-service": "^0.41.1",
+		"@module-federation/node": "^2.7.21",
+		"@rspack/cli": "^1.6.0",
+		"@rspack/core": "^1.6.0",
+		"@types/node": "^24.9.2",
+		"dotenv": "^17.2.3",
+		"every-plugin": "link:every-plugin",
+		"msw": "^2.11.6",
+		"sirv": "^3.0.2",
+		"vite-tsconfig-paths": "^5.1.4",
+		"vitest": "^3.2.4",
+		"zephyr-rspack-plugin": "link:zephyr-rspack-plugin"
+	},
+	"scripts": {
+		"build": "rspack build",
+		"type-check": "tsc --noEmit -p tsconfig.build.json",
+		"dev": "rspack serve",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:integration": "vitest run --config vitest.integration.config.ts",
+		"coverage": "vitest run --coverage"
+	}
+}

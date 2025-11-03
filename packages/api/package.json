@@ -1,0 +1,33 @@
+{
+  "name": "@crosspost/api",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./src/*.ts"
+    }
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsdown"
+  },
+  "devDependencies": {
+    "tsdown": "^0.15.5",
+    "@crosspost/twitter": "workspace:*"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@orpc/client": "^1.10.0",
+    "@orpc/openapi": "^1.10.0",
+    "@orpc/server": "^1.10.0",
+    "@orpc/zod": "^1.10.0",
+    "dotenv": "^17.2.2",
+    "every-plugin": "link:every-plugin",
+    "zod": "^3.23.8"
+  }
+}
