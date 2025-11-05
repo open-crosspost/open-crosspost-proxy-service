@@ -31,7 +31,8 @@
     "pinata": "npm:pinata",
     "@farcaster/hub-nodejs": "npm:@farcaster/hub-nodejs@0.15.5",
     "viem": "npm:viem@2.33.3",
-    "@neynar/nodejs-sdk": "npm:@neynar/nodejs-sdk@latest"
+    "@neynar/nodejs-sdk": "npm:@neynar/nodejs-sdk@latest",
+    "@orpc/client": "npm:@orpc/client@^1.10.0"
   },
   "fmt": {
     "indentWidth": 2,

@@ -1,27 +1,9 @@
 import { DeleteResult, LikeResult, PlatformName, PostContent, PostResult } from '@crosspost/types';
-import { PlatformPost } from '../../infrastructure/platform/abstract/platform-post.interface.js';
+import { pluginClient } from '../../infrastructure/rpc/plugin-client.js';
+import { NearAuthService } from '../../infrastructure/security/near-auth-service.js';
 
 export class PostService {
-  private platformPosts: Map<string, PlatformPost>;
-
-  constructor(platformPosts: Map<string, PlatformPost>) {
-    this.platformPosts = platformPosts;
-  }
-
-  /**
-   * Get the appropriate platform implementation
-   * @param platform The platform name
-   * @returns The platform implementation
-   */
-  private getPlatformPost(platform: PlatformName): PlatformPost {
-    const platformPost = this.platformPosts.get(platform);
-
-    if (!platformPost) {
-      throw new Error(`Unsupported platform: ${platform}`);
-    }
-
-    return platformPost;
-  }
+  constructor(private nearAuthService: NearAuthService) {}
 
   /**
    * Create a new post
@@ -36,8 +18,18 @@ export class PostService {
     content: PostContent | PostContent[],
   ): Promise<PostResult> {
     try {
-      const platformPost = this.getPlatformPost(platform);
-      return await platformPost.createPost(userId, content);
+      // Get tokens for the user
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // Create post via plugin server
+      const result = await pluginClient[platform.toLowerCase()].post.create({
+        userId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        content,
+      });
+
+      return result;
     } catch (error) {
       console.error(`Error creating post on ${platform}:`, error);
       throw error;
@@ -53,8 +45,18 @@ export class PostService {
    */
   async repost(platform: PlatformName, userId: string, postId: string): Promise<PostResult> {
     try {
-      const platformPost = this.getPlatformPost(platform);
-      return await platformPost.repost(userId, postId);
+      // Get tokens for the user
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // Repost via plugin server
+      const result = await pluginClient[platform.toLowerCase()].post.repost({
+        userId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        postId,
+      });
+
+      return result;
     } catch (error) {
       console.error(`Error reposting on ${platform}:`, error);
       throw error;
@@ -76,8 +78,19 @@ export class PostService {
     content: PostContent | PostContent[],
   ): Promise<PostResult> {
     try {
-      const platformPost = this.getPlatformPost(platform);
-      return await platformPost.quotePost(userId, postId, content);
+      // Get tokens for the user
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // Quote post via plugin server
+      const result = await pluginClient[platform.toLowerCase()].post.quote({
+        userId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        postId,
+        content,
+      });
+
+      return result;
     } catch (error) {
       console.error(`Error quoting post on ${platform}:`, error);
       throw error;
@@ -93,8 +106,18 @@ export class PostService {
    */
   async deletePost(platform: PlatformName, userId: string, postId: string): Promise<DeleteResult> {
     try {
-      const platformPost = this.getPlatformPost(platform);
-      return await platformPost.deletePost(userId, postId);
+      // Get tokens for the user
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // Delete post via plugin server
+      const result = await pluginClient[platform.toLowerCase()].post.delete({
+        userId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        postId,
+      });
+
+      return result;
     } catch (error) {
       console.error(`Error deleting post on ${platform}:`, error);
       throw error;
@@ -116,8 +139,19 @@ export class PostService {
     content: PostContent | PostContent[],
   ): Promise<PostResult> {
     try {
-      const platformPost = this.getPlatformPost(platform);
-      return await platformPost.replyToPost(userId, postId, content);
+      // Get tokens for the user
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // Reply to post via plugin server
+      const result = await pluginClient[platform.toLowerCase()].post.reply({
+        userId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        postId,
+        content,
+      });
+
+      return result;
     } catch (error) {
       console.error(`Error replying to post on ${platform}:`, error);
       throw error;
@@ -133,8 +167,18 @@ export class PostService {
    */
   async likePost(platform: PlatformName, userId: string, postId: string): Promise<LikeResult> {
     try {
-      const platformPost = this.getPlatformPost(platform);
-      return await platformPost.likePost(userId, postId);
+      // Get tokens for the user
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // Like post via plugin server
+      const result = await pluginClient[platform.toLowerCase()].post.like({
+        userId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        postId,
+      });
+
+      return result;
     } catch (error) {
       console.error(`Error liking post on ${platform}:`, error);
       throw error;
@@ -150,8 +194,18 @@ export class PostService {
    */
   async unlikePost(platform: PlatformName, userId: string, postId: string): Promise<LikeResult> {
     try {
-      const platformPost = this.getPlatformPost(platform);
-      return await platformPost.unlikePost(userId, postId);
+      // Get tokens for the user
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // Unlike post via plugin server
+      const result = await pluginClient[platform.toLowerCase()].post.unlike({
+        userId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        postId,
+      });
+
+      return result;
     } catch (error) {
       console.error(`Error unliking post on ${platform}:`, error);
       throw error;

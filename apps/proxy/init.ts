@@ -1,5 +1,3 @@
-import { NearAuthService } from './src/infrastructure/security/near-auth-service.ts';
-import { Platform, PlatformName } from '@crosspost/types';
 import { getSecureEnv, isProduction } from './src/config/env.ts';
 import { AuthController } from './src/controllers/auth.controller.ts';
 import { ActivityController } from './src/controllers/activity.controller.ts';
@@ -17,27 +15,10 @@ import { ActivityTrackingService } from './src/domain/services/activity-tracking
 import { AuthService } from './src/domain/services/auth.service.ts';
 import { PostService } from './src/domain/services/post.service.ts';
 import { RateLimitService } from './src/domain/services/rate-limit.service.ts';
-import { PlatformAuth } from './src/infrastructure/platform/abstract/platform-auth.interface.ts';
-import { PlatformPost } from './src/infrastructure/platform/abstract/platform-post.interface.ts';
-import { PlatformProfile } from './src/infrastructure/platform/abstract/platform-profile.interface.ts';
-import { PlatformRateLimit } from './src/infrastructure/platform/abstract/platform-rate-limit.interface.ts';
-import { TwitterAuth } from './src/infrastructure/platform/twitter/twitter-auth.ts';
-import { TwitterClient } from './src/infrastructure/platform/twitter/twitter-client.ts';
-import { TwitterMedia } from './src/infrastructure/platform/twitter/twitter-media.ts';
-import { TwitterPost } from './src/infrastructure/platform/twitter/twitter-post.ts';
-import { TwitterProfile } from './src/infrastructure/platform/twitter/twitter-profile.ts';
-import { TwitterRateLimit } from './src/infrastructure/platform/twitter/twitter-rate-limit.ts';
+import { NearAuthService } from './src/infrastructure/security/near-auth-service.ts';
 import { TokenAccessLogger } from './src/infrastructure/security/token-access-logger.ts';
 import { TokenStorage } from './src/infrastructure/storage/auth-token-storage.ts';
-import { UserProfileStorage } from './src/infrastructure/storage/user-profile-storage.ts';
 import { PrefixedKvStore } from './src/utils/kv-store.utils.ts';
-import { FarcasterClient } from './src/infrastructure/platform/farcaster/farcaster-client.ts';
-import { FarcasterAuth } from './src/infrastructure/platform/farcaster/farcaster-auth.ts';
-import { FarcasterMedia } from './src/infrastructure/platform/farcaster/farcaster-media.ts';
-import { FarcasterRateLimit } from './src/infrastructure/platform/farcaster/farcaster-rate-limit.ts';
-import { FarcasterProfile } from './src/infrastructure/platform/farcaster/farcaster-profile.ts';
-import { FarcasterPost } from './src/infrastructure/platform/farcaster/farcaster-post.ts';
-import { getPluginForPlatformName } from './src/plugins.ts';
 
 /**
  * Initialize all dependencies and controllers
@@ -51,9 +32,9 @@ export function initializeApp() {
   const tokenKvStore = new PrefixedKvStore(['tokens']);
   const authStateKvStore = new PrefixedKvStore(['auth']);
   const nearAuthKvStore = new PrefixedKvStore(['near_auth']);
-  const profileKvStore = new PrefixedKvStore(['profile']);
   const tokenAccessLogKvStore = new PrefixedKvStore(['token_access_logs']);
   const usageRateLimitKvStore = new PrefixedKvStore(['usage_rate_limit']);
+  const activityKvStore = new PrefixedKvStore(['activity']);
 
   // Initialize infrastructure services
   const tokenAccessLogger = new TokenAccessLogger(env, tokenAccessLogKvStore);
@@ -64,73 +45,10 @@ export function initializeApp() {
     nearAuthKvStore,
   );
 
-  const userProfileStorage = new UserProfileStorage(profileKvStore);
-
-  // Initialize platform-specific implementations
-  const twitterClient = new TwitterClient(env, nearAuthService);
-  const twitterMedia = new TwitterMedia(twitterClient);
-  const twitterRateLimit = new TwitterRateLimit();
-  const twitterPost = new TwitterPost(twitterClient, twitterMedia);
-  const twitterProfile = new TwitterProfile(twitterClient, userProfileStorage);
-
-  // Initialize platform-specific implementations
-  const farcasterClient = new FarcasterClient(env, nearAuthService);
-  const farcasterMedia = new FarcasterMedia(env);
-  const farcasterRateLimit = new FarcasterRateLimit();
-  const farcasterPost = new FarcasterPost(farcasterClient, farcasterMedia);
-  const farcasterProfile = new FarcasterProfile(farcasterClient, userProfileStorage);
-
-  // Create platform auth map with Twitter auth
-  const twitterAuth = new TwitterAuth(
-    env,
-    nearAuthService,
-    authStateKvStore,
-    twitterClient,
-    twitterProfile,
-  );
-
-  // Create platform auth map with Twitter auth
-  const farcasterAuth = new FarcasterAuth(
-    env,
-    nearAuthService,
-    authStateKvStore,
-    farcasterClient,
-    farcasterProfile,
-  );
-
-  const platformAuthMap = new Map<PlatformName, PlatformAuth>();
-  platformAuthMap.set(Platform.TWITTER, twitterAuth);
-  platformAuthMap.set(Platform.FARCASTER, farcasterAuth);
-
-  // Create platform profile map with Twitter profile
-  const platformProfileMap = new Map<PlatformName, PlatformProfile>();
-  platformProfileMap.set(Platform.TWITTER, twitterProfile);
-  platformProfileMap.set(Platform.FARCASTER, farcasterProfile);
-
-  // Create platform post map
-  const platformPostMap = new Map<PlatformName, PlatformPost>();
-  platformPostMap.set(Platform.TWITTER, twitterPost);
-  platformPostMap.set(Platform.FARCASTER, farcasterPost);
-
-  // Create platform rate limit map
-  const platformRateLimitMap = new Map<PlatformName, PlatformRateLimit>();
-  platformRateLimitMap.set(Platform.TWITTER, twitterRateLimit);
-  platformRateLimitMap.set(Platform.FARCASTER, farcasterRateLimit);
-
-  // Initialize domain services
-  const authService = new AuthService(
-    nearAuthService,
-    authStateKvStore,
-    platformAuthMap,
-    platformProfileMap,
-  );
-
-  // Initialize activity KV store
-  const activityKvStore = new PrefixedKvStore(['activity']);
-
-  // Pass the platform maps to the services
-  const postService = new PostService(platformPostMap);
-  const rateLimitService = new RateLimitService(platformRateLimitMap);
+  // Initialize domain services (now RPC-based)
+  const authService = new AuthService(nearAuthService, authStateKvStore);
+  const postService = new PostService(nearAuthService);
+  const rateLimitService = new RateLimitService(new Map()); // TODO: Implement RPC-based rate limiting
   const activityTrackingService = new ActivityTrackingService(activityKvStore);
 
   // Initialize controllers
@@ -175,6 +93,5 @@ export function initializeApp() {
     rateLimitController,
     postControllers,
     nearAuthService,
-    getPluginForPlatformName,
   };
 }

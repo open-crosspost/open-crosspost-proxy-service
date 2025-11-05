@@ -1,48 +1,26 @@
 import { PlatformName, UserProfile } from '@crosspost/types';
-import {
-  AuthState,
-  PlatformAuth,
-} from '../../infrastructure/platform/abstract/platform-auth.interface.js';
-import { PlatformProfile } from '../../infrastructure/platform/abstract/platform-profile.interface.js';
+import { pluginClient } from '../../infrastructure/rpc/plugin-client.js';
 import { NearAuthService } from '../../infrastructure/security/near-auth-service.js';
 import { AuthToken } from '../../infrastructure/storage/auth-token-storage.js';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.js';
+
+interface AuthState {
+  redirectUri: string;
+  codeVerifier: string;
+  state: string;
+  createdAt: number;
+  successUrl: string;
+  errorUrl: string;
+  signerId: string;
+  redirect: boolean;
+  origin: string;
+}
 
 export class AuthService {
   constructor(
     private nearAuthService: NearAuthService,
     private authStateStore: PrefixedKvStore,
-    private platformAuthMap: Map<PlatformName, PlatformAuth>,
-    private platformProfileMap: Map<PlatformName, PlatformProfile>,
   ) {}
-
-  /**
-   * Get the platform-specific auth implementation
-   * @param platform The platform name (e.g., Platform.TWITTER)
-   * @returns The platform-specific auth implementation
-   * @throws Error if the platform is not supported
-   */
-  getPlatformAuth(platform: PlatformName): PlatformAuth {
-    const platformAuth = this.platformAuthMap.get(platform.toLowerCase() as PlatformName);
-    if (!platformAuth) {
-      throw new Error(`Unsupported platform: ${platform}`);
-    }
-    return platformAuth;
-  }
-
-  /**
-   * Get the platform-specific profile implementation
-   * @param platform The platform name (e.g., Platform.TWITTER)
-   * @returns The platform-specific profile implementation
-   * @throws Error if the platform is not supported
-   */
-  getPlatformProfile(platform: PlatformName): PlatformProfile {
-    const platformProfile = this.platformProfileMap.get(platform.toLowerCase() as PlatformName);
-    if (!platformProfile) {
-      throw new Error(`Unsupported platform: ${platform}`);
-    }
-    return platformProfile;
-  }
 
   /**
    * Initialize the authentication process
@@ -65,15 +43,13 @@ export class AuthService {
     origin?: string,
   ): Promise<{ authUrl: string; state: string; codeVerifier?: string }> {
     try {
-      // Get platform specific auth service
-      const platformAuth = this.getPlatformAuth(platform);
-      const result = await platformAuth.initializeAuth(redirectUri, scopes);
-      const { state, codeVerifier } = result;
+      // Generate a random state for CSRF protection
+      const state = crypto.randomUUID();
 
       // Store the auth state in Deno KV
       const authState: AuthState = {
         redirectUri,
-        codeVerifier: codeVerifier || '',
+        codeVerifier: '', // Not used in this flow
         state,
         createdAt: Date.now(),
         successUrl: successUrl,
@@ -88,7 +64,14 @@ export class AuthService {
         expireIn: 3600000, // 1 hour in milliseconds
       });
 
-      return result;
+      // Get auth URL from plugin server
+      const authUrl = await pluginClient[platform.toLowerCase()].auth.getAuthUrl({
+        redirectUri,
+        state,
+        scopes,
+      });
+
+      return { authUrl, state };
     } catch (error) {
       console.error('Error initializing auth:', error);
       throw error;
@@ -114,8 +97,30 @@ export class AuthService {
     origin: string;
   }> {
     try {
-      const platformAuth = this.getPlatformAuth(platform);
-      return await platformAuth.handleCallback(code, state);
+      // Get auth state from KV
+      const authState = await this.authStateStore.get([state]) as AuthState;
+      if (!authState) {
+        throw new Error('Invalid or expired state');
+      }
+
+      // Exchange code for tokens via plugin server
+      const token = await pluginClient[platform.toLowerCase()].auth.exchangeCodeForToken({
+        code,
+        redirectUri: authState.redirectUri,
+        scopes: [], // Scopes not needed for exchange
+      });
+
+      // Extract userId from token (assuming it's included in the response)
+      // This might need adjustment based on the actual token structure
+      const userId = 'user123'; // TODO: Extract from token response
+
+      return {
+        userId,
+        token,
+        successUrl: authState.successUrl,
+        redirect: authState.redirect,
+        origin: authState.origin,
+      };
     } catch (error) {
       console.error('Error handling callback:', error);
       throw error;
@@ -130,8 +135,19 @@ export class AuthService {
    */
   async refreshToken(platform: PlatformName, userId: string): Promise<AuthToken> {
     try {
-      const platformAuth = this.getPlatformAuth(platform);
-      return await platformAuth.refreshToken(userId);
+      // Get existing tokens
+      const existingTokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // Refresh via plugin server
+      const token = await pluginClient[platform.toLowerCase()].auth.refreshToken({
+        refreshToken: existingTokens.refreshToken!,
+        scope: existingTokens.scope,
+      });
+
+      // Save refreshed tokens
+      await this.nearAuthService.saveTokens(userId, platform, token);
+
+      return token;
     } catch (error) {
       console.error('Error refreshing token:', error);
       throw error;
@@ -146,8 +162,19 @@ export class AuthService {
    */
   async revokeToken(platform: PlatformName, userId: string): Promise<boolean> {
     try {
-      const platformAuth = this.getPlatformAuth(platform);
-      return await platformAuth.revokeToken(userId);
+      // Get existing tokens
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // Revoke via plugin server
+      const success = await pluginClient[platform.toLowerCase()].auth.revokeToken({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      });
+
+      // Delete tokens from storage
+      await this.nearAuthService.deleteTokens(userId, platform);
+
+      return success;
     } catch (error) {
       console.error('Error revoking token:', error);
       throw error;
@@ -173,10 +200,7 @@ export class AuthService {
       // If tokens are expired but we have a refresh token, try refreshing
       if (tokens.refreshToken) {
         try {
-          const platformAuth = this.getPlatformAuth(platform);
-          const refreshedTokens = await platformAuth.refreshToken(userId);
-          // Save the refreshed tokens
-          await this.nearAuthService.saveTokens(userId, platform, refreshedTokens);
+          await this.refreshToken(platform, userId);
           return true;
         } catch (refreshError) {
           // If refresh fails, return false
@@ -205,12 +229,10 @@ export class AuthService {
     userId: string,
   ): Promise<boolean> {
     try {
-      // Get the tokens for the user
-      const platformAuth = this.getPlatformAuth(platform);
-      const tokens = await platformAuth.refreshToken(userId);
+      // Get the tokens for the user (should already be saved)
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
 
-      // Save tokens and link the account
-      await this.nearAuthService.saveTokens(userId, platform, tokens);
+      // Link the account
       await this.nearAuthService.linkAccount(signerId, platform, userId);
 
       return true;
@@ -252,8 +274,17 @@ export class AuthService {
     forceRefresh = false,
   ): Promise<UserProfile | null> {
     try {
-      const platformProfile = this.getPlatformProfile(platform);
-      return await platformProfile.getUserProfile(userId, forceRefresh);
+      // Get tokens for the user
+      const tokens = await this.nearAuthService.getTokens(userId, platform);
+
+      // Get profile via plugin server
+      const profile = await pluginClient[platform.toLowerCase()].profile.get({
+        userId,
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      });
+
+      return profile;
     } catch (error) {
       console.error('Error getting user profile:', error);
       return null;
