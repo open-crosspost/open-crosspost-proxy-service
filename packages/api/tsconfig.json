@@ -15,8 +15,5 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../../plugins/twitter" }
-  ]
+  "exclude": ["node_modules", "dist"]
 }

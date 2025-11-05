@@ -27,7 +27,6 @@
     "@orpc/server": "^1.10.0",
     "@orpc/zod": "^1.10.0",
     "dotenv": "^17.2.2",
-    "every-plugin": "link:every-plugin",
-    "zod": "^3.23.8"
+    "every-plugin": "0.4.4"
   }
 }

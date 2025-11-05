@@ -1,9 +1,8 @@
-import { CommonPluginErrors } from 'every-plugin';
 import { oc } from 'every-plugin/orpc';
 import { z } from 'every-plugin/zod';
 import * as AuthSchemas from './schemas/auth';
-import * as PostSchemas from './schemas/post';
 import * as MediaSchemas from './schemas/media';
+import * as PostSchemas from './schemas/post';
 import * as ProfileSchemas from './schemas/profile';
 import * as RateLimitSchemas from './schemas/rate-limit';
 
@@ -13,115 +12,88 @@ import * as RateLimitSchemas from './schemas/rate-limit';
  */
 export const platformContract = oc.router({
   // AUTH DOMAIN - OAuth flow operations
-  auth: oc.router({
+  auth: {
     getAuthUrl: oc
       .route({ method: 'GET', path: '/auth/url' })
       .input(AuthSchemas.GetAuthUrlInputSchema)
-      .output(z.string())
-      .errors(CommonPluginErrors),
-
+      .output(z.string()),
     exchangeCodeForToken: oc
       .route({ method: 'POST', path: '/auth/token' })
       .input(AuthSchemas.ExchangeCodeInputSchema)
-      .output(AuthSchemas.AuthTokenSchema)
-      .errors(CommonPluginErrors),
-
+      .output(AuthSchemas.AuthTokenSchema),
     refreshToken: oc
       .route({ method: 'POST', path: '/auth/refresh' })
       .input(AuthSchemas.RefreshTokenInputSchema)
-      .output(AuthSchemas.AuthTokenSchema)
-      .errors(CommonPluginErrors),
-
+      .output(AuthSchemas.AuthTokenSchema),
     revokeToken: oc
       .route({ method: 'DELETE', path: '/auth/token' })
       .input(AuthSchemas.RevokeTokenInputSchema)
       .output(z.boolean())
-      .errors(CommonPluginErrors),
-  }),
+  },
 
   // POST DOMAIN - Social media post operations
-  post: oc.router({
+  post: {
     create: oc
       .route({ method: 'POST', path: '/post' })
       .input(PostSchemas.CreatePostInputSchema)
-      .output(PostSchemas.PostResultSchema)
-      .errors(CommonPluginErrors),
-
+      .output(PostSchemas.PostResultSchema),
     delete: oc
       .route({ method: 'DELETE', path: '/post/{postId}' })
       .input(PostSchemas.DeletePostInputSchema)
-      .output(PostSchemas.DeleteResultSchema)
-      .errors(CommonPluginErrors),
-
+      .output(PostSchemas.DeleteResultSchema),
     repost: oc
       .route({ method: 'POST', path: '/post/{postId}/repost' })
       .input(PostSchemas.RepostInputSchema)
-      .output(PostSchemas.PostResultSchema)
-      .errors(CommonPluginErrors),
-
+      .output(PostSchemas.PostResultSchema),
     quote: oc
       .route({ method: 'POST', path: '/post/{postId}/quote' })
       .input(PostSchemas.QuotePostInputSchema)
-      .output(PostSchemas.PostResultSchema)
-      .errors(CommonPluginErrors),
-
+      .output(PostSchemas.PostResultSchema),
     reply: oc
       .route({ method: 'POST', path: '/post/{postId}/reply' })
       .input(PostSchemas.ReplyInputSchema)
-      .output(PostSchemas.PostResultSchema)
-      .errors(CommonPluginErrors),
-
+      .output(PostSchemas.PostResultSchema),
     like: oc
       .route({ method: 'POST', path: '/post/{postId}/like' })
       .input(PostSchemas.LikeInputSchema)
-      .output(PostSchemas.LikeResultSchema)
-      .errors(CommonPluginErrors),
-
+      .output(PostSchemas.LikeResultSchema),
     unlike: oc
       .route({ method: 'DELETE', path: '/post/{postId}/like' })
       .input(PostSchemas.UnlikeInputSchema)
       .output(PostSchemas.LikeResultSchema)
-      .errors(CommonPluginErrors),
-  }),
+  },
 
   // MEDIA DOMAIN - Media upload and management
-  media: oc.router({
+  media: {
     upload: oc
       .route({ method: 'POST', path: '/media' })
       .input(MediaSchemas.UploadMediaInputSchema)
-      .output(MediaSchemas.MediaUploadResultSchema)
-      .errors(CommonPluginErrors),
-
+      .output(MediaSchemas.MediaUploadResultSchema),
     getStatus: oc
       .route({ method: 'GET', path: '/media/{mediaId}/status' })
       .input(MediaSchemas.GetMediaStatusInputSchema)
-      .output(MediaSchemas.MediaStatusResultSchema)
-      .errors(CommonPluginErrors),
-
+      .output(MediaSchemas.MediaStatusResultSchema),
     updateMetadata: oc
       .route({ method: 'PUT', path: '/media/{mediaId}/metadata' })
       .input(MediaSchemas.UpdateMediaMetadataInputSchema)
       .output(z.boolean())
-      .errors(CommonPluginErrors),
-  }),
+  },
 
   // PROFILE DOMAIN - User profile operations
-  profile: oc.router({
+  profile: {
     get: oc
       .route({ method: 'GET', path: '/profile' })
       .input(ProfileSchemas.GetProfileInputSchema)
       .output(ProfileSchemas.UserProfileSchema)
-      .errors(CommonPluginErrors),
-  }),
+  },
 
   // RATE LIMIT DOMAIN - Rate limit checking
-  rateLimit: oc.router({
+  rateLimit: {
     check: oc
       .route({ method: 'GET', path: '/rate-limit' })
       .input(RateLimitSchemas.CheckRateLimitInputSchema)
       .output(RateLimitSchemas.RateLimitStatusSchema)
-      .errors(CommonPluginErrors),
-  }),
+  },
 });
 
 export type PlatformContract = typeof platformContract;

@@ -9,8 +9,5 @@
 	},
 	"files": ["tests/types.d.ts"],
 	"include": ["src/**/*", "tests/**/*"],
-	"exclude": ["node_modules", "dist"],
-	"references": [
-		{ "path": "../../packages/shared-contract" }
-	]
+	"exclude": ["node_modules", "dist"]
 }
