@@ -1,78 +1,58 @@
-import { Effect } from "every-plugin/effect";
-import { describe, expect, it } from "vitest";
-import { TemplateService } from "@/service";
+import { describe, expect, it, beforeEach } from "vitest";
+import { FarcasterService } from "@/service";
 
-describe("TemplateService", () => {
-  const service = new TemplateService(
-    "https://api.example.com",
-    "test-api-key",
-    5000
-  );
+describe("FarcasterService", () => {
+  const mockConfig = {
+    neynarApiKey: process.env.NEYNAR_API_KEY || "test-api-key",
+    farcasterDeveloperMnemonic: process.env.FARCASTER_DEVELOPER_MNEMONIC || "test test test test test test test test test test test test",
+    pinataJwt: process.env.PINATA_JWT || "test-jwt",
+    ipfsGatewayUrl: process.env.IPFS_GATEWAY_URL || "https://gateway.pinata.cloud/ipfs",
+    timeout: 10000,
+  };
 
-  describe("getById", () => {
-    it("should fetch item by id successfully", async () => {
-      const result = await Effect.runPromise(service.getById("test-123"));
+  let service: FarcasterService;
 
-      expect(result).toEqual({
-        id: "test-123",
-        title: "Item test-123",
-        createdAt: expect.any(String),
-      });
-    });
+  beforeEach(() => {
+    service = new FarcasterService(
+      mockConfig.neynarApiKey,
+      mockConfig.farcasterDeveloperMnemonic,
+      mockConfig.pinataJwt,
+      mockConfig.ipfsGatewayUrl,
+      mockConfig.timeout
+    );
+  });
 
-    it("should handle not found error", async () => {
-      await expect(
-        Effect.runPromise(service.getById("not-found"))
-      ).rejects.toThrow("Failed to fetch item: Item not found");
+  describe("constructor", () => {
+    it("should initialize all adapters", () => {
+      expect(service).toBeDefined();
+      // Service should be initialized with all adapters
+      expect((service as any).clientFactory).toBeDefined();
+      expect((service as any).authAdapter).toBeDefined();
+      expect((service as any).postAdapter).toBeDefined();
+      expect((service as any).mediaAdapter).toBeDefined();
+      expect((service as any).profileAdapter).toBeDefined();
+      expect((service as any).rateLimitAdapter).toBeDefined();
     });
   });
 
-  describe("search", () => {
-    it("should return search results as async generator", async () => {
-      const generator = await Effect.runPromise(
-        service.search("test-query", 3)
-      );
-
-      const results = [];
-      for await (const result of generator) {
-        results.push(result);
-      }
-
-      expect(results).toHaveLength(3);
-      expect(results[0]).toEqual({
-        item: {
-          id: "test-query-0",
-          title: "test-query result 1",
-          createdAt: expect.any(String),
-        },
-        score: 1,
-      });
-      expect(results[1].score).toBe(0.9);
-      expect(results[2].score).toBe(0.8);
-    });
-
-    it("should respect limit parameter", async () => {
-      const generator = await Effect.runPromise(
-        service.search("limited", 2)
-      );
-
-      const results = [];
-      for await (const result of generator) {
-        results.push(result);
-      }
-
-      expect(results).toHaveLength(2);
-    });
-  });
-
-  describe("ping", () => {
-    it("should return healthy status", async () => {
-      const result = await Effect.runPromise(service.ping());
-
-      expect(result).toEqual({
-        status: "ok",
-        timestamp: expect.any(String),
-      });
+  describe("service methods", () => {
+    it("should have all required methods", () => {
+      expect(typeof service.getAuthUrl).toBe("function");
+      expect(typeof service.exchangeCodeForToken).toBe("function");
+      expect(typeof service.refreshToken).toBe("function");
+      expect(typeof service.revokeToken).toBe("function");
+      expect(typeof service.createPost).toBe("function");
+      expect(typeof service.deletePost).toBe("function");
+      expect(typeof service.repost).toBe("function");
+      expect(typeof service.quotePost).toBe("function");
+      expect(typeof service.replyToPost).toBe("function");
+      expect(typeof service.likePost).toBe("function");
+      expect(typeof service.unlikePost).toBe("function");
+      expect(typeof service.uploadMedia).toBe("function");
+      expect(typeof service.getMediaStatus).toBe("function");
+      expect(typeof service.updateMediaMetadata).toBe("function");
+      expect(typeof service.getProfile).toBe("function");
+      expect(typeof service.checkRateLimit).toBe("function");
     });
   });
 });

@@ -6,15 +6,19 @@ import { FarcasterService } from './service';
 
 /**
  * Farcaster Platform Plugin
- * Implements the platform contract for Twitter/X social media operations
+ * Implements the platform contract for Farcaster/Neynar social media operations
  */
 export default createPlugin({
 
   variables: z.object({
-    
+    ipfsGatewayUrl: z.string().url().default('https://gateway.pinata.cloud/ipfs'),
+    timeout: z.number().default(10000),
   }),
 
   secrets: z.object({
+    farcasterDeveloperMnemonic: z.string(),
+    neynarApiKey: z.string(),
+    pinataJwt: z.string(),
   }),
 
   contract,
@@ -22,8 +26,11 @@ export default createPlugin({
   initialize: (config) =>
     Effect.gen(function* () {
       const service = new FarcasterService(
-        config.secrets.clientId,
-        config.secrets.clientSecret
+        config.secrets.neynarApiKey,
+        config.secrets.farcasterDeveloperMnemonic,
+        config.secrets.pinataJwt,
+        config.variables.ipfsGatewayUrl,
+        config.variables.timeout
       );
 
       return { service };

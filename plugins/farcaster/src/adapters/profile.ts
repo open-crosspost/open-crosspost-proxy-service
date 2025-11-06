@@ -1,6 +1,7 @@
 import { Effect } from 'every-plugin/effect';
 import { ClientFactory } from '../client-factory';
 import * as ProfileSchemas from '@crosspost/platform-contract';
+import { mapNeynarError } from '../utils/error-mapping';
 
 export class ProfileAdapter {
   constructor(
@@ -15,38 +16,49 @@ export class ProfileAdapter {
   get(input: ProfileSchemas.GetProfileInput): Effect.Effect<ProfileSchemas.UserProfile, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const client = yield* self.clientFactory.createClient(input.accessToken);
+      const client = yield* self.clientFactory.createClient();
 
       const result = yield* Effect.tryPromise({
         try: async () => {
-          const { data: user } = await client.v2.user(input.userId, {
-            'user.fields': [
-              'profile_image_url',
-              'username',
-              'name',
-              'description',
-              'verified',
-              'public_metrics',
-              'created_at'
-            ],
+          // Convert userId (FID) to number
+          const fid = parseInt(input.userId, 10);
+          if (isNaN(fid)) {
+            throw new Error(`Invalid FID: ${input.userId}`);
+          }
+
+          const response = await client.fetchBulkUsers({
+            fids: [fid],
           });
 
+          // fetchBulkUsers returns an object with 'users' array property
+          const users = 'users' in response && Array.isArray(response.users) 
+            ? response.users 
+            : Array.isArray(response) 
+              ? response 
+              : [];
+
+          if (!users || users.length === 0 || !users[0]) {
+            throw new Error(`User not found: ${input.userId}`);
+          }
+
+          const user = users[0];
+
           return {
-            id: user.id,
-            username: user.username,
-            displayName: user.name,
-            bio: user.description,
-            avatar: user.profile_image_url,
-            verified: user.verified,
-            followersCount: user.public_metrics?.followers_count,
-            followingCount: user.public_metrics?.following_count,
-            postsCount: user.public_metrics?.tweet_count,
-            createdAt: user.created_at,
+            id: String(user.fid),
+            username: user.username || '',
+            displayName: user.display_name || user.username || '',
+            bio: user.profile?.bio?.text || '',
+            avatar: user.pfp_url || '',
+            verified: user.verified || false,
+            followersCount: user.follower_count,
+            followingCount: user.following_count,
+            postsCount: user.custody_address ? undefined : undefined, // Neynar doesn't provide post count directly
+            createdAt: user.created_at ? new Date(user.created_at).toISOString() : undefined,
+            url: user.username ? `https://warpcast.com/${user.username}` : undefined,
           };
         },
         catch: (error) => {
-          console.error('Error getting user profile:', error);
-          throw new Error('Failed to get user profile');
+          throw mapNeynarError(error);
         }
       });
 

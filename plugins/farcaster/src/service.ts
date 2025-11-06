@@ -15,15 +15,18 @@ export class FarcasterService {
   private rateLimitAdapter: RateLimitAdapter;
 
   constructor(
-    private clientId: string,
-    private clientSecret: string
+    private neynarApiKey: string,
+    private farcasterDeveloperMnemonic: string,
+    private pinataJwt: string,
+    private ipfsGatewayUrl: string,
+    private timeout: number = 10000
   ) {
-    this.clientFactory = new ClientFactory(clientId, clientSecret);
-    this.authAdapter = new AuthAdapter(clientId, clientSecret);
-    this.postAdapter = new PostAdapter(this.clientFactory);
-    this.mediaAdapter = new MediaAdapter(this.clientFactory);
+    this.clientFactory = new ClientFactory(neynarApiKey);
+    this.authAdapter = new AuthAdapter(neynarApiKey, farcasterDeveloperMnemonic);
+    this.mediaAdapter = new MediaAdapter(this.clientFactory, pinataJwt, ipfsGatewayUrl);
+    this.postAdapter = new PostAdapter(this.clientFactory, this.mediaAdapter, ipfsGatewayUrl);
     this.profileAdapter = new ProfileAdapter(this.clientFactory);
-    this.rateLimitAdapter = new RateLimitAdapter(this.clientFactory);
+    this.rateLimitAdapter = new RateLimitAdapter();
   }
 
   // Auth methods

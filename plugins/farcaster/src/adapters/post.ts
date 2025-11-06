@@ -1,82 +1,97 @@
 import { Effect } from 'every-plugin/effect';
-import { SendTweetV2Params } from 'twitter-api-v2';
 import { ClientFactory } from '../client-factory';
+import { MediaAdapter } from './media';
 import * as PostSchemas from '@crosspost/platform-contract';
+import { FarcasterCastParams, FarcasterEmbed, cidEmbeds } from '../types';
+import { mapNeynarError } from '../utils/error-mapping';
 
 export class PostAdapter {
   constructor(
-    private clientFactory: ClientFactory
+    private clientFactory: ClientFactory,
+    private mediaAdapter: MediaAdapter,
+    private ipfsGatewayUrl: string
   ) {}
 
   /**
-   * Create a new post
+   * Create a new post (cast)
    * @param input The input parameters for creating a post
    * @returns The created post result
    */
   create(input: PostSchemas.CreatePostInput): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const client = yield* self.clientFactory.createClient(input.accessToken);
+      const client = yield* self.clientFactory.createClient();
+      const signerUuid = input.accessToken; // In Farcaster, accessToken is actually signerUuid
 
       // Handle single post or thread
       if (Array.isArray(input.content)) {
-        return yield* self.createThread(client, input.content);
+        return yield* self.createThread(client, signerUuid, input.content);
       }
 
-      return yield* self.createSinglePost(client, input.content);
+      return yield* self.createSinglePost(client, signerUuid, input.content);
     });
   }
 
   /**
-   * Delete a post
+   * Delete a post (cast)
    * @param input The input parameters for deleting a post
    * @returns The delete result
    */
   delete(input: PostSchemas.DeletePostInput): Effect.Effect<PostSchemas.DeleteResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const client = yield* self.clientFactory.createClient(input.accessToken);
+      const client = yield* self.clientFactory.createClient();
+      const signerUuid = input.accessToken;
+      const targetHash = self.extractCastHash(input.postId);
 
       yield* Effect.tryPromise({
         try: async () => {
-          await client.v2.deleteTweet(input.postId);
+          await client.deleteCast({
+            signerUuid,
+            targetHash,
+          });
         },
         catch: (error) => {
-          console.error('Error deleting post:', error);
-          throw new Error('Failed to delete post');
+          throw mapNeynarError(error);
         }
       });
 
       return {
         success: true,
-        id: input.postId
+        id: targetHash
       };
     });
   }
 
   /**
-   * Repost/retweet an existing post
+   * Repost/recast an existing post
    * @param input The input parameters for reposting
    * @returns The repost result
    */
   repost(input: PostSchemas.RepostInput): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const client = yield* self.clientFactory.createClient(input.accessToken);
+      const client = yield* self.clientFactory.createClient();
+      const signerUuid = input.accessToken;
+      const target = self.resolveTarget(input.postId);
 
-      yield* Effect.tryPromise({
+      const result = yield* Effect.tryPromise({
         try: async () => {
-          await client.v2.retweet(input.userId, input.postId);
+          return await client.publishReaction({
+            signerUuid,
+            reactionType: 'recast',
+            target,
+          });
         },
         catch: (error) => {
-          console.error('Error reposting:', error);
-          throw new Error('Failed to repost');
+          throw mapNeynarError(error);
         }
       });
 
       return {
         id: input.postId,
         createdAt: new Date().toISOString(),
+        success: result?.success || false,
       };
     });
   }
@@ -89,14 +104,15 @@ export class PostAdapter {
   quote(input: PostSchemas.QuotePostInput): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const client = yield* self.clientFactory.createClient(input.accessToken);
+      const client = yield* self.clientFactory.createClient();
+      const signerUuid = input.accessToken;
 
       // Handle single quote or thread quote
       if (Array.isArray(input.content)) {
-        return yield* self.createQuoteThread(client, input.postId, input.content);
+        return yield* self.createQuoteThread(client, signerUuid, input.postId, input.content);
       }
 
-      return yield* self.createQuotePost(client, input.postId, input.content);
+      return yield* self.createQuotePost(client, signerUuid, input.postId, input.content);
     });
   }
 
@@ -108,14 +124,15 @@ export class PostAdapter {
   reply(input: PostSchemas.ReplyInput): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const client = yield* self.clientFactory.createClient(input.accessToken);
+      const client = yield* self.clientFactory.createClient();
+      const signerUuid = input.accessToken;
 
       // Handle single reply or thread reply
       if (Array.isArray(input.content)) {
-        return yield* self.createReplyThread(client, input.postId, input.content);
+        return yield* self.createReplyThread(client, signerUuid, input.postId, input.content);
       }
 
-      return yield* self.createReplyPost(client, input.postId, input.content);
+      return yield* self.createReplyPost(client, signerUuid, input.postId, input.content);
     });
   }
 
@@ -127,20 +144,25 @@ export class PostAdapter {
   like(input: PostSchemas.LikeInput): Effect.Effect<PostSchemas.LikeResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const client = yield* self.clientFactory.createClient(input.accessToken);
+      const client = yield* self.clientFactory.createClient();
+      const signerUuid = input.accessToken;
+      const target = self.resolveTarget(input.postId);
 
-      yield* Effect.tryPromise({
+      const result = yield* Effect.tryPromise({
         try: async () => {
-          await client.v2.like(input.userId, input.postId);
+          return await client.publishReaction({
+            signerUuid,
+            reactionType: 'like',
+            target,
+          });
         },
         catch: (error) => {
-          console.error('Error liking post:', error);
-          throw new Error('Failed to like post');
+          throw mapNeynarError(error);
         }
       });
 
       return {
-        success: true,
+        success: result?.success || false,
         id: input.postId
       };
     });
@@ -154,20 +176,25 @@ export class PostAdapter {
   unlike(input: PostSchemas.UnlikeInput): Effect.Effect<PostSchemas.LikeResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const client = yield* self.clientFactory.createClient(input.accessToken);
+      const client = yield* self.clientFactory.createClient();
+      const signerUuid = input.accessToken;
+      const target = self.resolveTarget(input.postId);
 
-      yield* Effect.tryPromise({
+      const result = yield* Effect.tryPromise({
         try: async () => {
-          await client.v2.unlike(input.userId, input.postId);
+          return await client.deleteReaction({
+            signerUuid,
+            reactionType: 'like',
+            target,
+          });
         },
         catch: (error) => {
-          console.error('Error unliking post:', error);
-          throw new Error('Failed to unlike post');
+          throw mapNeynarError(error);
         }
       });
 
       return {
-        success: true,
+        success: result?.success || false,
         id: input.postId
       };
     });
@@ -175,179 +202,435 @@ export class PostAdapter {
 
   // Private helper methods
 
-  private createSinglePost(client: any, content: PostSchemas.PostContent): Effect.Effect<PostSchemas.PostResult, Error> {
+  private createSinglePost(
+    client: any,
+    signerUuid: string,
+    content: PostSchemas.PostContent
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const text = content?.text || '';
-      const tweetData: SendTweetV2Params = { text };
-
-      // TODO: Handle media uploads
-      // For now, just create text-only posts
-
-      const result = yield* Effect.tryPromise({
-        try: async () => await client.v2.tweet(tweetData),
-        catch: (error) => {
-          console.error('Error creating single post:', error);
-          throw new Error('Failed to create post');
-        }
-      });
-
-      return {
-        id: result.data.id,
-        text: result.data.text,
-        createdAt: new Date().toISOString(),
+      const cast: FarcasterCastParams = {
+        signerUuid,
+        text: content?.text || '',
       };
-    });
-  }
 
-  private createThread(client: any, contentArray: PostSchemas.PostContent[]): Effect.Effect<PostSchemas.PostResult, Error> {
-    const self = this;
-    return Effect.gen(function* () {
-      const formattedTweets: SendTweetV2Params[] = [];
-
-      for (const content of contentArray) {
-        const text = content?.text || '';
-        formattedTweets.push({ text });
+      // Handle media if present
+      let mediaIds: string[] = [];
+      if (content.media?.length) {
+        // Upload media files
+        for (const media of content.media) {
+          const uploadResult = yield* self.mediaAdapter.upload({
+            userId: signerUuid,
+            accessToken: signerUuid,
+            media,
+          });
+          mediaIds.push(uploadResult.mediaId);
+        }
+        
+        // Add embeds (max 2)
+        const embeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
+        if (embeds) {
+          cast.embeds = embeds;
+        }
       }
 
       const result = yield* Effect.tryPromise({
-        try: async () => await client.v2.tweetThread(formattedTweets),
+        try: async () => await client.publishCast(cast),
         catch: (error) => {
-          console.error('Error creating thread:', error);
-          throw new Error('Failed to create thread');
+          throw mapNeynarError(error);
         }
       });
 
       return {
-        id: result[0].data.id,
-        text: result[0].data.text,
+        id: result.cast.hash,
+        text: result.cast.text ?? cast.text ?? '',
         createdAt: new Date().toISOString(),
-        threadIds: result.map((tweet: any) => tweet.data.id),
+        mediaIds,
       };
     });
   }
 
-  private createQuotePost(client: any, postId: string, content: PostSchemas.PostContent): Effect.Effect<PostSchemas.PostResult, Error> {
+  private createThread(
+    client: any,
+    signerUuid: string,
+    contentArray: PostSchemas.PostContent[]
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const text = content?.text || '';
-      const tweetData: SendTweetV2Params = {
-        text,
-        quote_tweet_id: postId
+      const threadIds: string[] = [];
+      let firstHash = '';
+      let firstText = '';
+      let firstMediaIds: string[] = [];
+      let parentHash: string | undefined;
+
+      for (let i = 0; i < contentArray.length; i++) {
+        const item = contentArray[i];
+        if (!item) continue;
+
+        const cast: FarcasterCastParams = {
+          signerUuid,
+          text: item.text || '',
+          ...(parentHash ? { parent: parentHash } : {}),
+        };
+
+        let mediaIds: string[] = [];
+        if (item.media?.length) {
+          for (const media of item.media) {
+            const uploadResult = yield* self.mediaAdapter.upload({
+              userId: signerUuid,
+              accessToken: signerUuid,
+              media,
+            });
+            mediaIds.push(uploadResult.mediaId);
+          }
+          
+          const embeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
+          if (embeds) {
+            cast.embeds = embeds;
+          }
+        }
+
+        const res = yield* Effect.tryPromise({
+          try: async () => await client.publishCast(cast),
+          catch: (error) => {
+            throw mapNeynarError(error);
+          }
+        });
+
+        const hash = res.cast.hash;
+
+        if (i === 0) {
+          firstHash = hash;
+          firstText = res.cast.text ?? cast.text ?? '';
+          firstMediaIds = mediaIds;
+        }
+
+        threadIds.push(hash);
+        parentHash = hash; // chain replies to form a thread
+      }
+
+      return {
+        id: firstHash,
+        text: firstText,
+        createdAt: new Date().toISOString(),
+        mediaIds: firstMediaIds,
+        threadIds,
+      };
+    });
+  }
+
+  private createQuotePost(
+    client: any,
+    signerUuid: string,
+    postId: string,
+    content: PostSchemas.PostContent
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
+    const self = this;
+    return Effect.gen(function* () {
+      // Build quote cast (embed target cast; not a reply)
+      const cast: FarcasterCastParams = {
+        signerUuid,
+        text: content.text ?? '',
       };
 
-      const result = yield* Effect.tryPromise({
-        try: async () => await client.v2.tweet(tweetData),
+      // Build the cast embed (needs fid). Try to resolve it
+      const quoteEmbed = yield* self.buildQuoteEmbed(client, postId);
+      cast.embeds = [quoteEmbed];
+
+      // Handle media if present (CIDs -> { url } embeds, obey max 2 total)
+      let mediaIds: string[] = [];
+      if (content.media?.length) {
+        for (const media of content.media) {
+          const uploadResult = yield* self.mediaAdapter.upload({
+            userId: signerUuid,
+            accessToken: signerUuid,
+            media,
+          });
+          mediaIds.push(uploadResult.mediaId);
+        }
+        
+        // Merge media embeds with quote embed (max 2 total)
+        const mediaEmbeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
+        if (mediaEmbeds) {
+          const allEmbeds: FarcasterEmbed[] = [quoteEmbed, ...mediaEmbeds].slice(0, 2);
+          cast.embeds = allEmbeds as FarcasterCastParams['embeds'];
+        }
+      }
+
+      const res = yield* Effect.tryPromise({
+        try: async () => await client.publishCast(cast),
         catch: (error) => {
-          console.error('Error creating quote post:', error);
-          throw new Error('Failed to create quote post');
+          throw mapNeynarError(error);
         }
       });
 
       return {
-        id: result.data.id,
-        text: result.data.text,
+        id: res.cast.hash,
+        text: res.cast.text ?? cast.text ?? '',
         createdAt: new Date().toISOString(),
+        mediaIds,
         quotedPostId: postId,
       };
     });
   }
 
-  private createQuoteThread(client: any, postId: string, contentArray: PostSchemas.PostContent[]): Effect.Effect<PostSchemas.PostResult, Error> {
+  private createQuoteThread(
+    client: any,
+    signerUuid: string,
+    postId: string,
+    contentArray: PostSchemas.PostContent[]
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const formattedTweets: SendTweetV2Params[] = [];
+      const threadIds: string[] = [];
+      let first: { hash: string; text: string; mediaIds: string[] } | null = null;
+      let parentHash: string | null = null;
+
+      // Build quote embed once
+      const quoteEmbed = yield* self.buildQuoteEmbed(client, postId);
 
       for (let i = 0; i < contentArray.length; i++) {
-        const content = contentArray[i];
-        const text = content?.text || '';
-        const tweetData: SendTweetV2Params = { text };
+        const item = contentArray[i];
+        if (!item) continue;
 
-        // Add quote to first tweet only
+        const cast: FarcasterCastParams = {
+          signerUuid,
+          text: item.text ?? '',
+        };
+
+        // First cast quotes the target; subsequent casts reply to previous
         if (i === 0) {
-          tweetData.quote_tweet_id = postId;
+          cast.embeds = [quoteEmbed];
+        } else if (parentHash) {
+          cast.parent = parentHash; // chain the thread
         }
 
-        formattedTweets.push(tweetData);
+        let mediaIds: string[] = [];
+        if (item.media?.length) {
+          for (const media of item.media) {
+            const uploadResult = yield* self.mediaAdapter.upload({
+              userId: signerUuid,
+              accessToken: signerUuid,
+              media,
+            });
+            mediaIds.push(uploadResult.mediaId);
+          }
+          
+          // Merge media embeds with quote embed (max 2 total)
+          const mediaEmbeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
+          if (mediaEmbeds && i === 0) {
+            const allEmbeds: FarcasterEmbed[] = [quoteEmbed, ...mediaEmbeds].slice(0, 2);
+            cast.embeds = allEmbeds as FarcasterCastParams['embeds'];
+          } else if (mediaEmbeds) {
+            cast.embeds = mediaEmbeds;
+          }
+        }
+
+        const res = yield* Effect.tryPromise({
+          try: async () => await client.publishCast(cast),
+          catch: (error) => {
+            throw mapNeynarError(error);
+          }
+        });
+
+        const hash = res.cast.hash;
+
+        if (i === 0) {
+          first = {
+            hash,
+            text: res.cast.text ?? cast.text ?? '',
+            mediaIds,
+          };
+        }
+
+        threadIds.push(hash);
+        parentHash = hash;
       }
 
-      const result = yield* Effect.tryPromise({
-        try: async () => await client.v2.tweetThread(formattedTweets),
-        catch: (error) => {
-          console.error('Error creating quote thread:', error);
-          throw new Error('Failed to create quote thread');
-        }
-      });
-
       return {
-        id: result[0].data.id,
-        text: result[0].data.text,
+        id: first?.hash ?? '',
+        text: first?.text ?? '',
         createdAt: new Date().toISOString(),
         quotedPostId: postId,
-        threadIds: result.map((tweet: any) => tweet.data.id),
+        mediaIds: first?.mediaIds ?? [],
+        threadIds,
       };
     });
   }
 
-  private createReplyPost(client: any, postId: string, content: PostSchemas.PostContent): Effect.Effect<PostSchemas.PostResult, Error> {
+  private createReplyPost(
+    client: any,
+    signerUuid: string,
+    postId: string,
+    content: PostSchemas.PostContent
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
     const self = this;
     return Effect.gen(function* () {
-      const text = content?.text || '';
-      const tweetData: SendTweetV2Params = {
-        text,
-        reply: { in_reply_to_tweet_id: postId }
+      const cast: FarcasterCastParams = {
+        signerUuid,
+        text: content.text || '',
+        parent: postId, // parent is the cast hash you're replying to
       };
 
-      const result = yield* Effect.tryPromise({
-        try: async () => await client.v2.tweet(tweetData),
-        catch: (error) => {
-          console.error('Error creating reply post:', error);
-          throw new Error('Failed to create reply post');
+      // Handle media
+      let mediaIds: string[] = [];
+      if (content.media?.length) {
+        for (const media of content.media) {
+          const uploadResult = yield* self.mediaAdapter.upload({
+            userId: signerUuid,
+            accessToken: signerUuid,
+            media,
+          });
+          mediaIds.push(uploadResult.mediaId);
         }
-      });
-
-      return {
-        id: result.data.id,
-        text: result.data.text,
-        createdAt: new Date().toISOString(),
-        inReplyToId: postId,
-      };
-    });
-  }
-
-  private createReplyThread(client: any, postId: string, contentArray: PostSchemas.PostContent[]): Effect.Effect<PostSchemas.PostResult, Error> {
-    const self = this;
-    return Effect.gen(function* () {
-      const formattedTweets: SendTweetV2Params[] = [];
-
-      for (let i = 0; i < contentArray.length; i++) {
-        const content = contentArray[i];
-        const text = content?.text || '';
-        const tweetData: SendTweetV2Params = { text };
-
-        // Add reply to first tweet only
-        if (i === 0) {
-          tweetData.reply = { in_reply_to_tweet_id: postId };
+        
+        const embeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
+        if (embeds) {
+          cast.embeds = embeds;
         }
-
-        formattedTweets.push(tweetData);
       }
 
-      const result = yield* Effect.tryPromise({
-        try: async () => await client.v2.tweetThread(formattedTweets),
+      const res = yield* Effect.tryPromise({
+        try: async () => await client.publishCast(cast),
         catch: (error) => {
-          console.error('Error creating reply thread:', error);
-          throw new Error('Failed to create reply thread');
+          throw mapNeynarError(error);
         }
       });
 
       return {
-        id: result[0].data.id,
-        text: result[0].data.text,
+        id: res.cast.hash,
+        text: res.cast.text ?? cast.text ?? '',
         createdAt: new Date().toISOString(),
+        mediaIds,
         inReplyToId: postId,
-        threadIds: result.map((tweet: any) => tweet.data.id),
       };
     });
+  }
+
+  private createReplyThread(
+    client: any,
+    signerUuid: string,
+    postId: string,
+    contentArray: PostSchemas.PostContent[]
+  ): Effect.Effect<PostSchemas.PostResult, Error> {
+    const self = this;
+    return Effect.gen(function* () {
+      const threadIds: string[] = [];
+      let parentHash = postId;
+      let firstRes: { hash: string; text?: string } | null = null;
+      let firstMediaIds: string[] = [];
+
+      for (let i = 0; i < contentArray.length; i++) {
+        const item = contentArray[i];
+        if (!item) continue;
+
+        const cast: FarcasterCastParams = {
+          signerUuid,
+          text: item.text || '',
+          parent: parentHash,
+        };
+
+        let mediaIds: string[] = [];
+        if (item.media?.length) {
+          for (const media of item.media) {
+            const uploadResult = yield* self.mediaAdapter.upload({
+              userId: signerUuid,
+              accessToken: signerUuid,
+              media,
+            });
+            mediaIds.push(uploadResult.mediaId);
+          }
+          
+          const embeds = cidEmbeds(mediaIds, self.ipfsGatewayUrl);
+          if (embeds) {
+            cast.embeds = embeds;
+          }
+        }
+
+        const res = yield* Effect.tryPromise({
+          try: async () => await client.publishCast(cast),
+          catch: (error) => {
+            throw mapNeynarError(error);
+          }
+        });
+
+        const hash = res.cast.hash;
+
+        if (i === 0) {
+          firstRes = { hash, text: res.cast.text ?? cast.text ?? '' };
+          firstMediaIds = mediaIds;
+        }
+
+        threadIds.push(hash);
+        parentHash = hash; // next reply chains to this one
+      }
+
+      return {
+        id: firstRes?.hash ?? '',
+        text: firstRes?.text ?? '',
+        createdAt: new Date().toISOString(),
+        inReplyToId: postId,
+        mediaIds: firstMediaIds,
+        threadIds,
+      };
+    });
+  }
+
+  /** Resolve a cast embed using hash → fid lookup; throws if fid can't be found */
+  private buildQuoteEmbed(
+    client: any,
+    castHash: string
+  ): Effect.Effect<FarcasterEmbed, Error> {
+    return Effect.gen(function* () {
+      // If caller passed a URL, just use a URL embed
+      if (castHash.startsWith('http://') || castHash.startsWith('https://')) {
+        return { url: castHash };
+      }
+
+      // Try to get cast info to extract fid
+      const cast = yield* Effect.tryPromise({
+        try: async () => {
+          // Try to fetch cast by hash
+          const result = await client.lookUpCastByHash({ hash: castHash });
+          if (!result?.cast?.author?.fid) {
+            throw new Error('Cast not found or missing author FID');
+          }
+          return result;
+        },
+        catch: (error) => {
+          // If we can't resolve, fall back to URL embed
+          console.warn('Could not resolve cast hash, using URL embed:', error);
+          throw error;
+        }
+      }).pipe(
+        Effect.catchAll(() => 
+          Effect.succeed({ url: `https://warpcast.com/~/conversations/${castHash}` } as FarcasterEmbed)
+        )
+      );
+
+      if (cast?.cast?.author?.fid) {
+        const fid = typeof cast.cast.author.fid === 'string' 
+          ? parseInt(cast.cast.author.fid, 10)
+          : cast.cast.author.fid;
+        return { cast_id: { hash: castHash, fid } };
+      }
+
+      // Fallback: use Warpcast URL
+      return { url: `https://warpcast.com/~/conversations/${castHash}` };
+    });
+  }
+
+  /** Accepts a hash or a Warpcast URL and returns the cast hash */
+  private extractCastHash(input: string): string {
+    if (input.startsWith('0x')) return input;
+    const m = input.match(/0x[a-fA-F0-9]+/);
+    return m ? m[0] : input;
+  }
+
+  /** Accepts a hash or a Warpcast URL and returns the target to send to Neynar */
+  private resolveTarget(input: string): string {
+    if (/^https?:\/\//i.test(input)) return input; // URL targets are allowed
+    const m = input.match(/0x[0-9a-fA-F]+/); // cast hash
+    return m ? m[0] : input;
   }
 }
