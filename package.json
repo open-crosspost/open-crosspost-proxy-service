@@ -7,12 +7,20 @@
       "apps/*",
       "packages/*",
       "plugins/*"
-    ]
+    ],
+    "catalog": {
+      "every-plugin": "link:every-plugin",
+      "@orpc/client": "^1.10.0",
+      "@orpc/openapi": "^1.10.0",
+      "@orpc/server": "^1.10.0",
+      "@orpc/zod": "^1.10.0",
+      "zod": "^4.1.12"
+    }
   },
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "check-types": "turbo type-check"
+    "check-types": "turbo check-types"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

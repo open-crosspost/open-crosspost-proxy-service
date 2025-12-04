@@ -1,11 +1,5 @@
-import type TwitterPlugin from "@crosspost/twitter";
+import TwitterPlugin from "@crosspost/twitter";
 import { createPluginRuntime } from "every-plugin";
-
-declare module "every-plugin" {
-  interface RegisteredPlugins {
-    "@crosspost/twitter": typeof TwitterPlugin;
-  }
-}
 
 const env = {
   TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID!,
@@ -15,7 +9,7 @@ const env = {
 export const runtime = createPluginRuntime({
   registry: {
     "@crosspost/twitter": {
-      remoteUrl: process.env.TWITTER_PLUGIN_URL || "http://localhost:3014/remoteEntry.js",
+      module: TwitterPlugin,
     },
   },
   secrets: env,

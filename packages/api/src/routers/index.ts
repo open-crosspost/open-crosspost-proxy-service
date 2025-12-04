@@ -1,5 +1,5 @@
-import type { RouterClient } from "@orpc/server";
-import { os } from "@orpc/server";
+import type { RouterClient } from "every-plugin/orpc";
+import { os } from "every-plugin/orpc";
 import { plugins } from "../plugins";
 
 export const router = {

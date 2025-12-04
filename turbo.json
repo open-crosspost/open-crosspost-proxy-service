@@ -1,6 +1,7 @@
 {
 	"$schema": "https://turbo.build/schema.json",
 	"ui": "tui",
+	"globalEnv": ["NODE_ENV"],
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],
@@ -10,12 +11,18 @@
 		"lint": {
 			"dependsOn": ["^lint"]
 		},
-		"type-check": {
-			"dependsOn": ["^type-check"]
+		"check-types": {
+			"dependsOn": ["^check-types"]
 		},
 		"dev": {
 			"cache": false,
 			"persistent": true
+		},
+		"start": {
+			"dependsOn": ["build"],
+			"cache": false,
+			"persistent": true,
+			"inputs": ["dist/**", ".env*"]
 		},
 		"apps/server#dev": {
 			"dependsOn": ["^build"]
