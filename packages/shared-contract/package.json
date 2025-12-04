@@ -1,0 +1,19 @@
+{
+  "name": "@crosspost/platform-contract",
+  "version": "1.0.0",
+  "description": "Shared contract for Crosspost platform plugins",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "every-plugin": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

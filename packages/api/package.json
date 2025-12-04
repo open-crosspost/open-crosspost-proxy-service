@@ -1,0 +1,18 @@
+{
+  "name": "@crosspost/api",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@crosspost/twitter": "workspace:*",
+    "@orpc/openapi": "catalog:",
+    "@orpc/zod": "catalog:",
+    "every-plugin": "catalog:",
+    "zod": "catalog:"
+  }
+}

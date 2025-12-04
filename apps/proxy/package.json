@@ -1,0 +1,10 @@
+{
+  "name": "open-crosspost-proxy-service",
+  "private": true,
+	"scripts": {
+		"dev": "deno task dev",
+		"test": "deno task test",
+		"lint": "deno task lint",
+		"fmt": "deno task fmt"
+	}
+}

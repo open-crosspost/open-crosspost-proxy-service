@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "moduleResolution": "nodenext",
-    "outDir": "./dist",
-    "lib": ["ES2020"],
-    "types": ["node"]
-  }
-}
