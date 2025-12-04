@@ -9,7 +9,7 @@
       "plugins/*"
     ],
     "catalog": {
-      "every-plugin": "link:every-plugin",
+      "every-plugin": "^0.6.1",
       "@orpc/client": "^1.10.0",
       "@orpc/openapi": "^1.10.0",
       "@orpc/server": "^1.10.0",
