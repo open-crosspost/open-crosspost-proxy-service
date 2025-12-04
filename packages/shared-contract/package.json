@@ -3,22 +3,15 @@
   "version": "1.0.0",
   "description": "Shared contract for Crosspost platform plugins",
   "type": "module",
-  "main": "./index.ts",
-  "types": "./index.ts",
   "exports": {
-    ".": {
-      "types": "./index.ts",
-      "default": "./index.ts"
-    }
+    ".": "./index.ts"
   },
+  "sideEffects": false,
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "every-plugin": "catalog:"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"

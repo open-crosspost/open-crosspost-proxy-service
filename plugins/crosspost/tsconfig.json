@@ -28,7 +28,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "files": ["src/__tests__/types.d.ts"],
+  "files": ["tests/types.d.ts"],
   "include": ["src/**/*", "plugin.dev.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -10,6 +10,7 @@
     "@crosspost/api": "workspace:*",
     "@orpc/openapi": "^1.10.3",
     "@orpc/zod": "^1.10.3",
+    "every-plugin": "catalog:",
     "hono": "^4.10.4"
   },
   "devDependencies": {
