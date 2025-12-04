@@ -16,6 +16,9 @@
 		"dev": {
 			"cache": false,
 			"persistent": true
+		},
+		"apps/server#dev": {
+			"dependsOn": ["^build"]
 		}
 	}
 }

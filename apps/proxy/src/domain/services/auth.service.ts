@@ -1,5 +1,5 @@
 import { PlatformName, UserProfile } from '@crosspost/types';
-import { pluginClient } from '../../infrastructure/rpc/plugin-client.js';
+import { pluginClient } from '../../infrastructure/rpc/client.js';
 import { NearAuthService } from '../../infrastructure/security/near-auth-service.js';
 import { AuthToken } from '../../infrastructure/storage/auth-token-storage.js';
 import { PrefixedKvStore } from '../../utils/kv-store.utils.js';

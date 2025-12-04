@@ -1,5 +1,5 @@
 import { ApiErrorCode } from '@crosspost/types';
-import { Context, MiddlewareHandler, Next } from '../../deps.ts';
+import { Context, MiddlewareHandler, Next } from '../../deps.js';
 import { ApiError, createApiError } from '../errors/api-error.js';
 import { PrefixedKvStore } from '../utils/kv-store.utils.js';
 

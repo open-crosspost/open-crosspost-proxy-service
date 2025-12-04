@@ -1,4 +1,4 @@
-import { cors as honoCors, MiddlewareHandler } from '../../deps.ts';
+import { cors as honoCors, MiddlewareHandler } from '../../deps.js';
 import { getAllowedOrigins, isDevelopment, isProduction, isStaging } from '../config/env.js';
 
 export const corsMiddleware = (): MiddlewareHandler => {

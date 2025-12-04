@@ -1,4 +1,4 @@
-import { Context, Next } from '../../deps.ts';
+import { Context, Next } from '../../deps.js';
 import * as uuid from 'jsr:@std/uuid';
 
 /**

@@ -4,7 +4,7 @@ import {
   PlatformName,
   SupportedPlatformName,
 } from '@crosspost/types';
-import { Context, Next } from '../../deps.ts';
+import { Context, Next } from '../../deps.js';
 import { createApiError } from '../errors/api-error.js';
 export class PlatformMiddleware {
   /**

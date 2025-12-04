@@ -8,7 +8,7 @@ import {
   PlatformName,
   ProfileRefreshResponse,
 } from '@crosspost/types';
-import { Context } from '../../deps.ts';
+import { Context } from '../../deps.js';
 import { AuthService } from '../domain/services/auth.service.js';
 import { ApiError, createApiError } from '../errors/api-error.js';
 import { createPlatformError, PlatformError } from '../errors/platform-error.js';

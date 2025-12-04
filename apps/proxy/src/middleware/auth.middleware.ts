@@ -1,5 +1,5 @@
 import { ApiErrorCode, errorCodeToStatusCode } from '@crosspost/types';
-import { Context, MiddlewareHandler, Next } from '../../deps.ts';
+import { Context, MiddlewareHandler, Next } from '../../deps.js';
 import { ApiError, createApiError } from '../errors/api-error.js';
 import { NearAuthService } from '../infrastructure/security/near-auth-service.js';
 import { createErrorDetail, createErrorResponse } from '../utils/response.utils.js';

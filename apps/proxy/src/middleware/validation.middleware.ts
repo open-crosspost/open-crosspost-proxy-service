@@ -1,5 +1,5 @@
 import { ApiErrorCode, errorCodeToStatusCode } from '@crosspost/types';
-import { Context, Next, z } from '../../deps.ts';
+import { Context, Next, z } from '../../deps.js';
 import { createErrorDetail, createErrorResponse } from '../utils/response.utils.js';
 
 export class ValidationMiddleware {

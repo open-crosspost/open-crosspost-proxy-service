@@ -1,6 +1,6 @@
 import type { CreatePostRequest, PostResult } from '@crosspost/types';
 import { ActivityType } from '@crosspost/types';
-import { Context } from '../../../deps.ts';
+import { Context } from '../../../deps.js';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.js';
 import { AuthService } from '../../domain/services/auth.service.js';
 import { PostService } from '../../domain/services/post.service.js';

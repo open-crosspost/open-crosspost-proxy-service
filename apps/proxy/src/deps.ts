@@ -1,2 +1,2 @@
-// Re-export from root deps.ts
-export * from '../deps.ts';
+// Re-export from root deps.js
+export * from '../deps.js';

@@ -1,4 +1,4 @@
-import { Context } from '../../deps.ts';
+import { Context } from '../../deps.js';
 import { PlatformName } from '@crosspost/types';
 
 /**

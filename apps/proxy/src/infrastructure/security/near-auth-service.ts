@@ -1,5 +1,5 @@
 import { ApiErrorCode, PlatformName } from '@crosspost/types';
-import { Context } from '../../../deps.ts';
+import { Context } from '../../../deps.js';
 import { parseAuthToken, verify } from '../../deps.js';
 import { createApiError } from '../../errors/api-error.js';
 import { getSecureEnv, isProduction } from '../../config/env.js';

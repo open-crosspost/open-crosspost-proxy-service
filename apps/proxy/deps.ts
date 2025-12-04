@@ -48,6 +48,3 @@ export * as viem from "viem";
 
 // Neynar SDK
 export * as Neynar from "@neynar/nodejs-sdk";
-
-// every-plugin runtime
-export { createPluginRuntime } from 'every-plugin/runtime';

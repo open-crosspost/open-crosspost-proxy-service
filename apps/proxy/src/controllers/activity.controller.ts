@@ -11,7 +11,7 @@ import {
   ApiErrorCode,
   TimePeriod,
 } from '@crosspost/types';
-import { Context } from '../../deps.ts';
+import { Context } from '../../deps.js';
 import { ActivityTrackingService } from '../domain/services/activity-tracking.service.js';
 import { createApiError } from '../errors/api-error.js';
 import { createSuccessResponse } from '../utils/response.utils.js';

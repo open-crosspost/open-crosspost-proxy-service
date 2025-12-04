@@ -7,16 +7,18 @@ declare module "every-plugin" {
   }
 }
 
+const env = {
+  TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID!,
+  TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET!,
+};
+
 export const runtime = createPluginRuntime({
   registry: {
     "@crosspost/twitter": {
       remoteUrl: process.env.TWITTER_PLUGIN_URL || "http://localhost:3014/remoteEntry.js",
     },
   },
-  secrets: {
-    TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID!,
-    TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET!,
-  },
+  secrets: env,
 });
 
 const twitter = await runtime.usePlugin("@crosspost/twitter", {

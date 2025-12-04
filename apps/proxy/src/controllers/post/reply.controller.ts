@@ -1,4 +1,4 @@
-import { Context } from '../../../deps.ts';
+import { Context } from '../../../deps.js';
 import type { PostResult, ReplyToPostRequest } from '@crosspost/types';
 import { ActivityType } from '@crosspost/types';
 import { ActivityTrackingService } from '../../domain/services/activity-tracking.service.js';

@@ -4,6 +4,8 @@ import { onError } from '@orpc/server'
 import { OpenAPIHandler } from '@orpc/openapi/fetch'
 import { OpenAPIReferencePlugin } from '@orpc/openapi/plugins'
 import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4'
+
+// router & context
 import { router } from '@crosspost/api/routers'
 import { createContext } from '@crosspost/api/context'
 
@@ -71,7 +73,6 @@ app.all('/api/*', async (c) => {
 app.all('*', (c) => c.text('Not Found', 404))
 
 const port = Number(process.env.PORT) || 8787
-console.log(`🚀 Plugin Service running on http://localhost:${port}`)
 
 export default {
   port: port,

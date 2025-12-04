@@ -19,7 +19,7 @@
     "declaration": true,
     "removeComments": false,
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "skipLibCheck": true
   },

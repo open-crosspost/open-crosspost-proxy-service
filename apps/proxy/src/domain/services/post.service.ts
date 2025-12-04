@@ -1,5 +1,5 @@
 import { DeleteResult, LikeResult, PlatformName, PostContent, PostResult } from '@crosspost/types';
-import { pluginClient } from '../../infrastructure/rpc/plugin-client.js';
+import { pluginClient } from '../../infrastructure/rpc/client.js';
 import { NearAuthService } from '../../infrastructure/security/near-auth-service.js';
 
 export class PostService {

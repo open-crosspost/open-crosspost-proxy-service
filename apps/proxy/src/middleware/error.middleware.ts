@@ -1,5 +1,5 @@
 import { ApiErrorCode, type ErrorDetail } from '@crosspost/types';
-import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.ts';
+import { Context, HTTPException, MiddlewareHandler, Next } from '../../deps.js';
 import { ApiError } from '../errors/api-error.js';
 import { PlatformError } from '../errors/platform-error.js';
 import { createErrorDetail, createErrorResponse } from '../utils/response.utils.js';

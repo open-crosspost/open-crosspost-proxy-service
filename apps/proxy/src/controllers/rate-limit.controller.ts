@@ -1,5 +1,5 @@
 import { PlatformName, RateLimitStatus } from '@crosspost/types';
-import { Context } from '../../deps.ts';
+import { Context } from '../../deps.js';
 import { RateLimitService } from '../domain/services/rate-limit.service.js';
 import { UsageRateLimitMiddleware } from '../middleware/usage-rate-limit.middleware.js';
 import { PrefixedKvStore } from '../utils/kv-store.utils.js';
